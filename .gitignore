@@ -1,0 +1,38 @@
+# Environment and local configuration
+.env
+.env.*
+!.env.example
+
+# Dependencies
+/vendor/
+
+# CodeIgniter runtime files
+/writable/cache/*
+/writable/debugbar/*
+/writable/logs/*
+/writable/session/*
+/writable/uploads/*
+
+# Keep directory placeholders
+!.gitkeep
+!/writable/**/.gitkeep
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.code-workspace
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Test and coverage output
+.phpunit.result.cache
+/coverage/
+
+# Temporary and generated files
+*.log
+*.tmp
+*.temp
+*.cache
+*.zip
+*.bak
