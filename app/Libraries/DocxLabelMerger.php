@@ -5,25 +5,6 @@ namespace App\Libraries;
 use RuntimeException;
 use ZipArchive;
 
-/**
- * DocxLabelMerger
- * ----------------
- * Mesin inti pencetakan price tag. Prinsip kerja:
- *
- *   1. Template .docx TIDAK PERNAH diubah strukturnya. Kita hanya mengganti
- *      teks placeholder "<<Nama>>" yang ada di dalam word/document.xml dengan
- *      nilai data produk, lalu menulis ulang menjadi file .docx baru.
- *   2. File .docx hasil merge dikonversi ke PDF memakai LibreOffice headless
- *      (soffice), yang membaca dokumen Word apa adanya sehingga tampilan
- *      (WordArt, warna, posisi) identik dengan aslinya di Microsoft Word.
- *   3. Jika satu produk dicetak beberapa pcs (qty), halaman PDF-nya
- *      diduplikasi memakai pdftk (bukan render ulang berkali-kali -> jauh
- *      lebih cepat).
- *   4. Semua PDF produk digabung jadi satu file PDF akhir untuk dicetak user.
- *
- * Requirement server: `soffice` (LibreOffice) dan `pdftk` harus terpasang &
- * bisa dipanggil lewat shell (shell_exec / proc_open harus diizinkan).
- */
 class DocxLabelMerger
 {
     protected string $templatePath;
@@ -82,7 +63,7 @@ class DocxLabelMerger
         }
 
         $xml = $this->mergeSimpleSplitRuns($xml);
-
+        $xml = preg_replace('/(<w:pgSz\b[^>]*?)\s+w:code="\d+"/', '$1', $xml);
         foreach ($fieldValues as $placeholder => $value) {
             $needle = '<<' . $placeholder . '>>';
             $escapedNeedle = htmlspecialchars($needle, ENT_XML1);
@@ -115,37 +96,102 @@ class DocxLabelMerger
     }
 
     protected function convertBatchToPdf(array $docxPaths): array
-    {
-        $profileDir = $this->workDir . '/lo_profile';
-        $profileUri = 'file:///' . ltrim(str_replace('\\', '/', $profileDir), '/');
+{
+    $pdfPaths = [];
 
-        $files  = array_map('escapeshellarg', $docxPaths);
-        $outDir = escapeshellarg($this->workDir);
+    try {
+        $word = new \COM('Word.Application');
+    } catch (\Throwable $e) {
+        throw new RuntimeException("Gagal membuka Word.Application: " . $e->getMessage());
+    }
 
-        $cmd = sprintf(
-            'soffice --headless --norestore -env:UserInstallation=%s --convert-to pdf --outdir %s %s 2>&1',
-            escapeshellarg($profileUri),
-            $outDir,
-            implode(' ', $files)
-        );
+    try {
+        $word->Visible = 0;
+    } catch (\Throwable $e) {
+        throw new RuntimeException("Gagal set Visible: " . $e->getMessage());
+    }
 
-        exec($cmd, $output, $returnCode);
+    try {
+        $word->DisplayAlerts = 0;
+    } catch (\Throwable $e) {
+        throw new RuntimeException("Gagal set DisplayAlerts: " . $e->getMessage());
+    }
 
-        if ($returnCode !== 0) {
-            throw new RuntimeException('Konversi ke PDF gagal: ' . implode("\n", $output));
-        }
-
-        $pdfPaths = [];
+    try {
         foreach ($docxPaths as $i => $docxPath) {
-            $pdfPath = $this->workDir . '/' . pathinfo($docxPath, PATHINFO_FILENAME) . '.pdf';
+            $absoluteDocx = str_replace('/', '\\', realpath($docxPath));
+            $pdfPath      = $this->workDir . '/' . pathinfo($docxPath, PATHINFO_FILENAME) . '.pdf';
+            $absolutePdf  = str_replace('/', '\\', $pdfPath);
+
+            try {
+                $doc = $word->Documents->Open($absoluteDocx);
+            } catch (\Throwable $e) {
+                throw new RuntimeException("Gagal buka docx di Word ({$docxPath}): " . $e->getMessage());
+            }
+
+            try {
+                $doc->ExportAsFixedFormat($absolutePdf, 17); // 17 = wdExportFormatPDF // 17 = wdFormatPDF
+            } catch (\Throwable $e) {
+                throw new RuntimeException("Gagal SaveAs2 ke PDF ({$docxPath}): " . $e->getMessage());
+            }
+
+            $doc->Close(0);
+            $doc = null;
+
             if (! is_file($pdfPath)) {
                 throw new RuntimeException("Hasil PDF tidak ditemukan untuk: {$docxPath}");
             }
+
             $pdfPaths[$i] = $pdfPath;
         }
-
-        return $pdfPaths;
+    } finally {
+        try {
+            while ($word->Documents->Count > 0) {
+                $word->Documents->Item(1)->Close(0);
+            }
+        } catch (\Throwable $e) {
+            // abaikan
+        }
+        $word->Quit();
+        $word = null;
     }
+
+    return $pdfPaths;
+}
+
+// convert pdf batch menggunakan LibreOffice headless (soffice) - versi lama, diganti dengan COM Word di Windows
+    // protected function convertBatchToPdf(array $docxPaths): array
+    // {
+    //     $profileDir = $this->workDir . '/lo_profile';
+    //     $profileUri = 'file:///' . ltrim(str_replace('\\', '/', $profileDir), '/');
+
+    //     $files  = array_map('escapeshellarg', $docxPaths);
+    //     $outDir = escapeshellarg($this->workDir);
+
+    //     $cmd = sprintf(
+    //         'soffice --headless --norestore -env:UserInstallation=%s --convert-to pdf --outdir %s %s 2>&1',
+    //         escapeshellarg($profileUri),
+    //         $outDir,
+    //         implode(' ', $files)
+    //     );
+
+    //     exec($cmd, $output, $returnCode);
+
+    //     if ($returnCode !== 0) {
+    //         throw new RuntimeException('Konversi ke PDF gagal: ' . implode("\n", $output));
+    //     }
+
+    //     $pdfPaths = [];
+    //     foreach ($docxPaths as $i => $docxPath) {
+    //         $pdfPath = $this->workDir . '/' . pathinfo($docxPath, PATHINFO_FILENAME) . '.pdf';
+    //         if (! is_file($pdfPath)) {
+    //             throw new RuntimeException("Hasil PDF tidak ditemukan untuk: {$docxPath}");
+    //         }
+    //         $pdfPaths[$i] = $pdfPath;
+    //     }
+
+    //     return $pdfPaths;
+    // }
 
     protected function duplicatePages(string $pdfPath, int $qty, string $outName): string
     {

@@ -50,15 +50,70 @@ class PrintPdf extends BaseController
         try {
             $pdfPath = $merger->generate($items);
 
-            return $this->response
-                ->setHeader('Content-Type', 'application/pdf')
-                ->setHeader('Content-Disposition', 'inline; filename="pop-price-tag.pdf"')
-                ->setBody(file_get_contents($pdfPath));
+            // Simpan PDF di luar web root agar Chrome dapat mengambil ulang
+            // file melalui GET saat pengguna menekan tombol unduh.
+            $downloadDir = WRITEPATH . 'pricetag_downloads/';
+            if (! is_dir($downloadDir) && ! mkdir($downloadDir, 0775, true) && ! is_dir($downloadDir)) {
+                throw new \RuntimeException('Folder penyimpanan PDF tidak dapat dibuat.');
+            }
+
+            $downloadToken = bin2hex(random_bytes(16));
+            $storedPdfPath = $downloadDir . $downloadToken . '.pdf';
+            if (! copy($pdfPath, $storedPdfPath)) {
+                throw new \RuntimeException('PDF sementara tidak dapat disimpan.');
+            }
+
+            $expiresAt = time() + 3600;
+            foreach (glob($downloadDir . '*.json') ?: [] as $metadataPath) {
+                $metadata = json_decode((string) @file_get_contents($metadataPath), true);
+                if (! is_array($metadata) || ($metadata['expires_at'] ?? 0) < time()) {
+                    @unlink($metadataPath);
+                    @unlink($downloadDir . basename($metadataPath, '.json') . '.pdf');
+                }
+            }
+
+            $metadataPath = $downloadDir . $downloadToken . '.json';
+            if (file_put_contents($metadataPath, json_encode([
+                'user_id' => $userId,
+                'expires_at' => $expiresAt,
+            ]), LOCK_EX) === false) {
+                @unlink($storedPdfPath);
+                throw new \RuntimeException('Informasi PDF sementara tidak dapat disimpan.');
+            }
+
+            return redirect()->to(site_url('print-pdf/' . $downloadToken));
         } catch (\Throwable $e) {
             log_message('error', 'Cetak price tag gagal: ' . $e->getMessage());
             return redirect()->to('/pricetag')->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         } finally {
             $merger->cleanup();
         }
+    }
+
+    public function download(string $token)
+    {
+        if (! preg_match('/^[a-f0-9]{32}$/', $token)) {
+            return $this->response->setStatusCode(404);
+        }
+
+        $downloadDir = WRITEPATH . 'pricetag_downloads/';
+        $metadataPath = $downloadDir . $token . '.json';
+        $pdfPath = $downloadDir . $token . '.pdf';
+        $metadata = is_file($metadataPath)
+            ? json_decode((string) file_get_contents($metadataPath), true)
+            : null;
+
+        if (! is_array($metadata)
+            || (int) ($metadata['expires_at'] ?? 0) < time()
+            || (int) ($metadata['user_id'] ?? 0) !== (int) session()->get('id')
+            || ! is_file($pdfPath)) {
+            return $this->response->setStatusCode(404);
+        }
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="pop-price-tag.pdf"')
+            ->setHeader('Cache-Control', 'private, no-store')
+            ->setBody((string) file_get_contents($pdfPath));
     }
 }

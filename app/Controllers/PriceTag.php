@@ -193,12 +193,27 @@ class PriceTag extends BaseController
             }
         }
 
-        $text = $this->translateIndonesianMonth((string) $raw);
+        $text = trim((string) $raw);
+        $text = $this->translateIndonesianMonth($text);
+
+        // Tangani format custom seperti 15/September/2026 atau 15 September 2026.
+        // Jangan hanya mengandalkan strtotime(), karena hasilnya tidak konsisten
+        // untuk nama bulan lengkap yang dipisahkan dengan slash.
+        if (preg_match('/^(\d{1,2})\s*[\/-]\s*([A-Za-z]+)\s*[\/-]\s*(\d{4})$/', $text, $matches)) {
+            $text = sprintf('%02d %s %04d', $matches[1], $matches[2], $matches[3]);
+        }
+
+        foreach (['!d F Y', '!d M Y', '!d-m-Y', '!d/m/Y', '!Y-m-d'] as $format) {
+            $date = \DateTime::createFromFormat($format, $text);
+            $errors = \DateTime::getLastErrors();
+
+            if ($date !== false && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
+                return $date->format('Y-m-d');
+            }
+        }
 
         $timestamp = strtotime($text);
-        if ($timestamp === false) return null;
-
-        return date('Y-m-d', $timestamp);
+        return $timestamp === false ? null : date('Y-m-d', $timestamp);
     }
 
     /**
