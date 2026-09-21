@@ -13,6 +13,7 @@
             <a class="navbar-brand" href="#">Price Tag App</a>
             <div class="d-flex align-items-center text-white">
                 <span class="me-3">Halo, <strong><?= esc($username) ?></strong> (<?= esc($role) ?>)</span>
+                <a href="<?= base_url('profile/password') ?>" class="btn btn-outline-light btn-sm me-2">Ubah Password</a>
                 <a href="<?= base_url('logout') ?>" class="btn btn-outline-light btn-sm">Logout</a>
             </div>
         </div>
@@ -31,6 +32,12 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 <?php endif; ?>
+<?php if (session()->getFlashdata('success')) : ?>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?= session()->getFlashdata('success') ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
                         <h4>Selamat Datang di Sistem Price Tag</h4>
                         <p class="text-muted">Gunakan menu di bawah ini untuk mengelola aplikasi.</p>
                         <hr>
@@ -40,8 +47,15 @@
                                 <div class="col-md-4 mb-3">
                                     <div class="card bg-primary text-white p-3">
                                         <h5>Kelola Pengguna</h5>
-                                        <p>Tambah & hapus akun pengguna/petugas.</p>
+                                        <p>Tambah, edit, nonaktifkan, dan reset password pengguna.</p>
                                         <a href="<?= base_url('admin/users') ?>" class="btn btn-light btn-sm text-primary fw-bold">Buka Kelola User</a>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card bg-info text-white p-3">
+                                        <h5>Kelola Outlet</h5>
+                                        <p>Tambah, edit, nonaktifkan, dan hapus master outlet.</p>
+                                        <a href="<?= base_url('admin/outlets') ?>" class="btn btn-light btn-sm text-info fw-bold">Buka Kelola Outlet</a>
                                     </div>
                                 </div>
                             <?php endif; ?>

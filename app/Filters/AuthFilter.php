@@ -15,6 +15,11 @@ class AuthFilter implements FilterInterface
             return redirect()->to('/login')->with('msg', 'Silakan login terlebih dahulu.');
         }
 
+        if (session()->get('role') === 'user' && session()->get('outlet_id') === null) {
+            session()->destroy();
+            return redirect()->to('/login')->with('msg', 'Data outlet pengguna tidak valid. Silakan hubungi administrator.');
+        }
+
         // 2. Cek Role (Jika ada parameter role yang dikirim dari Routes)
         if (!empty($arguments)) {
             $userRole = session()->get('role');

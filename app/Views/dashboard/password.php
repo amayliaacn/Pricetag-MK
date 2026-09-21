@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= esc($title) ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="<?= base_url('dashboard') ?>">Price Tag App</a>
+            <div class="d-flex align-items-center text-white">
+                <span class="me-3">Halo, <strong><?= esc($username) ?></strong> (<?= esc($role) ?>)</span>
+                <a href="<?= base_url('logout') ?>" class="btn btn-outline-light btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4" style="max-width: 620px;">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="mb-1">Ubah Password</h3>
+                <p class="text-muted mb-4">Perbarui password akun Anda secara mandiri.</p>
+
+                <?php if (session()->getFlashdata('error')): ?>
+                    <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
+                <?php endif; ?>
+
+                <form action="<?= base_url('profile/password') ?>" method="post">
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Password Lama</label>
+                        <input type="password" name="current_password" class="form-control" id="current_password" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password Baru</label>
+                        <input type="password" name="password" class="form-control" id="password" minlength="6" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password_confirm" class="form-label">Konfirmasi Password Baru</label>
+                        <input type="password" name="password_confirm" class="form-control" id="password_confirm" minlength="6" required>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="<?= base_url('dashboard') ?>" class="btn btn-outline-secondary">Kembali</a>
+                        <button type="submit" class="btn btn-primary">Simpan Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
