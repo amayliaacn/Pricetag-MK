@@ -17,7 +17,8 @@ $routes->get('/setup-admin', 'Auth::createSuperAdmin');
 $routes->get('/dashboard', 'Dashboard::index', ['filter' => 'auth']);
 $routes->get('/pricetag', 'PriceTag::index', ['filter' => 'auth']);
 $routes->post('/pricetag/import', 'PriceTag::import', ['filter' => 'auth']);
-$routes->post('print-pdf', 'PrintPdf::index');
+$routes->post('print-pdf', 'PrintPdf::index', ['filter' => 'auth']);
+$routes->get('print-pdf/(:segment)', 'PrintPdf::download/$1', ['filter' => 'auth']);
 
 // --- Route Khusus SUPER ADMIN (Menggunakan filter auth:super_admin) ---
 $routes->get('admin/users', 'Admin\UserAdmin::index', ['filter' => 'auth:super_admin']);

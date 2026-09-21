@@ -5,7 +5,7 @@ namespace App\Libraries;
 class PriceTagTemplates
 {
     protected static array $templates = [
-        'discount-reg-kcl' => [
+        'turun-harga-kcl' => [
             'label'  => 'Pricetag Turun Harga - Kecil',
             'docx'   => FCPATH . 'templates/pricetag/turun-harga-kcl.docx',
             'fields' => [
@@ -99,6 +99,18 @@ class PriceTagTemplates
                 'Alokasi'     => 'allocation_pcs',
             ],
         ],
+         'disc-reg-tgg' => [
+            'label'  => 'Pricetag Diskon Reguler - Tanggung',
+            'docx'   => FCPATH . 'templates/pricetag/disc-reg-tgg.docx',
+            'fields' => [
+                'NamaBarang'  => 'full_label',
+                'PLU'         => 'sku_plu',
+                'Program'     => 'discount_percent:percent',
+                'HargaNormal' => 'normal_price:currency_id',
+                'HargaPromo'  => 'promo_price:currency_id',
+                'Periode'     => 'end_period:date_id_short',
+            ],
+        ],
 
         'disc-reg-kcl-allvar' => [
             'label'  => 'Pricetag Diskon Reguler - Tanggung (All Varian)',
@@ -112,22 +124,11 @@ class PriceTagTemplates
             ],
         ],
 
-                'disc-reg-tgg' => [
-            'label'  => 'Pricetag Diskon Reguler - Tanggung',
-            'docx'   => FCPATH . 'templates/pricetag/disc-reg-tgg.docx',
-            'fields' => [
-                'NamaBarang'  => 'full_label',
-                'PLU'         => 'sku_plu',
-                'Program'     => 'discount_percent:percent',
-                'HargaNormal' => 'normal_price:currency_id',
-                'HargaPromo'  => 'promo_price:currency_id',
-                'Periode'     => 'end_period:date_id_short',
-            ],
-        ],
+       
 
         'disc-reg-tgg-allocation' => [
             'label'  => 'Pricetag Diskon Reguler - Tanggung (Alokasi Terbatas)',
-            'docx'   => FCPATH . 'templates/pricetag/disc-reg-tgg-allocation.docx',
+            'docx'   => FCPATH . 'templates/pricetag/disc-reg-tgg-allocation-NAIK.docx',
             'fields' => [
                 'NamaBarang'  => 'full_label',
                 'PLU'         => 'sku_plu',
@@ -136,6 +137,19 @@ class PriceTagTemplates
                 'HargaPromo'  => 'promo_price:currency_id',
                 'Periode'     => 'end_period:date_id_short',
                 'Alokasi'     => 'allocation_pcs',
+            ],
+        ],
+
+            'disc-kcl-per-100gr' => [
+            'label'  => 'Pricetag Diskon - Kecil (Per 100 gr)',
+            'docx'   => FCPATH . 'templates/pricetag/disc-kcl-per-100gr.docx',
+            'fields' => [
+                'NamaBarang'  => 'full_label',
+                'PLU'         => 'sku_plu',
+                'Program'     => 'discount_percent:percent',
+                'HargaNormal' => 'normal_price:currency_id',
+                'HargaPromo'  => 'promo_price:currency_id',
+                'Periode'     => 'end_period:date_id_short',
             ],
         ],
     ];

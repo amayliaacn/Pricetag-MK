@@ -20,6 +20,22 @@
     </div>
     </div>
     <div class="mt-4">
+        <?php
+            $formatPeriod = static function ($value): string {
+                if (empty($value)) return '-';
+
+                $date = \DateTime::createFromFormat('!Y-m-d', (string) $value);
+                if ($date === false) return '-';
+
+                $months = [
+                    1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+                    5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu',
+                    9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des',
+                ];
+
+                return $date->format('d') . ' ' . $months[(int) $date->format('n')] . ' ' . $date->format('Y');
+            };
+        ?>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3>Daftar Data Price Tag</h3>
             <a href="<?= base_url('dashboard') ?>" class="btn btn-secondary btn-sm">Kembali ke Dashboard</a>
@@ -79,8 +95,8 @@
                                             data-variant="<?= esc($tag['variant'] ?? '') ?>"
                                         >
                                     </td>
-                                    <td><?= esc($tag['start_period'] ?? '') ?: '-' ?></td>
-                                    <td><?= esc($tag['end_period'] ?? '') ?: '-' ?></td>
+                                    <td><?= esc($formatPeriod($tag['start_period'] ?? null)) ?></td>
+                                    <td><?= esc($formatPeriod($tag['end_period'] ?? null)) ?></td>
                                     <td><?= esc($tag['sku_plu']) ?></td>
                                     <td><?= esc($tag['brand'] ?? '') ?: '-' ?></td>
                                     <td><?= esc($tag['name']) ?></td>
