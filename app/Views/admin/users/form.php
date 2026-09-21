@@ -5,8 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="<?= base_url('assets/css/admin-theme.css') ?>" rel="stylesheet">
 </head>
-<body class="bg-light">
+<body class="mk-body">
+    <nav class="navbar navbar-expand-lg mk-topbar">
+        <div class="container">
+            <a class="navbar-brand" href="<?= base_url('dashboard') ?>">
+                <img src="<?= base_url('assets/img/logo.png') ?>" alt="Manna Kampus" class="mk-logo-sm">
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <a href="<?= base_url('admin/users') ?>" class="btn mk-btn-outline btn-sm mk-icon-link"><i class="bi bi-people"></i><span>Kelola User</span></a>
+                <a href="<?= base_url('logout') ?>" class="btn btn-dark btn-sm mk-icon-link"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a>
+            </div>
+        </div>
+    </nav>
     <?php
         $isEdit = $user !== null;
         $role = old('role', $user['role'] ?? 'user');
@@ -14,7 +27,7 @@
         $isActive = old('is_active', $user['is_active'] ?? 1);
     ?>
     <div class="container py-4" style="max-width: 760px;">
-        <div class="card border-0 shadow-sm">
+        <div class="mk-card">
             <div class="card-body p-4">
                 <h3 class="mb-1"><?= esc($title) ?></h3>
                 <p class="text-muted mb-4">Pilih outlet untuk role user. Super admin otomatis punya akses semua outlet.</p>
@@ -63,8 +76,8 @@
                     </div>
 
                     <div class="d-flex justify-content-between mt-4">
-                        <a href="<?= base_url('admin/users') ?>" class="btn btn-outline-secondary">Kembali</a>
-                        <button type="submit" class="btn btn-primary">Simpan Pengguna</button>
+                        <a href="<?= base_url('admin/users') ?>" class="btn btn-outline-secondary mk-icon-link"><i class="bi bi-arrow-left"></i><span>Kembali</span></a>
+                        <button type="submit" class="btn mk-btn-primary mk-icon-link"><i class="bi bi-check2-circle"></i><span>Simpan Pengguna</span></button>
                     </div>
                 </form>
             </div>

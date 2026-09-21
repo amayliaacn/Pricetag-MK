@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 95" role="img" aria-labelledby="title desc">
+  <title id="title">Manna Kampus</title>
+  <desc id="desc">Manna Kampus Rumah Belanja Terpercaya</desc>
+  <defs>
+    <clipPath id="markClip">
+      <rect x="8" y="15" width="112" height="65" rx="8"/>
+    </clipPath>
+  </defs>
+  <rect width="420" height="95" fill="none"/>
+  <g clip-path="url(#markClip)">
+    <rect x="8" y="15" width="112" height="65" rx="8" fill="#2f2d2c"/>
+    <path d="M-8 68 C22 42 52 91 82 64 C107 42 127 53 145 40" fill="none" stroke="#f47b20" stroke-width="7" stroke-linecap="round"/>
+    <path d="M-10 55 C20 30 48 78 79 52 C104 31 128 42 146 29" fill="none" stroke="#f47b20" stroke-width="7" stroke-linecap="round"/>
+    <path d="M-11 42 C19 17 48 64 78 39 C102 20 126 30 145 17" fill="none" stroke="#f47b20" stroke-width="7" stroke-linecap="round"/>
+    <path d="M-8 81 C24 56 53 103 85 77 C111 57 130 66 149 54" fill="none" stroke="#f47b20" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <text x="132" y="51" fill="#f47b20" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800" font-style="italic">Manna Kampus</text>
+  <text x="134" y="75" fill="#202020" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="800" letter-spacing=".4">RUMAH BELANJA TERPERCAYA</text>
+</svg>
