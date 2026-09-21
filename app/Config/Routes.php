@@ -19,7 +19,8 @@ $routes->get('/profile/password', 'Dashboard::password', ['filter' => 'auth']);
 $routes->post('/profile/password', 'Dashboard::updatePassword', ['filter' => 'auth']);
 $routes->get('/pricetag', 'PriceTag::index', ['filter' => 'auth']);
 $routes->post('/pricetag/import', 'PriceTag::import', ['filter' => 'auth']);
-$routes->post('print-pdf', 'PrintPdf::index');
+$routes->post('print-pdf', 'PrintPdf::index', ['filter' => 'auth']);
+$routes->get('print-pdf/(:segment)', 'PrintPdf::download/$1', ['filter' => 'auth']);
 
 // --- Route Khusus SUPER ADMIN (Menggunakan filter auth:super_admin) ---
 $routes->get('admin/outlets', 'Admin\OutletAdmin::index', ['filter' => 'auth:super_admin']);
