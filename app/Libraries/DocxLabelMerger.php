@@ -96,102 +96,39 @@ class DocxLabelMerger
     }
 
     protected function convertBatchToPdf(array $docxPaths): array
-{
-    $pdfPaths = [];
+    {
+        $profileDir = $this->workDir . '/lo_profile';
+        $profileUri = 'file:///' . ltrim(str_replace('\\', '/', $profileDir), '/');
 
-    try {
-        $word = new \COM('Word.Application');
-    } catch (\Throwable $e) {
-        throw new RuntimeException("Gagal membuka Word.Application: " . $e->getMessage());
-    }
+        if (! is_dir($profileDir) && ! mkdir($profileDir, 0775, true) && ! is_dir($profileDir)) {
+            throw new RuntimeException("Gagal membuat profil LibreOffice: {$profileDir}");
+        }
 
-    try {
-        $word->Visible = 0;
-    } catch (\Throwable $e) {
-        throw new RuntimeException("Gagal set Visible: " . $e->getMessage());
-    }
+        $files = array_map('escapeshellarg', $docxPaths);
+        $cmd = sprintf(
+            'soffice --headless --norestore -env:UserInstallation=%s --convert-to pdf --outdir %s %s 2>&1',
+            escapeshellarg($profileUri),
+            escapeshellarg($this->workDir),
+            implode(' ', $files)
+        );
 
-    try {
-        $word->DisplayAlerts = 0;
-    } catch (\Throwable $e) {
-        throw new RuntimeException("Gagal set DisplayAlerts: " . $e->getMessage());
-    }
+        exec($cmd, $output, $returnCode);
 
-    try {
+        if ($returnCode !== 0) {
+            throw new RuntimeException('Konversi ke PDF dengan LibreOffice gagal: ' . implode("\n", $output));
+        }
+
+        $pdfPaths = [];
         foreach ($docxPaths as $i => $docxPath) {
-            $absoluteDocx = str_replace('/', '\\', realpath($docxPath));
-            $pdfPath      = $this->workDir . '/' . pathinfo($docxPath, PATHINFO_FILENAME) . '.pdf';
-            $absolutePdf  = str_replace('/', '\\', $pdfPath);
-
-            try {
-                $doc = $word->Documents->Open($absoluteDocx);
-            } catch (\Throwable $e) {
-                throw new RuntimeException("Gagal buka docx di Word ({$docxPath}): " . $e->getMessage());
-            }
-
-            try {
-                $doc->ExportAsFixedFormat($absolutePdf, 17); // 17 = wdExportFormatPDF // 17 = wdFormatPDF
-            } catch (\Throwable $e) {
-                throw new RuntimeException("Gagal SaveAs2 ke PDF ({$docxPath}): " . $e->getMessage());
-            }
-
-            $doc->Close(0);
-            $doc = null;
-
+            $pdfPath = $this->workDir . '/' . pathinfo($docxPath, PATHINFO_FILENAME) . '.pdf';
             if (! is_file($pdfPath)) {
                 throw new RuntimeException("Hasil PDF tidak ditemukan untuk: {$docxPath}");
             }
-
             $pdfPaths[$i] = $pdfPath;
         }
-    } finally {
-        try {
-            while ($word->Documents->Count > 0) {
-                $word->Documents->Item(1)->Close(0);
-            }
-        } catch (\Throwable $e) {
-            // abaikan
-        }
-        $word->Quit();
-        $word = null;
+
+        return $pdfPaths;
     }
-
-    return $pdfPaths;
-}
-
-// convert pdf batch menggunakan LibreOffice headless (soffice) - versi lama, diganti dengan COM Word di Windows
-    // protected function convertBatchToPdf(array $docxPaths): array
-    // {
-    //     $profileDir = $this->workDir . '/lo_profile';
-    //     $profileUri = 'file:///' . ltrim(str_replace('\\', '/', $profileDir), '/');
-
-    //     $files  = array_map('escapeshellarg', $docxPaths);
-    //     $outDir = escapeshellarg($this->workDir);
-
-    //     $cmd = sprintf(
-    //         'soffice --headless --norestore -env:UserInstallation=%s --convert-to pdf --outdir %s %s 2>&1',
-    //         escapeshellarg($profileUri),
-    //         $outDir,
-    //         implode(' ', $files)
-    //     );
-
-    //     exec($cmd, $output, $returnCode);
-
-    //     if ($returnCode !== 0) {
-    //         throw new RuntimeException('Konversi ke PDF gagal: ' . implode("\n", $output));
-    //     }
-
-    //     $pdfPaths = [];
-    //     foreach ($docxPaths as $i => $docxPath) {
-    //         $pdfPath = $this->workDir . '/' . pathinfo($docxPath, PATHINFO_FILENAME) . '.pdf';
-    //         if (! is_file($pdfPath)) {
-    //             throw new RuntimeException("Hasil PDF tidak ditemukan untuk: {$docxPath}");
-    //         }
-    //         $pdfPaths[$i] = $pdfPath;
-    //     }
-
-    //     return $pdfPaths;
-    // }
 
     protected function duplicatePages(string $pdfPath, int $qty, string $outName): string
     {
