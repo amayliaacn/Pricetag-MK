@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Libraries\DocxLabelMerger;
 use App\Libraries\PriceTagTemplates;
 use App\Models\PriceTagModel;
+use App\Models\ImportHistoryModel;
 
 class PrintPdf extends BaseController
 {
@@ -13,6 +14,7 @@ class PrintPdf extends BaseController
         $selectedSkus = (array) $this->request->getPost('skus');
         $qtyMap       = (array) $this->request->getPost('qty');
         $templateKey  = (string) $this->request->getPost('template');
+        $importId     = (int) $this->request->getPost('import_id');
 
         if (empty($selectedSkus)) {
             return redirect()->to('/pricetag')->with('error', 'Pilih minimal 1 produk untuk dicetak.');
@@ -26,12 +28,28 @@ class PrintPdf extends BaseController
         $model      = new PriceTagModel();
         $userId     = (int) session()->get('id');
         $importDate = date('Y-m-d'); // sesuai data yang sedang tampil di halaman list
+        $importTags = [];
+        if ($importId > 0) {
+            $history = (new ImportHistoryModel())->findVisibleImport(
+                $importId,
+                (string) session()->get('role'),
+                session()->get('outlet_id') === null ? null : (int) session()->get('outlet_id')
+            );
+            if (! $history) {
+                return redirect()->to('/import-history')->with('error', 'Data impor tidak ditemukan.');
+            }
+            foreach ($model->forImport($importId) as $tag) {
+                $importTags[(string) $tag['sku_plu']] = $tag;
+            }
+        }
 
         // Susun daftar item untuk mesin cetak: tiap produk terpilih + qty-nya,
         // dengan nilai field yang sudah diformat sesuai peta template.
         $items = [];
         foreach ($selectedSkus as $sku) {
-            $product = $model->findBySkuForUser($userId, $importDate, $sku);
+            $product = $importId > 0
+                ? ($importTags[(string) $sku] ?? null)
+                : $model->findBySkuForUser($userId, $importDate, $sku);
             if ($product === null) continue;
 
             $items[] = [

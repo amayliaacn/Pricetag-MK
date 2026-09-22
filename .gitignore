@@ -12,6 +12,8 @@
 /writable/logs/*
 /writable/session/*
 /writable/uploads/*
+/writable/pricetag_downloads/*
+!/writable/pricetag_downloads/.gitkeep
 
 # Keep directory placeholders
 !.gitkeep

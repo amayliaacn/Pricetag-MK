@@ -16,7 +16,7 @@
             </a>
             <div class="d-flex align-items-center gap-2">
                 <a href="<?= base_url('admin/users') ?>" class="btn mk-btn-outline btn-sm mk-icon-link"><i class="bi bi-people"></i><span>Kelola User</span></a>
-                <a href="<?= base_url('logout') ?>" class="btn btn-dark btn-sm mk-icon-link"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a>
+                <a href="<?= base_url('logout') ?>" class="btn btn-dark btn-sm mk-icon-link mk-account-logout"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a>
             </div>
         </div>
     </nav>

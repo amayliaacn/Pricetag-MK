@@ -37,6 +37,7 @@ class Auth extends BaseController
 
                 $outletId   = $data['outlet_id'] ?? null;
                 $outletName = null;
+                $outletCode = null;
 
                 if ($outletId !== null) {
                     $outletModel = new OutletModel();
@@ -48,6 +49,7 @@ class Auth extends BaseController
                     }
 
                     $outletName  = $outlet['name'] ?? null;
+                    $outletCode  = $outlet['code'] ?? null;
                 }
 
                 $ses_data = [
@@ -56,6 +58,7 @@ class Auth extends BaseController
                     'role'        => $data['role'],
                     'outlet_id'   => $outletId,
                     'outlet_name' => $outletName,
+                    'outlet_code' => $outletCode,
                     'logged_in'   => TRUE
                 ];
                 $session->set($ses_data);

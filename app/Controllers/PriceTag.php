@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\PriceTagModel;
+use App\Models\ImportHistoryModel;
 use App\Libraries\PriceTagTemplates;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
@@ -13,12 +14,33 @@ class PriceTag extends BaseController
     {
         $model  = new PriceTagModel();
         $userId = (int) session()->get('id');
+        $importId = $this->request->getGet('import');
+
+        if ($importId !== null) {
+            $history = (new ImportHistoryModel())->findVisibleImport(
+                (int) $importId,
+                (string) session()->get('role'),
+                session()->get('outlet_id') === null ? null : (int) session()->get('outlet_id')
+            );
+
+            if (! $history) {
+                return redirect()->to('/import-history')->with('error', 'Data impor tidak ditemukan.');
+            }
+
+            // Gunakan baris asli agar setiap produk memiliki ID dan dapat diedit.
+            $tags = $model->forImport((int) $importId);
+            if (empty($tags)) {
+                $tags = json_decode($history['snapshot'] ?? '[]', true) ?: [];
+            }
+        } else {
+            $history = null;
+            $tags = $model->forUserAndDate($userId, date('Y-m-d'));
+        }
 
         $data = [
-            'title'     => 'Data Price Tag',
-            // Hanya tampilkan data milik user yang sedang login, untuk HARI INI.
-            // Data hari-hari sebelumnya tetap tersimpan di database sebagai riwayat.
-            'tags'      => $model->forUserAndDate($userId, date('Y-m-d')),
+            'title'     => $history ? 'Detail Import - ' . $history['file_name'] : 'Data Price Tag',
+            'tags'      => $tags,
+            'history'   => $history,
             'templates' => PriceTagTemplates::all(),
         ];
 
@@ -27,10 +49,28 @@ class PriceTag extends BaseController
 
     public function import()
     {
+        $returnToHistory = $this->request->getPost('return_to') === 'import-history';
+        $redirectPath = $returnToHistory ? '/import-history' : '/pricetag';
+        $outletId = session()->get('outlet_id');
+
+        if (session()->get('role') === 'super_admin' && $this->request->getPost('outlet_id')) {
+            $selectedOutlet = (new \App\Models\OutletModel())->findById((int) $this->request->getPost('outlet_id'));
+            if ($selectedOutlet && (int) ($selectedOutlet['is_active'] ?? 1) === 1) {
+                $outletId = (int) $selectedOutlet['id'];
+            } else {
+                return redirect()->to($redirectPath)->with('error', 'Pilih outlet aktif yang valid untuk impor.');
+            }
+        }
+
+        if ($returnToHistory && session()->get('role') === 'super_admin' && $outletId === null) {
+            return redirect()->to($redirectPath)->with('error', 'Pilih outlet tujuan sebelum mengimpor file.');
+        }
+
         $file = $this->request->getFile('file_excel');
 
         if ($file && $file->isValid() && !$file->hasMoved()) {
 
+            $originalName = $file->getClientName();
             $newName = $file->getRandomName();
             $file->move(WRITEPATH . 'uploads', $newName);
             $filePath = WRITEPATH . 'uploads/' . $newName;
@@ -43,7 +83,7 @@ class PriceTag extends BaseController
             if ($headerMap === null) {
                 unlink($filePath);
 
-                return redirect()->to('/pricetag')->with(
+                return redirect()->to($redirectPath)->with(
                     'error',
                     'Header Excel tidak ditemukan. Minimal gunakan kolom SKU/PLU, Nama Produk, dan Harga Normal.'
                 );
@@ -53,6 +93,7 @@ class PriceTag extends BaseController
             $userId     = (int) session()->get('id');
             $importDate = date('Y-m-d');
             $jumlahData = 0;
+            $importRows = [];
 
             // CATATAN: tidak lagi truncate() semua data. Sekarang tiap baris
             // di-upsert per (user, tanggal hari ini, sku_plu):
@@ -80,16 +121,73 @@ class PriceTag extends BaseController
 
                 if ($dataInsert['name'] === '' || $dataInsert['normal_price'] === null) continue;
 
-                $model->upsertRow($dataInsert);
+                $importRows[] = $dataInsert;
                 $jumlahData++;
+            }
+
+            if ($jumlahData > 0 && $outletId !== null) {
+                $historyModel = new ImportHistoryModel();
+                $historyModel->insert([
+                    'file_name'   => $originalName,
+                    'snapshot'    => json_encode($importRows, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                    'outlet_id'   => (int) $outletId,
+                    'imported_at' => date('Y-m-d H:i:s'),
+                    'imported_by' => $userId,
+                ]);
+                $importId = (int) $historyModel->getInsertID();
+
+                foreach ($importRows as $row) {
+                    $row['import_id'] = $importId;
+                    $model->insert($row);
+                }
+            } else {
+                foreach ($importRows as $row) {
+                    $model->upsertRow($row);
+                }
             }
 
             unlink($filePath);
 
-            return redirect()->to('/pricetag')->with('success', "Berhasil memproses $jumlahData data untuk tanggal $importDate!");
+            return redirect()->to($redirectPath)->with('success', "Berhasil memproses $jumlahData data untuk tanggal $importDate!");
         }
 
-        return redirect()->to('/pricetag')->with('error', 'Gagal mengunggah file Excel.');
+        return redirect()->to($redirectPath)->with('error', 'Gagal mengunggah file Excel.');
+    }
+
+    public function setPrinted(int $id)
+    {
+        if ($id <= 0) {
+            return redirect()->back();
+        }
+        $model = new PriceTagModel();
+        $tag = $model->find($id);
+        if ($tag) {
+            $model->update($id, ['is_printed' => $this->request->getPost('is_printed') ? 1 : 0]);
+        }
+        return redirect()->back();
+    }
+
+    public function update(int $id)
+    {
+        $model = new PriceTagModel();
+        $tag = $model->find($id);
+        if (! $tag) return redirect()->back()->with('error', 'Produk tidak ditemukan.');
+
+        $data = [
+            'sku_plu' => trim((string) $this->request->getPost('sku_plu')),
+            'name' => trim((string) $this->request->getPost('name')),
+            'brand' => trim((string) $this->request->getPost('brand')) ?: null,
+            'variant' => trim((string) $this->request->getPost('variant')) ?: null,
+            'normal_price' => (int) $this->request->getPost('normal_price'),
+            'start_period' => $this->request->getPost('start_period') ?: null,
+            'end_period' => $this->request->getPost('end_period') ?: null,
+            'is_printed' => $this->request->getPost('is_printed') ? 1 : 0,
+        ];
+        if ($data['sku_plu'] === '' || $data['name'] === '') {
+            return redirect()->back()->with('error', 'PLU dan nama produk wajib diisi.');
+        }
+        $model->update($id, $data);
+        return redirect()->back()->with('success', 'Data produk berhasil diperbarui.');
     }
 
     private function findHeaderMap(array $sheetData): ?array

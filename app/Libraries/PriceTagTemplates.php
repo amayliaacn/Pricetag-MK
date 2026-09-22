@@ -128,7 +128,7 @@ class PriceTagTemplates
 
         'disc-reg-tgg-allocation' => [
             'label'  => 'Pricetag Diskon Reguler - Tanggung (Alokasi Terbatas)',
-            'docx'   => FCPATH . 'templates/pricetag/disc-reg-tgg-allocation-NAIK.docx',
+            'docx'   => FCPATH . 'templates/pricetag/disc-reg-tgg-allocation.docx',
             'fields' => [
                 'NamaBarang'  => 'full_label',
                 'PLU'         => 'sku_plu',

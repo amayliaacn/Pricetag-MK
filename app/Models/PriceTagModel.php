@@ -25,6 +25,8 @@ class PriceTagModel extends Model
         'end_period',
         'uploaded_by',
         'import_date',
+        'import_id',
+        'is_printed',
     ];
 
     /**
@@ -37,6 +39,13 @@ class PriceTagModel extends Model
 
         return $this->where('uploaded_by', $userId)
                     ->where('import_date', $date)
+                    ->orderBy('id', 'ASC')
+                    ->findAll();
+    }
+
+    public function forImport(int $importId): array
+    {
+        return $this->where('import_id', $importId)
                     ->orderBy('id', 'ASC')
                     ->findAll();
     }

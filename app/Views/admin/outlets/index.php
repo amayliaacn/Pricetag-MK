@@ -15,8 +15,15 @@
                 <img src="<?= base_url('assets/img/logo.png') ?>" alt="Manna Kampus" class="mk-logo-sm">
             </a>
             <div class="d-flex align-items-center gap-2">
-                <a href="<?= base_url('profile/password') ?>" class="btn mk-btn-outline btn-sm mk-icon-link"><i class="bi bi-key"></i><span>Ubah Password</span></a>
-                <a href="<?= base_url('logout') ?>" class="btn btn-dark btn-sm mk-icon-link"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a>
+                <div class="dropdown">
+                    <button class="btn mk-user-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person"></i><span>Halo, <strong><?= esc(session()->get('username')) ?></strong> <span class="text-muted">(super_admin)</span></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><a class="dropdown-item mk-account-password" href="<?= base_url('profile/password') ?>"><i class="bi bi-key me-2 text-warning"></i>Ubah Password</a></li>
+                        <li><a class="dropdown-item text-danger mk-account-logout" href="<?= base_url('logout') ?>"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
@@ -27,8 +34,8 @@
                 <div class="text-muted">Tambah, edit, nonaktifkan, atau hapus master outlet.</div>
             </div>
             <div class="d-flex gap-2">
-                <a href="<?= base_url('admin/users') ?>" class="btn btn-outline-primary btn-sm mk-icon-link"><i class="bi bi-people"></i><span>Kelola User</span></a>
-                <a href="<?= base_url('dashboard') ?>" class="btn btn-outline-secondary btn-sm mk-icon-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+                <a href="<?= base_url('admin/users') ?>" class="btn btn-primary btn-sm mk-icon-link"><i class="bi bi-people"></i><span>Kelola User</span></a>
+                <a href="<?= base_url('dashboard') ?>" class="btn btn-secondary btn-sm mk-icon-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
             </div>
         </div>
 
@@ -75,9 +82,9 @@
                                 <td class="small text-muted"><?= esc($outlet['updated_at'] ?? '-') ?></td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm">
-                                        <a href="<?= base_url('admin/outlets/edit/' . $outlet['id']) ?>" class="btn btn-outline-primary mk-icon-btn" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square"></i></a>
-                                        <a href="<?= base_url('admin/outlets/toggle/' . $outlet['id']) ?>" class="btn btn-outline-secondary mk-icon-btn" title="<?= (int) $outlet['is_active'] === 1 ? 'Nonaktifkan' : 'Aktifkan' ?>" aria-label="<?= (int) $outlet['is_active'] === 1 ? 'Nonaktifkan' : 'Aktifkan' ?>" onclick="return confirm('Ubah status outlet ini?')"><i class="bi bi-power"></i></a>
-                                        <a href="<?= base_url('admin/outlets/delete/' . $outlet['id']) ?>" class="btn btn-outline-danger mk-icon-btn" title="Hapus" aria-label="Hapus" onclick="return confirm('Yakin ingin menghapus outlet ini?')"><i class="bi bi-trash"></i></a>
+                                        <a href="<?= base_url('admin/outlets/edit/' . $outlet['id']) ?>" class="btn btn-primary mk-icon-btn" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square"></i></a>
+                                        <a href="<?= base_url('admin/outlets/toggle/' . $outlet['id']) ?>" class="btn btn-warning mk-icon-btn" title="<?= (int) $outlet['is_active'] === 1 ? 'Nonaktifkan' : 'Aktifkan' ?>" aria-label="<?= (int) $outlet['is_active'] === 1 ? 'Nonaktifkan' : 'Aktifkan' ?>" onclick="return confirm('Ubah status outlet ini?')"><i class="bi bi-power"></i></a>
+                                        <a href="<?= base_url('admin/outlets/delete/' . $outlet['id']) ?>" class="btn btn-danger mk-icon-btn" title="Hapus" aria-label="Hapus" onclick="return confirm('Yakin ingin menghapus outlet ini?')"><i class="bi bi-trash"></i></a>
                                     </div>
                                 </td>
                             </tr>

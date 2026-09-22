@@ -14,9 +14,15 @@
             <a class="navbar-brand" href="<?= base_url('dashboard') ?>">
                 <img src="<?= base_url('assets/img/logo.png') ?>" alt="Manna Kampus" class="mk-logo-sm">
             </a>
-            <div class="d-flex align-items-center">
-                <span class="me-3">Halo, <strong><?= esc($username) ?></strong> (<?= esc($role) ?>)</span>
-                <a href="<?= base_url('logout') ?>" class="btn btn-dark btn-sm mk-icon-link"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a>
+            <div class="dropdown">
+                <button class="btn mk-user-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person"></i>
+                    <span>Halo, <strong><?= esc(session()->get('username')) ?></strong> <span class="text-muted">(<?= esc(session()->get('role')) ?>)</span></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="<?= base_url('profile/password') ?>"><i class="bi bi-key me-2 text-warning"></i>Ubah Password</a></li>
+                    <li><a class="dropdown-item text-danger mk-account-logout" href="<?= base_url('logout') ?>"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                </ul>
             </div>
         </div>
     </nav>
@@ -45,12 +51,13 @@
                         <input type="password" name="password_confirm" class="form-control" id="password_confirm" minlength="6" required>
                     </div>
                     <div class="d-flex justify-content-between">
-                        <a href="<?= base_url('dashboard') ?>" class="btn btn-outline-secondary mk-icon-link"><i class="bi bi-arrow-left"></i><span>Kembali</span></a>
+                        <a href="<?= base_url('dashboard') ?>" class="btn btn-outline-secondary mk-icon-link" onclick="if (document.referrer) { history.back(); return false; }"><i class="bi bi-arrow-left"></i><span>Kembali</span></a>
                         <button type="submit" class="btn mk-btn-primary mk-icon-link"><i class="bi bi-check2-circle"></i><span>Simpan Password</span></button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

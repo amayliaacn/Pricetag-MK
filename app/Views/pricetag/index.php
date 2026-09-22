@@ -2,17 +2,56 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="<?= base_url('assets/css/admin-theme.css') ?>" rel="stylesheet">
 </head>
-<body>
+<body class="mk-body">
+    <nav class="navbar navbar-expand-lg mk-topbar">
+        <div class="container">
+            <a class="navbar-brand" href="<?= base_url('dashboard') ?>"><img src="<?= base_url('assets/img/logo.png') ?>" alt="Manna Kampus" class="mk-logo-sm"></a>
+            <div class="dropdown">
+                <button class="btn mk-user-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person"></i> <span>Halo, <strong><?= esc(session()->get('username')) ?></strong> <span class="text-muted">(<?= esc(session()->get('role')) ?>)</span></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="<?= base_url('profile/password') ?>"><i class="bi bi-key me-2 text-warning"></i>Ubah Password</a></li>
+                    <li><a class="dropdown-item text-danger" href="<?= base_url('logout') ?>"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <main class="container py-4">
+    <div class="d-flex justify-content-between align-items-start mb-0"><nav aria-label="breadcrumb"><ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="<?= base_url('dashboard') ?>" class="text-decoration-none"><i class="bi bi-house-door text-warning"></i></a></li>
+        <li class="breadcrumb-item"><a href="<?= base_url('dashboard') ?>" class="text-decoration-none">Dashboard</a></li>
+        <?php if (! empty($history)): ?><li class="breadcrumb-item"><a href="<?= base_url('import-history') ?>" class="text-decoration-none text-warning fw-semibold">History Import</a></li><?php endif; ?>
+        <li class="breadcrumb-item active" aria-current="page">Detail Import</li>
+    </ol></nav><?php if (session()->get('outlet_name') || session()->get('outlet_code')): ?><div class="mk-dashboard-outlet"><i class="bi bi-shop"></i><div><small>OUTLET AKTIF</small><strong><?= esc(session()->get('outlet_code') ?: session()->get('outlet_name')) ?></strong></div></div><?php endif; ?></div>
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-0 mb-2" style="<?= session()->get('role') === 'user' ? 'margin-top:-25px;' : '' ?>">
+        <div><h2 class="mk-title mb-1"><?= ! empty($history) ? 'Detail Import' : 'Daftar Data Price Tag' ?></h2>
+            <p class="mk-subtitle mb-0"><?= ! empty($history) ? 'Detail data produk dari file yang telah diimport.' : 'Kelola, cari, dan cetak price tag produk.' ?></p>
+        </div>
+        <div class="d-flex gap-2">
+        <?php if (! empty($history)): ?><a href="<?= base_url('import-history') ?>" class="btn mk-btn-primary btn-sm">History Import</a><?php endif; ?>
+            <a href="<?= base_url('dashboard') ?>" class="btn btn-primary btn-sm mk-icon-link" style="min-width:190px; justify-content:center;"><i class="bi bi-speedometer2"></i><span>Kembali ke Dashboard</span></a>
+        </div>
+    </div>
+    <?php if (! empty($history)): ?>
+        <section class="mk-template-banner mb-3 py-3">
+            <div class="mk-template-icon"><i class="bi bi-file-earmark-text"></i></div>
+            <div class="mk-template-copy"><h5>Informasi Import</h5><p class="mb-0"><i class="bi bi-file-earmark me-2"></i><?= esc($history['file_name']) ?> <span class="mx-2">|</span> <i class="bi bi-shop me-1"></i><?= esc($history['outlet_code'] . ' - ' . $history['outlet_name']) ?> <span class="mx-2">|</span> <i class="bi bi-calendar3 me-1"></i><?= esc(date('d M Y', strtotime($history['imported_at']))) ?> <span class="mx-2">|</span> <i class="bi bi-clock me-1"></i><?= esc(date('H:i:s', strtotime($history['imported_at']))) ?> <span class="mx-2">|</span> <i class="bi bi-person me-1"></i><?= esc($history['username'] ?? '-') ?></p></div>
+        </section>
+    <?php endif; ?>
     <div class="container mt-4">
     <div class="card shadow-sm mb-4">
     <div class="card-body d-flex flex-wrap gap-3 justify-content-between align-items-center">
-        <form action="<?= base_url('pricetag/import') ?>" method="post" enctype="multipart/form-data" class="d-flex align-items-center m-0">
-            <input type="file" name="file_excel" class="form-control me-2" accept=".xlsx, .xls" required>
-            <button type="submit" class="btn btn-success">Import Excel</button>
-        </form>
+        <div class="d-flex align-items-center flex-grow-1" style="max-width: 520px;">
+            <label for="searchProduk" class="visually-hidden">Cari produk</label>
+            <input type="search" id="searchProduk" class="form-control" placeholder="Cari berdasarkan PLU, nama barang, atau merk..." autocomplete="off">
+        </div>
 
         <button type="button" id="btnCetak" class="btn btn-danger" disabled data-bs-toggle="modal" data-bs-target="#modalCetak">
             Cetak Produk Terpilih (<span id="jumlahTerpilih">0</span>)
@@ -36,9 +75,15 @@
                 return $date->format('d') . ' ' . $months[(int) $date->format('n')] . ' ' . $date->format('Y');
             };
         ?>
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3>Daftar Data Price Tag</h3>
-            <a href="<?= base_url('dashboard') ?>" class="btn btn-secondary btn-sm">Kembali ke Dashboard</a>
+        <div class="d-flex justify-content-between align-items-center mb-4" style="display:none !important;">
+            <div>
+                <h3><?= ! empty($history) ? 'Snapshot Import' : 'Daftar Data Price Tag' ?></h3>
+                <?php if (! empty($history)): ?><div class="text-muted small"><?= esc($history['file_name']) ?> · <?= esc($history['outlet_code'] . ' - ' . $history['outlet_name']) ?> · <?= esc($history['imported_at']) ?></div><?php endif; ?>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="<?= base_url('import-history') ?>" class="btn mk-btn-primary btn-sm">History Import</a>
+                <a href="<?= base_url('dashboard') ?>" class="btn btn-secondary btn-sm">Kembali ke Dashboard</a>
+            </div>
         </div>
 
         <?php if (session()->getFlashdata('success')): ?>
@@ -57,6 +102,7 @@
 
         <div class="card shadow-sm">
             <div class="card-body p-0">
+                <div class="px-3 pt-3"><h4 class="mb-1"><i class="bi bi-database text-warning me-2"></i>Data Produk</h4><p class="text-muted mb-3">Daftar produk yang diimport dari file Excel.</p></div>
                 <div class="table-responsive">
                 <table class="table table-striped table-hover m-0">
                     <thead class="table-dark">
@@ -78,13 +124,19 @@
                             <th>Diskon (%)</th>
                             <th>Harga Promo</th>
                             <th>Alokasi (Pcs)</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($tags)): ?>
-                            <tr><td colspan="11" class="text-center py-3">Belum ada data. Silakan import file Excel.</td></tr>
+                            <tr><td colspan="13" class="text-center py-3">Belum ada data produk.</td></tr>
                         <?php else: ?>
                             <?php foreach ($tags as $tag): ?>
+                                <?php
+                                    $tagId = (int) ($tag['id'] ?? 0);
+                                    $isPrinted = (int) ($tag['is_printed'] ?? 0) === 1;
+                                ?>
                                 <tr>
                                     <td>
                                         <input
@@ -92,6 +144,7 @@
                                             class="form-check-input product-check"
                                             data-sku="<?= esc($tag['sku_plu']) ?>"
                                             data-name="<?= esc($tag['name']) ?>"
+                                            data-brand="<?= esc($tag['brand'] ?? '') ?>"
                                             data-variant="<?= esc($tag['variant'] ?? '') ?>"
                                         >
                                     </td>
@@ -111,6 +164,22 @@
                                     <td>
                                         <?= !empty($tag['allocation_pcs']) ? number_format($tag['allocation_pcs'], 0, ',', '.') : '-' ?>
                                     </td>
+                                    <td>
+                                        <span class="badge <?= $isPrinted ? 'text-bg-success' : 'text-bg-secondary' ?>">
+                                            <?= $isPrinted ? 'Sudah dicetak' : 'Belum dicetak' ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-primary mk-icon-btn btn-edit"
+                                            data-id="<?= $tagId ?>"
+                                            data-sku="<?= esc($tag['sku_plu']) ?>"
+                                            data-name="<?= esc($tag['name']) ?>"
+                                            data-brand="<?= esc($tag['brand'] ?? '') ?>"
+                                            data-variant="<?= esc($tag['variant'] ?? '') ?>"
+                                            data-price="<?= (int) $tag['normal_price'] ?>"
+                                            data-start="<?= esc($tag['start_period'] ?? '') ?>"
+                                            data-end="<?= esc($tag['end_period'] ?? '') ?>" <?= $tagId === 0 ? 'disabled title="Data snapshot tidak dapat diedit"' : '' ?> title="Edit" aria-label="Edit"><i class="bi bi-pencil-square"></i></button>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -120,6 +189,26 @@
             </div>
         </div>
     </div>
+    </main>
+
+    <div class="modal fade" id="modalEdit" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg"><div class="modal-content">
+            <form method="post" id="formEdit">
+                <div class="modal-header"><h5 class="modal-title">Edit Produk</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body"><div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">PLU</label><input name="sku_plu" id="editSku" class="form-control" required></div>
+                    <div class="col-md-6"><label class="form-label">Nama Produk</label><input name="name" id="editName" class="form-control" required></div>
+                    <div class="col-md-6"><label class="form-label">Merk</label><input name="brand" id="editBrand" class="form-control"></div>
+                    <div class="col-md-6"><label class="form-label">Varian</label><input name="variant" id="editVariant" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label">Harga Normal</label><input type="number" name="normal_price" id="editPrice" class="form-control" required></div>
+                    <div class="col-md-4"><label class="form-label">Awal Periode</label><input type="date" name="start_period" id="editStart" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label">Akhir Periode</label><input type="date" name="end_period" id="editEnd" class="form-control"></div>
+                    <div class="col-12"><label class="form-check"><input type="checkbox" name="is_printed" value="1" id="editPrinted" class="form-check-input"> <span class="form-check-label">Sudah dicetak?</span></label></div>
+                </div></div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary">Simpan</button></div>
+            </form>
+        </div></div>
+    </div>
     </div>
 
     <!-- Modal Cetak -->
@@ -127,6 +216,9 @@
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <form action="<?= base_url('print-pdf') ?>" method="post" target="_blank" id="formCetak">
+                    <?php if (!empty($history['id'])): ?>
+                        <input type="hidden" name="import_id" value="<?= (int) $history['id'] ?>">
+                    <?php endif; ?>
                     <div class="modal-header">
                         <h5 class="modal-title">Cetak POP Price Tag</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -172,6 +264,10 @@
         const btnCetak       = document.getElementById('btnCetak');
         const jumlahTerpilih = document.getElementById('jumlahTerpilih');
         const tabelBody      = document.getElementById('tabelProdukTerpilih');
+        const searchProduk   = document.getElementById('searchProduk');
+        const productRows    = document.querySelectorAll('tbody tr');
+        const editModal      = new bootstrap.Modal(document.getElementById('modalEdit'));
+        const formEdit       = document.getElementById('formEdit');
 
         function getChecked() {
             return document.querySelectorAll('.product-check:checked');
@@ -195,6 +291,34 @@
 
         productChecks.forEach(cb => {
             cb.addEventListener('change', updateTombolCetak);
+        });
+
+        document.querySelectorAll('.btn-edit').forEach(button => button.addEventListener('click', function () {
+            const d = this.dataset;
+            formEdit.action = `<?= base_url('pricetag/update') ?>/${d.id}`;
+            document.getElementById('editSku').value = d.sku;
+            document.getElementById('editName').value = d.name;
+            document.getElementById('editBrand').value = d.brand;
+            document.getElementById('editVariant').value = d.variant;
+            document.getElementById('editPrice').value = d.price;
+            document.getElementById('editStart').value = d.start;
+            document.getElementById('editEnd').value = d.end;
+            document.getElementById('editPrinted').checked = this.closest('tr').querySelector('.badge').textContent.trim() === 'Sudah dicetak';
+            editModal.show();
+        }));
+
+        searchProduk.addEventListener('input', function () {
+            const keyword = this.value.trim().toLowerCase();
+
+            productRows.forEach(row => {
+                const checkbox = row.querySelector('.product-check');
+                if (!checkbox) return;
+
+                const matches = checkbox.dataset.sku.toLowerCase().includes(keyword)
+                    || checkbox.dataset.name.toLowerCase().includes(keyword)
+                    || checkbox.dataset.brand.toLowerCase().includes(keyword);
+                row.style.display = matches ? '' : 'none';
+            });
         });
 
         // Bangun isi modal setiap kali tombol Cetak ditekan
