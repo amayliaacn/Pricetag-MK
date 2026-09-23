@@ -15,7 +15,6 @@ class PriceTagModel extends Model
     protected $allowedFields = [
         'sku_plu',
         'name',
-        'brand',
         'variant',
         'normal_price',
         'discount_percent',

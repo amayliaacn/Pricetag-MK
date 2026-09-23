@@ -300,7 +300,6 @@ $totalTags = count($tags);
 
 foreach ($tags as $index => $tag):
     $namaBarang = trim(
-        ($tag['brand'] ?? '') . ' ' .
         ($tag['name'] ?? '') . ' ' .
         ($tag['variant'] ?? '')
     );

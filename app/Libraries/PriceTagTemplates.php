@@ -10,7 +10,6 @@ class PriceTagTemplates
             'docx'   => FCPATH . 'templates/pricetag/turun-harga-kcl.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
-                'Merk'        => 'brand',
                 'Variant'     => 'name_variant',
                 'HargaNormal' => 'normal_price:currency_id',
                 'HargaPromo'  => 'promo_price:currency_id',
@@ -23,7 +22,6 @@ class PriceTagTemplates
             'docx'   => FCPATH . 'templates/pricetag/turun-harga-kcl-allocation.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
-                'Merk'        => 'brand',
                 'Variant'     => 'name_variant',
                 'HargaNormal' => 'normal_price:currency_id',
                 'HargaPromo'  => 'promo_price:currency_id',
@@ -76,7 +74,6 @@ class PriceTagTemplates
             'docx'   => FCPATH . 'templates/pricetag/disc-reg-kcl.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
-                'Merk'        => 'brand',
                 'Variant'     => 'name_variant',
                 'Program'     => 'discount_percent:percent',
                 'HargaNormal' => 'normal_price:currency_id',
@@ -90,7 +87,6 @@ class PriceTagTemplates
             'docx'   => FCPATH . 'templates/pricetag/disc-reg-kcl-allocation.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
-                'Merk'        => 'brand',
                 'Variant'     => 'name_variant',
                 'Program'     => 'discount_percent:percent',
                 'HargaNormal' => 'normal_price:currency_id',

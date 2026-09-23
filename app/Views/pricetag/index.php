@@ -50,7 +50,7 @@
     <div class="card-body d-flex flex-wrap gap-3 justify-content-between align-items-center">
         <div class="d-flex align-items-center flex-grow-1" style="max-width: 520px;">
             <label for="searchProduk" class="visually-hidden">Cari produk</label>
-            <input type="search" id="searchProduk" class="form-control" placeholder="Cari berdasarkan PLU, nama barang, atau merk..." autocomplete="off">
+            <input type="search" id="searchProduk" class="form-control" placeholder="Cari berdasarkan PLU, nama barang, atau varian..." autocomplete="off">
         </div>
 
         <button type="button" id="btnCetak" class="btn btn-danger" disabled data-bs-toggle="modal" data-bs-target="#modalCetak">
@@ -117,7 +117,6 @@
                             <th>Awal Periode</th>
                             <th>Akhir Periode</th>
                             <th>SKU/PLU</th>
-                            <th>Merk</th>
                             <th>Nama Produk</th>
                             <th>Varian</th>
                             <th>Harga Normal</th>
@@ -130,7 +129,7 @@
                     </thead>
                     <tbody>
                         <?php if (empty($tags)): ?>
-                            <tr><td colspan="13" class="text-center py-3">Belum ada data produk.</td></tr>
+                            <tr><td colspan="12" class="text-center py-3">Belum ada data produk.</td></tr>
                         <?php else: ?>
                             <?php foreach ($tags as $tag): ?>
                                 <?php
@@ -144,14 +143,12 @@
                                             class="form-check-input product-check"
                                             data-sku="<?= esc($tag['sku_plu']) ?>"
                                             data-name="<?= esc($tag['name']) ?>"
-                                            data-brand="<?= esc($tag['brand'] ?? '') ?>"
                                             data-variant="<?= esc($tag['variant'] ?? '') ?>"
                                         >
                                     </td>
                                     <td><?= esc($formatPeriod($tag['start_period'] ?? null)) ?></td>
                                     <td><?= esc($formatPeriod($tag['end_period'] ?? null)) ?></td>
                                     <td><?= esc($tag['sku_plu']) ?></td>
-                                    <td><?= esc($tag['brand'] ?? '') ?: '-' ?></td>
                                     <td><?= esc($tag['name']) ?></td>
                                     <td><?= esc($tag['variant']) ?: '-' ?></td>
                                     <td>Rp <?= number_format($tag['normal_price'], 0, ',', '.') ?></td>
@@ -174,7 +171,6 @@
                                             data-id="<?= $tagId ?>"
                                             data-sku="<?= esc($tag['sku_plu']) ?>"
                                             data-name="<?= esc($tag['name']) ?>"
-                                            data-brand="<?= esc($tag['brand'] ?? '') ?>"
                                             data-variant="<?= esc($tag['variant'] ?? '') ?>"
                                             data-price="<?= (int) $tag['normal_price'] ?>"
                                             data-start="<?= esc($tag['start_period'] ?? '') ?>"
@@ -198,7 +194,6 @@
                 <div class="modal-body"><div class="row g-3">
                     <div class="col-md-6"><label class="form-label">PLU</label><input name="sku_plu" id="editSku" class="form-control" required></div>
                     <div class="col-md-6"><label class="form-label">Nama Produk</label><input name="name" id="editName" class="form-control" required></div>
-                    <div class="col-md-6"><label class="form-label">Merk</label><input name="brand" id="editBrand" class="form-control"></div>
                     <div class="col-md-6"><label class="form-label">Varian</label><input name="variant" id="editVariant" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Harga Normal</label><input type="number" name="normal_price" id="editPrice" class="form-control" required></div>
                     <div class="col-md-4"><label class="form-label">Awal Periode</label><input type="date" name="start_period" id="editStart" class="form-control"></div>
@@ -298,7 +293,6 @@
             formEdit.action = `<?= base_url('pricetag/update') ?>/${d.id}`;
             document.getElementById('editSku').value = d.sku;
             document.getElementById('editName').value = d.name;
-            document.getElementById('editBrand').value = d.brand;
             document.getElementById('editVariant').value = d.variant;
             document.getElementById('editPrice').value = d.price;
             document.getElementById('editStart').value = d.start;
@@ -316,7 +310,7 @@
 
                 const matches = checkbox.dataset.sku.toLowerCase().includes(keyword)
                     || checkbox.dataset.name.toLowerCase().includes(keyword)
-                    || checkbox.dataset.brand.toLowerCase().includes(keyword);
+                    || checkbox.dataset.variant.toLowerCase().includes(keyword);
                 row.style.display = matches ? '' : 'none';
             });
         });

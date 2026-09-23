@@ -4,7 +4,7 @@
  * Sumber desain: BARU_POP_THG_KCL.docx
  *
  * Data yang dibutuhkan per tag (dari $tags[$i]):
- *   brand           => Nama brand/brand
+ *   name            => Nama produk
  *   variant        => Nama variant produk
  *   sku_plu            => Kode sku_plu/SKU
  *   end_period        => Tanggal akhir end_period promo
@@ -33,14 +33,6 @@
     }
     .tag:last-child { page-break-after: auto; }
 
-    .brand {
-        text-align: center;
-        color: #1E7FC2;
-        font-weight: bold;
-        font-size: 20pt;
-        letter-spacing: 1px;
-        margin: 0;
-    }
     .variant {
         text-align: center;
         color: #000000;
@@ -95,8 +87,7 @@
 
 <?php foreach ($tags as $tag): ?>
     <div class="tag">
-        <p class="brand"><?= esc($tag['brand'] ?? '') ?></p>
-        <p class="variant"><?= esc($tag['variant'] ?? '') ?></p>
+        <p class="variant"><?= esc(trim(($tag['name'] ?? '') . ' ' . ($tag['variant'] ?? ''))) ?></p>
 
         <table class="top-row" cellpadding="0" cellspacing="0">
             <tr>

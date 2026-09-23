@@ -107,7 +107,6 @@ class PriceTag extends BaseController
                 $dataInsert = [
                     'sku_plu'          => $sku,
                     'name'             => trim((string) ($row[$headerMap['name']] ?? '')),
-                    'brand'            => $this->valueFromRow($row, $headerMap, 'brand'),
                     'variant'          => $this->valueFromRow($row, $headerMap, 'variant'),
                     'normal_price'     => $this->priceFromRow($row, $headerMap, 'normal_price'),
                     'discount_percent' => $this->percentFromRow($row, $headerMap, 'discount_percent'),
@@ -176,7 +175,6 @@ class PriceTag extends BaseController
         $data = [
             'sku_plu' => trim((string) $this->request->getPost('sku_plu')),
             'name' => trim((string) $this->request->getPost('name')),
-            'brand' => trim((string) $this->request->getPost('brand')) ?: null,
             'variant' => trim((string) $this->request->getPost('variant')) ?: null,
             'normal_price' => (int) $this->request->getPost('normal_price'),
             'start_period' => $this->request->getPost('start_period') ?: null,
@@ -195,7 +193,6 @@ class PriceTag extends BaseController
         $aliases = [
             'sku_plu'          => ['sku', 'plu', 'sku plu', 'sku/plu', 'kode barang', 'kode produk', 'product code'],
             'name'             => ['nama produk', 'nama barang', 'nama', 'product name', 'nama product'],
-            'brand'            => ['merk', 'merek', 'brand', 'brand merk'],
             'variant'          => ['varian', 'variant', 'rasa', 'ukuran', 'variant deskripsi'],
             'normal_price'     => ['harga normal', 'harga jual', 'harga', 'normal price', 'selling price', 'price', 'harga normal rp'],
             'discount_percent' => ['diskon', 'diskon persen', 'discount', 'diskon %'],

@@ -110,7 +110,7 @@
     ?>
         <div class="tag-cell" <?= $isPromo ? 'style="background-color: #f4df40;"' : '' ?>>
             <div class="tag-box">
-                <div class="store-name"><?= esc($tag['brand'] ?? '') ?: 'PRICE TAG' ?></div>
+                <div class="store-name">PRICE TAG</div>
                 <div class="product-name"><?= esc($tag['name']) ?></div>
                 <div class="variant"><?= esc($tag['variant'] ?? '') ?></div>
                 

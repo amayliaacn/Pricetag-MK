@@ -4,7 +4,7 @@
  * Sumber desain: BARU_POP_DISC_REG_KCL___HG.docx
  *
  * Data yang dibutuhkan per tag (dari $tags[$i]):
- *   merk          => Nama merk/brand
+ *   name          => Nama produk
  *   variant       => Nama variant produk
  *   program       => Angka persen diskon (mis. 20)
  *   plu           => Kode PLU/SKU
@@ -35,14 +35,6 @@
     }
     .tag:last-child { page-break-after: auto; }
 
-    .merk {
-        text-align: center;
-        color: #1E7FC2;
-        font-weight: bold;
-        font-size: 22pt;
-        letter-spacing: 1px;
-        margin: 0;
-    }
     .variant {
         text-align: center;
         color: #000000;
@@ -109,8 +101,7 @@
 
 <?php foreach ($tags as $tag): ?>
     <div class="tag">
-        <p class="merk"><?= esc($tag['merk'] ?? '') ?></p>
-        <p class="variant"><?= esc($tag['variant'] ?? '') ?></p>
+        <p class="variant"><?= esc(trim(($tag['name'] ?? '') . ' ' . ($tag['variant'] ?? ''))) ?></p>
 
         <table class="diskon-row" cellpadding="0" cellspacing="0">
             <tr>

@@ -199,7 +199,7 @@ class DocxLabelMerger
 
     public static function buildFieldValues(array $product, array $fieldMap): array
     {
-        foreach (['brand', 'name', 'variant'] as $column) {
+        foreach (['name', 'variant'] as $column) {
             $product[$column] = mb_strtoupper((string) ($product[$column] ?? ''), 'UTF-8');
         }
 
@@ -208,7 +208,6 @@ class DocxLabelMerger
         );
 
         $parts = array_filter([
-            $product['brand'] ?? '',
             $product['name'] ?? '',
             $product['variant'] ?? '',
         ], fn ($v) => trim((string) $v) !== '');

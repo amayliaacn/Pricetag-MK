@@ -4,7 +4,6 @@
  * Sumber desain: BARU_POP_DISC_REG_KCL_HG_LIMITED_ALOKASI_NEW.docx
  *
  * Data yang dibutuhkan per tag (dari $tags[$i]), sesuai PriceTagModel:
- *   brand             => Nama merk/brand
  *   name              => Nama produk
  *   variant           => Varian produk (mis. berat/ukuran)
  *   discount_percent  => Angka persen diskon (mis. 20)
@@ -68,15 +67,6 @@ function ptScale($base, $scale) {
     }
     .tag:last-child { page-break-after: auto; }
 
-    .merk {
-        text-align: center;
-        color: #1E7FC2;
-        font-weight: bold;
-        font-size: <?= ptScale(11, $scale) ?>;
-        line-height: 1.05;
-        letter-spacing: 0.3px;
-        margin: 0;
-    }
     .variant {
         text-align: center;
         color: #000000;
@@ -159,7 +149,6 @@ function ptScale($base, $scale) {
 
 <?php foreach ($tags as $tag): ?>
     <div class="tag">
-        <p class="merk"><?= esc($tag['brand'] ?? '') ?></p>
         <p class="variant">
             <?= esc(trim(($tag['name'] ?? '') . ' ' . ($tag['variant'] ?? ''))) ?>
         </p>
