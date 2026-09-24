@@ -10,7 +10,8 @@ class PriceTagTemplates
             'docx'   => FCPATH . 'templates/pricetag/turun-harga-kcl.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
-                'Variant'     => 'name_variant',
+                'Merk'        => 'name',
+                'Variant'     => 'variant',
                 'HargaNormal' => 'normal_price:currency_id',
                 'HargaPromo'  => 'promo_price:currency_id',
                 'Periode'     => 'end_period:date_id_short',
@@ -22,7 +23,8 @@ class PriceTagTemplates
             'docx'   => FCPATH . 'templates/pricetag/turun-harga-kcl-allocation.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
-                'Variant'     => 'name_variant',
+                'Merk'        => 'name',
+                'Variant'     => 'variant',
                 'HargaNormal' => 'normal_price:currency_id',
                 'HargaPromo'  => 'promo_price:currency_id',
                 'Periode'     => 'end_period:date_id_short',
@@ -74,7 +76,8 @@ class PriceTagTemplates
             'docx'   => FCPATH . 'templates/pricetag/disc-reg-kcl.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
-                'Variant'     => 'name_variant',
+                'Merk'        => 'name',
+                'Variant'     => 'variant',
                 'Program'     => 'discount_percent:percent',
                 'HargaNormal' => 'normal_price:currency_id',
                 'HargaPromo'  => 'promo_price:currency_id',
@@ -87,7 +90,8 @@ class PriceTagTemplates
             'docx'   => FCPATH . 'templates/pricetag/disc-reg-kcl-allocation.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
-                'Variant'     => 'name_variant',
+                'Merk'        => 'name',
+                'Variant'     => 'variant',
                 'Program'     => 'discount_percent:percent',
                 'HargaNormal' => 'normal_price:currency_id',
                 'HargaPromo'  => 'promo_price:currency_id',
@@ -108,7 +112,7 @@ class PriceTagTemplates
             ],
         ],
 
-        'disc-reg-kcl-allvar' => [
+        'disc-reg-tgg-allvar' => [
             'label'  => 'Pricetag Diskon Reguler - Tanggung (All Varian)',
             'docx'   => FCPATH . 'templates/pricetag/disc-reg-tgg-allvar.docx',
             'fields' => [

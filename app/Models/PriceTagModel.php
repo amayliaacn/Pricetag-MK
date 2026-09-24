@@ -16,6 +16,7 @@ class PriceTagModel extends Model
         'sku_plu',
         'name',
         'variant',
+        'template_size',
         'normal_price',
         'discount_percent',
         'promo_price',

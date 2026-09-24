@@ -32,6 +32,20 @@ class PriceTag extends BaseController
             if (empty($tags)) {
                 $tags = json_decode($history['snapshot'] ?? '[]', true) ?: [];
             }
+
+            $snapshotRows = json_decode($history['snapshot'] ?? '[]', true) ?: [];
+            $snapshotSizes = [];
+            foreach ($snapshotRows as $snapshotRow) {
+                if (! empty($snapshotRow['sku_plu']) && ! empty($snapshotRow['template_size'])) {
+                    $snapshotSizes[(string) $snapshotRow['sku_plu']] = $snapshotRow['template_size'];
+                }
+            }
+            foreach ($tags as &$tag) {
+                if (empty($tag['template_size']) && isset($snapshotSizes[(string) $tag['sku_plu']])) {
+                    $tag['template_size'] = $snapshotSizes[(string) $tag['sku_plu']];
+                }
+            }
+            unset($tag);
         } else {
             $history = null;
             $tags = $model->forUserAndDate($userId, date('Y-m-d'));
@@ -104,14 +118,31 @@ class PriceTag extends BaseController
                 $sku = trim((string) ($row[$headerMap['sku_plu']] ?? ''));
                 if ($sku === '') continue;
 
+                // Kolom sumber pada file Excel berisi satu kalimat gabungan,
+                // misalnya: PRODUK #VARIAN Sisa Alok= 60pc.
+                $parsedProduct = $this->parseProductText(
+                    (string) ($row[$headerMap['name']] ?? '')
+                );
+                $promotionSource = $this->valueFromRow($row, $headerMap, 'discount_percent')
+                    ?? $this->valueFromRow($row, $headerMap, 'promo_price');
+                $hasPromotionSource = $promotionSource !== null;
+                $parsedPromotion = $this->parsePromotionText($promotionSource ?? '');
+
                 $dataInsert = [
                     'sku_plu'          => $sku,
-                    'name'             => trim((string) ($row[$headerMap['name']] ?? '')),
-                    'variant'          => $this->valueFromRow($row, $headerMap, 'variant'),
+                    'name'             => $parsedProduct['name'],
+                    'variant'          => $parsedProduct['variant']
+                        ?? $this->valueFromRow($row, $headerMap, 'variant'),
+                    'template_size'   => null,
                     'normal_price'     => $this->priceFromRow($row, $headerMap, 'normal_price'),
-                    'discount_percent' => $this->percentFromRow($row, $headerMap, 'discount_percent'),
-                    'promo_price'      => $this->priceFromRow($row, $headerMap, 'promo_price'),
-                    'allocation_pcs'   => $this->intFromRow($row, $headerMap, 'allocation_pcs'),
+                    'discount_percent' => $hasPromotionSource
+                        ? $parsedPromotion['discount_percent']
+                        : $this->percentFromRow($row, $headerMap, 'discount_percent'),
+                    'promo_price'      => $hasPromotionSource
+                        ? $parsedPromotion['promo_price']
+                        : $this->priceFromRow($row, $headerMap, 'promo_price'),
+                    'allocation_pcs'   => $parsedProduct['allocation_pcs']
+                        ?? $this->intFromRow($row, $headerMap, 'allocation_pcs'),
                     'start_period'     => $this->dateFromRow($row, $headerMap, 'start_period'),
                     'end_period'       => $this->dateFromRow($row, $headerMap, 'end_period'),
                     'uploaded_by'      => $userId,
@@ -163,7 +194,63 @@ class PriceTag extends BaseController
         if ($tag) {
             $model->update($id, ['is_printed' => $this->request->getPost('is_printed') ? 1 : 0]);
         }
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => (bool) $tag]);
+        }
         return redirect()->back();
+    }
+
+    public function updateTemplate(int $id)
+    {
+        $size = (string) $this->request->getPost('template_size');
+        if ($size !== '' && ! in_array($size, ['kcl', 'tgg'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
+        $model = new PriceTagModel();
+        if (! $model->find($id)) return redirect()->back()->with('error', 'Produk tidak ditemukan.');
+        $savedSize = $size !== '' ? $size : null;
+        $priceTagsTable = db_connect()->table('price_tags');
+        if (! $priceTagsTable->where('id', $id)->update(['template_size' => $savedSize])) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'message' => 'Ukuran template gagal disimpan ke database.']);
+            }
+            return redirect()->back()->with('error', 'Ukuran template gagal disimpan ke database.');
+        }
+
+        $savedTag = $priceTagsTable->where('id', $id)->get()->getRowArray();
+        if (($savedTag['template_size'] ?? null) !== $savedSize) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'message' => 'Ukuran template belum tersimpan.']);
+            }
+            return redirect()->back()->with('error', 'Ukuran template belum tersimpan.');
+        }
+
+        // Sinkronkan snapshot import juga. Detail import biasanya membaca
+        // price_tags, tetapi snapshot menjadi fallback untuk import lama.
+        $snapshotImportId = (int) ($savedTag['import_id'] ?? 0);
+        if ($snapshotImportId <= 0) {
+            $snapshotImportId = (int) $this->request->getGet('import_id');
+        }
+        if ($snapshotImportId > 0) {
+            $historyTable = db_connect()->table('import_history');
+            $history = $historyTable->where('id', $snapshotImportId)->get()->getRowArray();
+            if ($history && ! empty($history['snapshot'])) {
+                $snapshot = json_decode($history['snapshot'], true);
+                if (is_array($snapshot)) {
+                    foreach ($snapshot as &$snapshotRow) {
+                        if ((string) ($snapshotRow['sku_plu'] ?? '') === (string) $savedTag['sku_plu']) {
+                            $snapshotRow['template_size'] = $savedSize;
+                        }
+                    }
+                    unset($snapshotRow);
+                    $historyTable->where('id', $snapshotImportId)->update([
+                        'snapshot' => json_encode($snapshot, JSON_UNESCAPED_UNICODE),
+                    ]);
+                }
+            }
+        }
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => true, 'template_size' => $savedSize, 'message' => 'Ukuran template produk berhasil disimpan.']);
+        }
+        return redirect()->back()->with('success', 'Ukuran template produk berhasil disimpan.');
     }
 
     public function update(int $id)
@@ -177,9 +264,11 @@ class PriceTag extends BaseController
             'name' => trim((string) $this->request->getPost('name')),
             'variant' => trim((string) $this->request->getPost('variant')) ?: null,
             'normal_price' => (int) $this->request->getPost('normal_price'),
+            'discount_percent' => $this->request->getPost('discount_percent') === '' ? null : (float) $this->request->getPost('discount_percent'),
+            'promo_price' => $this->request->getPost('promo_price') === '' ? null : (int) $this->request->getPost('promo_price'),
+            'allocation_pcs' => $this->request->getPost('allocation_pcs') === '' ? null : (int) $this->request->getPost('allocation_pcs'),
             'start_period' => $this->request->getPost('start_period') ?: null,
             'end_period' => $this->request->getPost('end_period') ?: null,
-            'is_printed' => $this->request->getPost('is_printed') ? 1 : 0,
         ];
         if ($data['sku_plu'] === '' || $data['name'] === '') {
             return redirect()->back()->with('error', 'PLU dan nama produk wajib diisi.');
@@ -188,14 +277,47 @@ class PriceTag extends BaseController
         return redirect()->back()->with('success', 'Data produk berhasil diperbarui.');
     }
 
+    public function create()
+    {
+        $sku = trim((string) $this->request->getPost('sku_plu'));
+        $name = trim((string) $this->request->getPost('name'));
+        $importId = (int) $this->request->getPost('import_id');
+        if ($sku === '' || $name === '') return redirect()->back()->with('error', 'PLU dan nama produk wajib diisi.');
+
+        $data = [
+            'sku_plu' => $sku,
+            'name' => $name,
+            'variant' => trim((string) $this->request->getPost('variant')) ?: null,
+            'normal_price' => (int) $this->request->getPost('normal_price'),
+            'discount_percent' => $this->request->getPost('discount_percent') === '' ? null : (float) $this->request->getPost('discount_percent'),
+            'promo_price' => $this->request->getPost('promo_price') === '' ? null : (int) $this->request->getPost('promo_price'),
+            'allocation_pcs' => $this->request->getPost('allocation_pcs') === '' ? null : (int) $this->request->getPost('allocation_pcs'),
+            'start_period' => $this->request->getPost('start_period') ?: null,
+            'end_period' => $this->request->getPost('end_period') ?: null,
+            'uploaded_by' => (int) session()->get('id'),
+            'import_date' => date('Y-m-d'),
+            'import_id' => $importId > 0 ? $importId : null,
+            'template_size' => null,
+            'is_printed' => 0,
+        ];
+        (new PriceTagModel())->insert($data);
+        return redirect()->back()->with('success', 'Produk berhasil ditambahkan.');
+    }
+
     private function findHeaderMap(array $sheetData): ?array
     {
         $aliases = [
             'sku_plu'          => ['sku', 'plu', 'sku plu', 'sku/plu', 'kode barang', 'kode produk', 'product code'],
-            'name'             => ['nama produk', 'nama barang', 'nama', 'product name', 'nama product'],
+            'name'             => [
+                'nama produk', 'nama barang', 'nama', 'product name', 'nama product',
+                'brand', 'merk', 'merek', 'brand merk', 'brand / merk',
+            ],
             'variant'          => ['varian', 'variant', 'rasa', 'ukuran', 'variant deskripsi'],
             'normal_price'     => ['harga normal', 'harga jual', 'harga', 'normal price', 'selling price', 'price', 'harga normal rp'],
-            'discount_percent' => ['diskon', 'diskon persen', 'discount', 'diskon %'],
+            'discount_percent' => [
+                'diskon', 'diskon persen', 'discount', 'diskon %',
+                'diskon harga promo rp', 'diskon harga promo',
+            ],
             'promo_price'      => ['harga promo', 'promo price', 'harga diskon', 'harga sale', 'sale price', 'harga promo rp'],
             'allocation_pcs'   => ['alokasi', 'alokasi pcs', 'allocation', 'stok', 'qty'],
             'start_period'     => ['awal periode', 'periode mulai', 'start period', 'tanggal mulai'],
@@ -227,6 +349,88 @@ class PriceTag extends BaseController
         $value = preg_replace('/[^a-z0-9]+/', ' ', $value) ?? '';
 
         return trim($value);
+    }
+
+    /**
+     * Memecah teks produk dari Excel menjadi nama, varian, dan alokasi.
+     * Contoh: "PRODUK #VARIAN Sisa Alok= 60pc".
+     */
+    private function parseProductText(string $text): array
+    {
+        $text = trim($text);
+        $result = [
+            'name'           => $text,
+            'variant'        => null,
+            'allocation_pcs' => null,
+        ];
+
+        $name = $text;
+        $variantText = '';
+
+        if (str_contains($text, '#')) {
+            [$name, $variantText] = explode('#', $text, 2);
+            $variantText = trim($variantText);
+        }
+
+        // Alokasi dapat berada setelah variant atau langsung setelah nama produk.
+        $allocationText = $variantText !== '' ? $variantText : $name;
+        if (preg_match(
+            '/\b(?:sisa\s+)?alok\s*=\s*(\d+)\s*pcs?\b/iu',
+            $allocationText,
+            $allocation
+        )) {
+            $result['allocation_pcs'] = (int) $allocation[1];
+            $allocationText = preg_replace(
+                '/\b(?:sisa\s+)?alok\s*=\s*\d+\s*pcs?\b/iu',
+                '',
+                $allocationText
+            ) ?? $allocationText;
+
+            if ($variantText !== '') {
+                $variantText = $allocationText;
+            } else {
+                $name = $allocationText;
+            }
+        }
+
+        $result['name'] = trim($name);
+        $result['variant'] = trim($variantText) !== ''
+            ? trim($variantText)
+            : null;
+
+        return $result;
+    }
+
+    /**
+     * Memisahkan isi kolom gabungan Diskon / Harga Promo.
+     * Contoh: "Set 9%" menjadi diskon, sedangkan "26.288" menjadi harga promo.
+     */
+    private function parsePromotionText(string $text): array
+    {
+        $text = trim($text);
+        $result = [
+            'discount_percent' => null,
+            'promo_price'      => null,
+        ];
+
+        if ($text === '' || $text === '-') {
+            return $result;
+        }
+
+        if (str_contains($text, '%')) {
+            if (preg_match('/(\d+(?:[.,]\d+)?)\s*%/u', $text, $discount)) {
+                $result['discount_percent'] = (float) str_replace(',', '.', $discount[1]);
+            }
+
+            return $result;
+        }
+
+        $digits = preg_replace('/[^0-9]/', '', $text);
+        if ($digits !== '') {
+            $result['promo_price'] = (int) $digits;
+        }
+
+        return $result;
     }
 
     private function valueFromRow(array $row, array $headerMap, string $field): ?string
