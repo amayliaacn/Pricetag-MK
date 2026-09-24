@@ -73,7 +73,7 @@ class PriceTagTemplates
 
         'disc-reg-kcl' => [
             'label'  => 'Pricetag Diskon Reguler - Kecil',
-            'docx'   => FCPATH . 'templates/pricetag/disc-reg-kcl.docx',
+            'docx'   => FCPATH . 'templates/pricetag/disc-reg-kcl-A4.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
                 'Merk'        => 'name',
