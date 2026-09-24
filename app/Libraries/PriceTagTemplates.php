@@ -59,7 +59,7 @@ class PriceTagTemplates
 
         'turun-harga-tgg-allocation' => [
             'label'  => 'Pricetag Turun Harga - Tanggung (Alokasi Terbatas)',
-            'docx'   => FCPATH . 'templates/pricetag/turun-harga-tgg-allocation.docx',
+            'docx'   => FCPATH . 'templates/pricetag/turun-harga-tgg-allocation-2.docx',
             'fields' => [
                 'NamaBarang'  => 'full_label',
                 'PLU'         => 'sku_plu',

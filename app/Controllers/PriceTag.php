@@ -375,13 +375,13 @@ class PriceTag extends BaseController
         // Alokasi dapat berada setelah variant atau langsung setelah nama produk.
         $allocationText = $variantText !== '' ? $variantText : $name;
         if (preg_match(
-            '/\b(?:sisa\s+)?alok\s*=\s*(\d+)\s*pcs?\b/iu',
+            '/\b(?:sisa\s+)?alok(?:\s+[^=]+)?\s*=\s*(\d+)\s*pcs?\b/iu',
             $allocationText,
             $allocation
         )) {
             $result['allocation_pcs'] = (int) $allocation[1];
             $allocationText = preg_replace(
-                '/\b(?:sisa\s+)?alok\s*=\s*\d+\s*pcs?\b/iu',
+                '/\b(?:sisa\s+)?alok(?:\s+[^=]+)?\s*=\s*\d+\s*pcs?\b/iu',
                 '',
                 $allocationText
             ) ?? $allocationText;
