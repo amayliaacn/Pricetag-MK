@@ -10,8 +10,17 @@
     <style>
         #tabelProdukDetail { width: 100%; table-layout: fixed; }
         #tabelProdukDetail th, #tabelProdukDetail td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #tabelProdukDetail th:nth-child(6), #tabelProdukDetail td.product-name-cell {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+            overflow-wrap: anywhere;
+        }
         #tabelProdukDetail .template-size { width: 100%; min-width: 0; }
         #templateToast { position: fixed; top: 24px; right: 24px; z-index: 1080; min-width: 260px; display: none; }
+        #modalCetak .modal-content { max-height: calc(100vh - 2rem); }
+        #modalCetak .modal-body { min-height: 0; overflow-y: auto; }
+        #modalCetak .modal-footer { flex-shrink: 0; background: #fff; }
         .search-print-card .card-body { padding: 12px 16px; }
         .search-print-card .control-label { display: block; font-size: .72rem; font-weight: 700; color: #202124; margin-bottom: 4px; }
         .search-print-card .search-group { flex: 1 1 480px; min-width: 300px; }
@@ -180,7 +189,7 @@
                                     <td><?= esc($formatPeriod($tag['start_period'] ?? null)) ?></td>
                                     <td><?= esc($formatPeriod($tag['end_period'] ?? null)) ?></td>
                                     <td><?= esc($tag['sku_plu']) ?></td>
-                                    <td><?= esc($tag['name']) ?></td>
+                                    <td class="product-name-cell"><?= esc($tag['name']) ?></td>
                                     <td><?= esc($tag['variant']) ?: '-' ?></td>
                                     <td>Rp <?= number_format($tag['normal_price'], 0, ',', '.') ?></td>
                                     <td><?= !empty($tag['discount_percent']) ? number_format($tag['discount_percent'], 0, ',', '.') . '%' : (!empty($tag['promo_price']) ? 'Rp ' . number_format($tag['promo_price'], 0, ',', '.') : '-') ?></td>

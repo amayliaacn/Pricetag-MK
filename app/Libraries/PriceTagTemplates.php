@@ -20,7 +20,7 @@ class PriceTagTemplates
 
         'turun-harga-kcl-allocation' => [
             'label'  => 'Pricetag Turun Harga - Kecil (Alokasi Terbatas)',
-            'docx'   => FCPATH . 'templates/pricetag/turun-harga-kcl-allocation-A4.docx',
+            'docx'   => FCPATH . 'templates/pricetag/turun-harga-kcl-allocation-A4-2.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
                 'Merk'        => 'name',

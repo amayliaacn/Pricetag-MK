@@ -13,7 +13,7 @@
         <div class="mk-login-card p-4 p-md-5">
             <div class="text-center mb-4">
                 <img src="<?= base_url('assets/img/logo.png') ?>" alt="Manna Kampus" class="mk-logo mb-3">
-                <h3 class="mk-title mb-1">Price Tag System</h3>
+                <h3 class="mk-title mb-1">PopOne</h3>
                 <p class="mk-subtitle mb-0">Masuk untuk import dan cetak price tag outlet.</p>
             </div>
 
@@ -39,6 +39,11 @@
                     </button>
                 </div>
             </form>
+            <footer class="mk-app-footer">
+                <div class="mk-login-footer-divider"></div>
+                <div class="mk-login-footer-company">Aplikasi ini dibuat oleh Divisi Software Engineer Manna Kampus</div>
+                <div>by <span>Amaylia Ananda</span></div>
+            </footer>
         </div>
     </main>
 </body>

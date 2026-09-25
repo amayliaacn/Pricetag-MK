@@ -11,7 +11,7 @@ class Dashboard extends BaseController
         $session = session();
         
         $data = [
-            'title'    => 'Dashboard - Sistem Price Tag',
+            'title'    => 'Print POP',
             'username' => $session->get('username'),
             'role'     => $session->get('role')
         ];

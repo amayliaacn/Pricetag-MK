@@ -41,4 +41,32 @@ class ImportHistory extends BaseController
             'filters' => $filters,
         ]);
     }
+
+    public function delete(int $id)
+    {
+        $role = (string) session()->get('role');
+        $outletId = session()->get('outlet_id');
+        $historyModel = new ImportHistoryModel();
+        $history = $historyModel->findVisibleImport(
+            $id,
+            $role,
+            $outletId === null ? null : (int) $outletId
+        );
+
+        if (! $history) {
+            return redirect()->to(base_url('import-history'))->with('error', 'Data import tidak ditemukan atau tidak dapat dihapus.');
+        }
+
+        $db = db_connect();
+        $db->transStart();
+        $db->table('price_tags')->where('import_id', $id)->delete();
+        $historyModel->delete($id);
+        $db->transComplete();
+
+        if (! $db->transStatus()) {
+            return redirect()->to(base_url('import-history'))->with('error', 'Data import gagal dihapus.');
+        }
+
+        return redirect()->to(base_url('import-history'))->with('success', 'Data file import dan produk terkait berhasil dihapus.');
+    }
 }
