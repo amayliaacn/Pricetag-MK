@@ -7,7 +7,7 @@ class PriceTagTemplates
     protected static array $templates = [
         'turun-harga-kcl' => [
             'label'  => 'Pricetag Turun Harga - Kecil',
-            'docx'   => FCPATH . 'templates/pricetag/turun-harga-kcl.docx',
+            'docx'   => FCPATH . 'templates/pricetag/turun-harga-kcl-A4.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
                 'Merk'        => 'name',
@@ -20,7 +20,7 @@ class PriceTagTemplates
 
         'turun-harga-kcl-allocation' => [
             'label'  => 'Pricetag Turun Harga - Kecil (Alokasi Terbatas)',
-            'docx'   => FCPATH . 'templates/pricetag/turun-harga-kcl-allocation.docx',
+            'docx'   => FCPATH . 'templates/pricetag/turun-harga-kcl-allocation-A4.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
                 'Merk'        => 'name',
@@ -87,7 +87,7 @@ class PriceTagTemplates
 
         'disc-reg-kcl-allocation' => [
             'label'  => 'Pricetag Diskon Reguler - Kecil (Alokasi Terbatas)',
-            'docx'   => FCPATH . 'templates/pricetag/disc-reg-kcl-allocation.docx',
+            'docx'   => FCPATH . 'templates/pricetag/disc-reg-kcl-allocation-A4.docx',
             'fields' => [
                 'PLU'         => 'sku_plu',
                 'Merk'        => 'name',

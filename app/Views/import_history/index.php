@@ -106,8 +106,11 @@
             <thead class="table-dark"><tr><th>No</th><th>Nama File</th><?php if (session()->get('role') === 'super_admin'): ?><th>Outlet</th><?php endif; ?><th>Tanggal</th><th>Waktu</th><th>Diimpor Oleh</th><th>Status</th><th>Aksi</th></tr></thead>
             <tbody>
             <?php if (empty($history)): ?><tr><td colspan="<?= session()->get('role') === 'super_admin' ? 8 : 7 ?>" class="text-center text-muted py-4">Belum ada riwayat impor.</td></tr>
-            <?php else: foreach ($history as $index => $item): $timestamp = strtotime($item['imported_at']); ?>
-                <tr><td><?= $index + 1 ?></td><td><?= esc($item['file_name']) ?></td><?php if (session()->get('role') === 'super_admin'): ?><td><span class="badge text-bg-light border"><?= esc($item['outlet_code']) ?></span></td><?php endif; ?><td><?= date('d M Y', $timestamp) ?></td><td><?= date('H:i:s', $timestamp) ?></td><td><?= esc($item['username']) ?></td><td><span class="mk-import-status"><i class="bi bi-check-circle-fill"></i>Berhasil</span></td><td><a class="btn btn-primary btn-sm" title="Lihat data impor" href="<?= base_url('pricetag?import=' . (int) $item['id']) ?>"><i class="bi bi-eye"></i></a></td></tr>
+            <?php else: foreach ($history as $index => $item):
+                $importedAt = new DateTimeImmutable($item['imported_at'], new DateTimeZone('UTC'));
+                $importedAt = $importedAt->setTimezone(new DateTimeZone('Asia/Jakarta'));
+            ?>
+                <tr><td><?= $index + 1 ?></td><td><?= esc($item['file_name']) ?></td><?php if (session()->get('role') === 'super_admin'): ?><td><span class="badge text-bg-light border"><?= esc($item['outlet_code']) ?></span></td><?php endif; ?><td><?= $importedAt->format('d M Y') ?></td><td><?= $importedAt->format('H:i:s') ?></td><td><?= esc($item['username']) ?></td><td><span class="mk-import-status"><i class="bi bi-check-circle-fill"></i>Berhasil</span></td><td><a class="btn btn-primary btn-sm" title="Lihat data impor" href="<?= base_url('pricetag?import=' . (int) $item['id']) ?>"><i class="bi bi-eye"></i></a></td></tr>
             <?php endforeach; endif; ?>
             </tbody>
         </table></div>
