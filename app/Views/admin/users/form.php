@@ -93,5 +93,6 @@
         role.addEventListener('change', syncOutlet);
         syncOutlet();
     </script>
+    <?= view('partials/app_footer') ?>
 </body>
 </html>

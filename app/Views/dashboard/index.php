@@ -8,7 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="<?= base_url('assets/css/admin-theme.css') ?>" rel="stylesheet">
 </head>
-<body class="mk-body">
+<body class="mk-body mk-dashboard-page">
     <nav class="navbar navbar-expand-lg mk-topbar">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="<?= base_url('dashboard') ?>">
@@ -87,7 +87,8 @@
                                 </div>
                             </div>
                         </div>
-                        <footer class="mk-dashboard-footer">
+                        <?php /* Footer is shared across application pages. */ ?>
+                        <!--
                             <div class="mk-dashboard-footer-brand">
                                 <strong>PopOne</strong>
                                 <small>Sistem Print POP Internal Manna Kampus</small>
@@ -96,8 +97,9 @@
                                 <small>© <?= date('Y') ?> Created By</small>
                                 <strong>Division Software Engineering Manna Kampus</strong>
                             </div>
-                        </footer>
+                        </footer> -->
     </div>
+    <?= view('partials/app_footer') ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

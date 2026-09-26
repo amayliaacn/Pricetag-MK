@@ -178,12 +178,13 @@ body.mk-body {
 }
 
 .mk-dashboard-footer {
-    width: 100vw;
+    width: 100%;
+    box-sizing: border-box;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 24px;
-    margin: auto 0 -1.5rem calc((100% - 100vw) / 2);
+    margin: auto 0 -1.5rem;
     padding: 18px max(38px, calc((100vw - 1320px) / 2 + 12px));
     background: rgba(255, 255, 255, .96);
     border: 1px solid rgba(234, 223, 214, .9);
@@ -191,10 +192,45 @@ body.mk-body {
     box-shadow: 0 10px 28px rgba(37, 35, 34, .07);
 }
 
-body.mk-body > .container {
-    flex: 1;
+/* Dorong footer ke bawah viewport pada halaman yang kontennya pendek. */
+body.mk-body {
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
+}
+
+body.mk-body > .mk-topbar {
+    flex-shrink: 0;
+}
+
+body.mk-body > .container {
+    flex: 1;
+    min-height: calc(100vh - 88px);
+    display: flex;
+    flex-direction: column;
+}
+
+body.mk-body > .container > .mk-dashboard-footer {
+    margin-top: auto;
+}
+
+body.mk-body > .mk-dashboard-footer {
+    flex-shrink: 0;
+    width: 100%;
+    margin: auto 0 0;
+    border-left: 0;
+    border-right: 0;
+}
+
+/* Dashboard hanya berisi menu utama, sehingga seluruh halaman cukup satu layar. */
+body.mk-dashboard-page {
+    height: 100vh;
+    overflow: hidden;
+}
+
+body.mk-dashboard-page > .container {
+    min-height: 0;
+    overflow: hidden;
 }
 
 .mk-dashboard-footer-brand,
@@ -230,8 +266,8 @@ body.mk-body > .container {
     .mk-dashboard-footer {
         align-items: center;
         flex-direction: column;
-        width: 100vw;
-        margin: auto 0 -1.5rem calc((100% - 100vw) / 2);
+        width: 100%;
+        margin: auto 0 -1.5rem;
         margin-right: 0;
         padding: 16px;
     }

@@ -51,5 +51,6 @@
             </div>
         </div>
     </div>
+    <?= view('partials/app_footer') ?>
 </body>
 </html>

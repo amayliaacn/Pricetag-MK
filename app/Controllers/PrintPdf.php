@@ -18,7 +18,7 @@ class PrintPdf extends BaseController
         $importId     = (int) $this->request->getPost('import_id');
 
         if (empty($selectedSkus)) {
-            return redirect()->to('/pricetag')->with('error', 'Pilih minimal 1 produk untuk dicetak.');
+            return redirect()->to('/import-history')->with('error', 'Pilih minimal 1 produk untuk dicetak.');
         }
 
         $model      = new PriceTagModel();
@@ -53,7 +53,7 @@ class PrintPdf extends BaseController
                 return redirect()->back()->with('error', 'Pastikan semua produk sudah memilih ukuran template.');
             }
             if ($size === 'tgg' && $allvar && (int) ($product['allocation_pcs'] ?? 0) > 0) {
-                return redirect()->to('/pricetag')->with(
+                return redirect()->to('/import-history')->with(
                     'error',
                     'Produk dengan alokasi tidak dapat menggunakan template Tanggung - All Varian. '
                     . 'Silakan nonaktifkan All Varian atau pilih template Tanggung biasa.'
@@ -76,7 +76,7 @@ class PrintPdf extends BaseController
         }
 
         if (empty($groups)) {
-            return redirect()->to('/pricetag')->with('error', 'Produk yang dipilih tidak ditemukan di database.');
+            return redirect()->to('/import-history')->with('error', 'Produk yang dipilih tidak ditemukan di database.');
         }
 
         $mergers = [];
@@ -124,7 +124,7 @@ class PrintPdf extends BaseController
             return redirect()->to(site_url('print-pdf/' . $downloadToken));
         } catch (\Throwable $e) {
             log_message('error', 'Cetak price tag gagal: ' . $e->getMessage());
-            return redirect()->to('/pricetag')->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+            return redirect()->to('/import-history')->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         } finally {
             foreach ($mergers as $merger) {
                 $merger->cleanup();

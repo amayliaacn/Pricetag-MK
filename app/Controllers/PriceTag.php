@@ -16,6 +16,12 @@ class PriceTag extends BaseController
         $userId = (int) session()->get('id');
         $importId = $this->request->getGet('import');
 
+        // Halaman daftar lama dinonaktifkan. Detail hanya boleh dibuka
+        // melalui ID import dari halaman History Import.
+        if ($importId === null || ! ctype_digit((string) $importId) || (int) $importId < 1) {
+            return redirect()->to('/import-history');
+        }
+
         if ($importId !== null) {
             $history = (new ImportHistoryModel())->findVisibleImport(
                 (int) $importId,
@@ -64,7 +70,7 @@ class PriceTag extends BaseController
     public function import()
     {
         $returnToHistory = $this->request->getPost('return_to') === 'import-history';
-        $redirectPath = $returnToHistory ? '/import-history' : '/pricetag';
+        $redirectPath = '/import-history';
         $outletId = session()->get('outlet_id');
 
         if (session()->get('role') === 'super_admin' && $this->request->getPost('outlet_id')) {

@@ -64,13 +64,11 @@
                 <form action="<?= base_url('pricetag/import') ?>" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="return_to" value="import-history">
                     <label for="file_excel" class="form-label">Pilih File Excel</label>
-                    <div class="d-flex gap-2">
-                        <input id="file_excel" type="file" name="file_excel" class="form-control" accept=".xlsx,.xls" required>
-                        <button type="submit" class="btn btn-success text-nowrap"><i class="bi bi-upload me-1"></i>Import Excel</button>
-                    </div>
+                    <input id="file_excel" type="file" name="file_excel" class="form-control" accept=".xlsx,.xls" required>
                     <div class="form-text mt-2">Format file harus .xlsx. Pastikan data sesuai dengan template.</div>
-                    <?php if (session()->get('role') === 'super_admin'): ?>
-                        <div class="mt-3">
+                    <div class="row g-2 mt-2 align-items-end">
+                        <?php if (session()->get('role') === 'super_admin'): ?>
+                            <div class="col">
                             <label class="form-label">Outlet Tujuan Import File</label>
                             <select name="outlet_id" class="form-select" required>
                                 <option value="">Pilih Outlet Tujuan Import File</option>
@@ -78,8 +76,12 @@
                                     <option value="<?= (int) $outlet['id'] ?>"><?= esc($outlet['code'] . ' - ' . $outlet['name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
+                            </div>
+                        <?php endif; ?>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-success text-nowrap"><i class="bi bi-upload me-1"></i>Import Excel</button>
                         </div>
-                    <?php endif; ?>
+                    </div>
                 </form>
             </div>
             <div class="col-lg-6">
@@ -117,5 +119,6 @@
     </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <?= view('partials/app_footer') ?>
 </body>
 </html>

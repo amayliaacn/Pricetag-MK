@@ -10,6 +10,14 @@
     <style>
         #tabelProdukDetail { width: 100%; table-layout: fixed; }
         #tabelProdukDetail th, #tabelProdukDetail td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #tabelProdukDetail thead th {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+            overflow-wrap: anywhere;
+            line-height: 1.2;
+            vertical-align: middle;
+        }
         #tabelProdukDetail th:nth-child(6), #tabelProdukDetail td.product-name-cell {
             white-space: normal;
             overflow: visible;
@@ -17,9 +25,41 @@
             overflow-wrap: anywhere;
         }
         #tabelProdukDetail .template-size { width: 100%; min-width: 0; }
+        #tabelProdukDetail .template-size-wrapper { position: relative; }
+        #tabelProdukDetail .template-size-wrapper.is-required .template-size {
+            border-color: #ff8a1f;
+            color: #d96b00;
+            background-color: #fffaf5;
+            font-weight: 600;
+            padding-left: 2rem;
+        }
+        #tabelProdukDetail .template-size-warning {
+            position: absolute;
+            z-index: 1;
+            left: .65rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #f07800;
+            pointer-events: none;
+        }
         #templateToast { position: fixed; top: 24px; right: 24px; z-index: 1080; min-width: 260px; display: none; }
-        #modalCetak .modal-content { max-height: calc(100vh - 2rem); }
-        #modalCetak .modal-body { min-height: 0; overflow-y: auto; }
+        /* Batasi tinggi modal dan scroll hanya pada daftar produk. Form harus
+           menjadi flex container agar footer tetap terlihat di bawah modal. */
+        #modalCetak .modal-content {
+            max-height: calc(100vh - 2rem);
+            display: flex;
+        }
+        #modalCetak #formCetak {
+            min-height: 0;
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+        }
+        #modalCetak .modal-body {
+            min-height: 0;
+            flex: 1 1 auto;
+            overflow-y: auto;
+        }
         #modalCetak .modal-footer { flex-shrink: 0; background: #fff; }
         .search-print-card .card-body { padding: 12px 16px; }
         .search-print-card .control-label { display: block; font-size: .72rem; font-weight: 700; color: #202124; margin-bottom: 4px; }
@@ -138,7 +178,7 @@
                 <div class="table-responsive">
                 <table id="tabelProdukDetail" class="table table-striped table-hover m-0 align-middle">
                     <colgroup>
-                        <col style="width:4%"><col style="width:4%"><col style="width:7%"><col style="width:7%"><col style="width:6%"><col style="width:14%"><col style="width:12%"><col style="width:9%"><col style="width:10%"><col style="width:7%"><col style="width:8%"><col style="width:8%"><col style="width:4%">
+                        <col style="width:4%"><col style="width:4%"><col style="width:7%"><col style="width:7%"><col style="width:6%"><col style="width:13%"><col style="width:12%"><col style="width:9%"><col style="width:10%"><col style="width:7%"><col style="width:8%"><col style="width:9%"><col style="width:4%">
                     </colgroup>
                     <thead class="table-dark">
                         <tr>
@@ -159,7 +199,7 @@
                             <th>Diskon / Harga Promo</th>
                             <th>Alokasi (Pcs)</th>
                             <th>Status Cetak</th>
-                            <th>Ukuran Template</th>
+                            <th>Ukuran Template *</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
@@ -212,7 +252,7 @@
                                             </label>
                                         </form>
                                     </td>
-                                    <td><form method="post" class="template-size-form" action="<?= base_url('pricetag/template/' . $tagId) ?><?= !empty($history['id']) ? '?import_id=' . (int) $history['id'] : '' ?>"><select name="template_size" class="form-select form-select-sm template-size" <?= $tagId === 0 ? 'disabled' : '' ?>><option value="" <?= $templateSize === '' ? 'selected' : '' ?>>Pilih ukuran</option><option value="tgg" <?= $templateSize === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="kcl" <?= $templateSize === 'kcl' ? 'selected' : '' ?>>Kecil</option></select></form></td>
+                                    <td><form method="post" class="template-size-form" action="<?= base_url('pricetag/template/' . $tagId) ?><?= !empty($history['id']) ? '?import_id=' . (int) $history['id'] : '' ?>"><div class="template-size-wrapper <?= $templateSize === '' ? 'is-required' : '' ?>"><i class="bi bi-exclamation-triangle-fill template-size-warning <?= $templateSize === '' ? '' : 'd-none' ?>" aria-hidden="true"></i><select name="template_size" class="form-select form-select-sm template-size" <?= $tagId === 0 ? 'disabled' : '' ?>><option value="" <?= $templateSize === '' ? 'selected' : '' ?>>Pilih ukuran</option><option value="tgg" <?= $templateSize === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="kcl" <?= $templateSize === 'kcl' ? 'selected' : '' ?>>Kecil</option></select></div></form></td>
                                     <td>
                                         <button type="button" class="btn btn-primary mk-icon-btn btn-edit"
                                             data-id="<?= $tagId ?>"
@@ -338,6 +378,8 @@
             let previousValue = select.value;
             select.addEventListener('change', async () => {
                 const formData = new FormData(form);
+                const wrapper = form.querySelector('.template-size-wrapper');
+                const warning = form.querySelector('.template-size-warning');
                 select.disabled = true;
                 try {
                     const response = await fetch(form.action, {
@@ -347,6 +389,8 @@
                     });
                     if (!response.ok) throw new Error('Gagal menyimpan ukuran template.');
                     previousValue = select.value;
+                    wrapper.classList.toggle('is-required', select.value === '');
+                    warning.classList.toggle('d-none', select.value !== '');
                     const productCheck = form.closest('tr')?.querySelector('.product-check');
                     if (productCheck) productCheck.dataset.size = select.value;
                     templateToast.textContent = 'Ukuran template produk berhasil disimpan.';
@@ -355,6 +399,8 @@
                     toastTimer = setTimeout(() => templateToast.style.display = 'none', 2500);
                 } catch (error) {
                     select.value = previousValue;
+                    wrapper.classList.toggle('is-required', select.value === '');
+                    warning.classList.toggle('d-none', select.value !== '');
                     templateToast.className = 'alert alert-danger shadow-sm py-2 px-3 mb-0';
                     templateToast.textContent = error.message;
                     templateToast.style.display = 'block';
@@ -492,5 +538,6 @@
             });
         });
     </script>
+    <?= view('partials/app_footer') ?>
 </body>
 </html>
