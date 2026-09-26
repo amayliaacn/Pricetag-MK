@@ -62,7 +62,7 @@
         }
         #modalCetak .modal-footer { flex-shrink: 0; background: #fff; }
         .search-print-card .card-body { padding: 12px 16px; }
-        .search-print-card .control-label { display: block; font-size: .72rem; font-weight: 700; color: #202124; margin-bottom: 4px; }
+        .search-print-card .control-label { display: block; font-size: .875rem; font-weight: 700; color: #202124; margin-bottom: 4px; }
         .search-print-card .search-group { flex: 1 1 480px; min-width: 300px; }
         .search-print-card .size-group { flex: 0 0 145px; }
         .search-print-card .search-control { position: relative; }
@@ -121,7 +121,7 @@
         </div>
         <div class="control-divider d-none d-lg-block"></div>
         <div class="size-group">
-            <label for="filterUkuran" class="control-label">Template POP</label>
+            <label for="filterUkuran" class="control-label">Filter Template POP</label>
             <select id="filterUkuran" class="form-select"><option value="all">Semua Ukuran</option><option value="tgg">Tanggung</option><option value="kcl">Kecil</option></select>
         </div>
 
