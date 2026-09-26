@@ -370,6 +370,25 @@ class PriceTag extends BaseController
             'allocation_pcs' => null,
         ];
 
+        // Format utama kolom gabungan Excel:
+        // "PRODUK # VARIAN Sisa Alok 90Q = 200pc"
+        // Bagian setelah kata Alok sebelum '=' (contoh: "90Q") adalah
+        // keterangan alokasi, bukan bagian dari varian.
+        if (preg_match(
+            '/^\s*(?<produk>[^#]+?)\s*#\s*(?<varian>.*?)\s+'
+            . '(?:Sisa\s+)?Alok\b[^=\r\n]*=\s*(?<alokasi>\d+)/iu',
+            $text,
+            $match
+        ) === 1) {
+            $result['name'] = trim($match['produk']);
+            $result['variant'] = trim($match['varian']) !== ''
+                ? trim($match['varian'])
+                : null;
+            $result['allocation_pcs'] = (int) $match['alokasi'];
+
+            return $result;
+        }
+
         $name = $text;
         $variantText = '';
 
