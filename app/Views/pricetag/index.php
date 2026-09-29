@@ -211,7 +211,7 @@
                                 <?php
                                     $tagId = (int) ($tag['id'] ?? 0);
                                     $isPrinted = (int) ($tag['is_printed'] ?? 0) === 1;
-                                    $templateSize = ($tag['template_size'] ?? '') === 'tgg' ? 'tgg' : (($tag['template_size'] ?? '') === 'kcl' ? 'kcl' : '');
+                $templateSize = in_array(($tag['template_size'] ?? ''), ['tgg', 'kcl', 'mpdf'], true) ? $tag['template_size'] : '';
                                 ?>
                                 <tr>
                                     <td>
@@ -252,7 +252,7 @@
                                             </label>
                                         </form>
                                     </td>
-                                    <td><form method="post" class="template-size-form" action="<?= base_url('pricetag/template/' . $tagId) ?><?= !empty($history['id']) ? '?import_id=' . (int) $history['id'] : '' ?>"><div class="template-size-wrapper <?= $templateSize === '' ? 'is-required' : '' ?>"><i class="bi bi-exclamation-triangle-fill template-size-warning <?= $templateSize === '' ? '' : 'd-none' ?>" aria-hidden="true"></i><select name="template_size" class="form-select form-select-sm template-size" <?= $tagId === 0 ? 'disabled' : '' ?>><option value="" <?= $templateSize === '' ? 'selected' : '' ?>>Pilih ukuran</option><option value="tgg" <?= $templateSize === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="kcl" <?= $templateSize === 'kcl' ? 'selected' : '' ?>>Kecil</option></select></div></form></td>
+                                    <td><form method="post" class="template-size-form" action="<?= base_url('pricetag/template/' . $tagId) ?><?= !empty($history['id']) ? '?import_id=' . (int) $history['id'] : '' ?>"><div class="template-size-wrapper <?= $templateSize === '' ? 'is-required' : '' ?>"><i class="bi bi-exclamation-triangle-fill template-size-warning <?= $templateSize === '' ? '' : 'd-none' ?>" aria-hidden="true"></i><select name="template_size" class="form-select form-select-sm template-size" <?= $tagId === 0 ? 'disabled' : '' ?>><option value="" <?= $templateSize === '' ? 'selected' : '' ?>>Pilih ukuran</option><option value="tgg" <?= $templateSize === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="kcl" <?= $templateSize === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="mpdf" <?= $templateSize === 'mpdf' ? 'selected' : '' ?>>THG A4</option></select></div></form></td>
                                     <td>
                                         <button type="button" class="btn btn-primary mk-icon-btn btn-edit"
                                             data-id="<?= $tagId ?>"
@@ -528,7 +528,7 @@
                     <td>${name}${variant ? ' - ' + variant : ''}</td>
                     <td>
                         <input type="hidden" name="size[${sku}]" value="${size}">
-                        ${size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${sku}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : '<span class="text-muted">Kecil</span>'}
+                        ${size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${sku}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : (size === 'mpdf' ? '<span class="badge text-bg-info">A4 mPDF</span>' : '<span class="text-muted">Kecil</span>')}
                     </td>
                     <td>
                         <input type="number" name="qty[${sku}]" value="1" min="1" class="form-control form-control-sm" required>
@@ -536,6 +536,16 @@
                 `;
                 tabelBody.appendChild(row);
             });
+            const usesMpdf = getChecked().some(cb => cb.dataset.size === 'mpdf');
+            document.getElementById('formCetak').action = usesMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
+        });
+
+        // Pastikan pilihan A4 mPDF tetap memakai controller baru saat form submit.
+        document.getElementById('formCetak').addEventListener('submit', function () {
+            const hasMpdf = this.querySelector('input[name^="size["][value="mpdf"]') !== null;
+            if (hasMpdf) {
+                this.action = '<?= base_url('print-mpdf') ?>';
+            }
         });
     </script>
     <?= view('partials/app_footer') ?>

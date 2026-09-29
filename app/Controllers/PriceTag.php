@@ -209,7 +209,7 @@ class PriceTag extends BaseController
     public function updateTemplate(int $id)
     {
         $size = (string) $this->request->getPost('template_size');
-        if ($size !== '' && ! in_array($size, ['kcl', 'tgg'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
+        if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
         $model = new PriceTagModel();
         if (! $model->find($id)) return redirect()->back()->with('error', 'Produk tidak ditemukan.');
         $savedSize = $size !== '' ? $size : null;
