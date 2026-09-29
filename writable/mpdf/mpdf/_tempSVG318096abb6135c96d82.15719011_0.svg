@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="18.5cm" height="25cm" viewBox="0 0 185 250">
+                <g transform="translate(96,20.8) scale(0.56,0.8451)">
+            <text x="0" y="0" font-family="bahnschrift" font-size="10"
+                  fill="#0000CC"
+                  >A.Periode : 20 Agustus 2026</text>
+        </g>
+                <g transform="translate(115.1,30.2) scale(0.5497,0.8451)">
+            <text x="0" y="0" font-family="bahnschrift" font-size="10"
+                  fill="#FF0000"
+                                    stroke="#FF0000" stroke-width="0.7"
+                  >Alokasi : 2.000 Pcs</text>
+        </g>
+                <g transform="translate(22.95,85.7) scale(3.2455,4.2766)">
+            <text x="0" y="0" font-family="bernardmt" font-size="10"
+                  fill="#101AE0"
+                  >TESSA-TP.06</text>
+        </g>
+                <g transform="translate(54.35,104.5) scale(1.2987,1.4665)">
+            <text x="0" y="0" font-family="arialblack" font-size="10"
+                  fill="#000000"
+                  >RF BANDED</text>
+        </g>
+                <g transform="translate(33.1,137.7) scale(0.7463,1.6446)">
+            <text x="0" y="0" font-family="bookantiqua" font-size="10"
+                  fill="#000000"
+                  >Rp</text>
+        </g>
+                <g transform="translate(47.5,138.2) scale(2.3304,2.8047)">
+            <text x="0" y="0" font-family="bookantiqua" font-size="10"
+                  fill="#000000"
+                                    stroke="#000000" stroke-width="1"
+                  >23.773</text>
+        </g>
+                <g transform="translate(18,212) scale(1.0448,2.3495)">
+            <text x="0" y="0" font-family="bookantiqua" font-size="10"
+                  fill="#000000"
+                  >Rp</text>
+        </g>
+                <g transform="translate(41.9,241.3) scale(3.4215,11.1313)">
+            <text x="0" y="0" font-family="arialblack" font-size="10"
+                  fill="#FF0000"
+                  >12.809</text>
+        </g>
+                <g transform="translate(76.4,264) scale(0.5922,1.1268)">
+            <text x="0" y="0" font-family="bahnschrift" font-size="10"
+                  fill="#000033"
+                                    stroke="#000000" stroke-width="0.7"
+                  >PLU :</text>
+        </g>
+                <g transform="translate(91.3,264) scale(0.8006,1.1268)">
+            <text x="0" y="0" font-family="bahnschrift" font-size="10"
+                  fill="#000033"
+                                    stroke="#000000" stroke-width="0.7"
+                  >078006</text>
+        </g>
+            </svg>

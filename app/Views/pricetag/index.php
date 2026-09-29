@@ -211,13 +211,14 @@
                                 <?php
                                     $tagId = (int) ($tag['id'] ?? 0);
                                     $isPrinted = (int) ($tag['is_printed'] ?? 0) === 1;
-                $templateSize = in_array(($tag['template_size'] ?? ''), ['tgg', 'kcl', 'mpdf'], true) ? $tag['template_size'] : '';
+                $templateSize = in_array(($tag['template_size'] ?? ''), ['tgg', 'kcl', 'mpdf', 'segitiga', 'special-price', 'diskon'], true) ? $tag['template_size'] : '';
                                 ?>
                                 <tr>
                                     <td>
                                         <input
                                             type="checkbox"
                                             class="form-check-input product-check"
+                                            data-id="<?= $tagId ?>"
                                             data-sku="<?= esc($tag['sku_plu']) ?>"
                                             data-name="<?= esc($tag['name']) ?>"
                                             data-variant="<?= esc($tag['variant'] ?? '') ?>"
@@ -252,7 +253,7 @@
                                             </label>
                                         </form>
                                     </td>
-                                    <td><form method="post" class="template-size-form" action="<?= base_url('pricetag/template/' . $tagId) ?><?= !empty($history['id']) ? '?import_id=' . (int) $history['id'] : '' ?>"><div class="template-size-wrapper <?= $templateSize === '' ? 'is-required' : '' ?>"><i class="bi bi-exclamation-triangle-fill template-size-warning <?= $templateSize === '' ? '' : 'd-none' ?>" aria-hidden="true"></i><select name="template_size" class="form-select form-select-sm template-size" <?= $tagId === 0 ? 'disabled' : '' ?>><option value="" <?= $templateSize === '' ? 'selected' : '' ?>>Pilih ukuran</option><option value="tgg" <?= $templateSize === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="kcl" <?= $templateSize === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="mpdf" <?= $templateSize === 'mpdf' ? 'selected' : '' ?>>THG A4</option></select></div></form></td>
+                                    <td><form method="post" class="template-size-form" action="<?= base_url('pricetag/template/' . $tagId) ?><?= !empty($history['id']) ? '?import_id=' . (int) $history['id'] : '' ?>"><div class="template-size-wrapper <?= $templateSize === '' ? 'is-required' : '' ?>"><i class="bi bi-exclamation-triangle-fill template-size-warning <?= $templateSize === '' ? '' : 'd-none' ?>" aria-hidden="true"></i><select name="template_size" class="form-select form-select-sm template-size" <?= $tagId === 0 ? 'disabled' : '' ?>><option value="" <?= $templateSize === '' ? 'selected' : '' ?>>Pilih ukuran</option><option value="tgg" <?= $templateSize === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="kcl" <?= $templateSize === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="mpdf" <?= $templateSize === 'mpdf' ? 'selected' : '' ?>>THG A4</option><option value="segitiga" <?= $templateSize === 'segitiga' ? 'selected' : '' ?>>Segitiga Turun Harga</option><option value="special-price" <?= $templateSize === 'special-price' ? 'selected' : '' ?>>Special Price</option><option value="diskon" <?= $templateSize === 'diskon' ? 'selected' : '' ?>>Segitiga Diskon</option></select></div></form></td>
                                     <td>
                                         <button type="button" class="btn btn-primary mk-icon-btn btn-edit"
                                             data-id="<?= $tagId ?>"
@@ -262,6 +263,7 @@
                                             data-price="<?= (int) $tag['normal_price'] ?>"
                                             data-discount="<?= esc($tag['discount_percent'] ?? '') ?>"
                                             data-promo="<?= esc($tag['promo_price'] ?? '') ?>"
+                                            data-template="<?= esc($templateSize) ?>"
                                             data-allocation="<?= esc($tag['allocation_pcs'] ?? '') ?>"
                                             data-start="<?= esc($tag['start_period'] ?? '') ?>"
                                             data-end="<?= esc($tag['end_period'] ?? '') ?>" <?= $tagId === 0 ? 'disabled title="Data snapshot tidak dapat diedit"' : '' ?> title="Edit" aria-label="Edit"><i class="bi bi-pencil-square"></i></button>
@@ -286,7 +288,7 @@
                     <div class="col-md-6"><label class="form-label">PLU</label><input name="sku_plu" id="editSku" class="form-control" required></div>
                     <div class="col-md-6"><label class="form-label">Nama Produk</label><input name="name" id="editName" class="form-control" required></div>
                     <div class="col-md-6"><label class="form-label">Varian</label><input name="variant" id="editVariant" class="form-control"></div>
-                    <div class="col-md-4"><label class="form-label">Harga Normal</label><input type="number" name="normal_price" id="editPrice" class="form-control" required></div>
+                    <div class="col-md-4"><label class="form-label">Harga Normal</label><input type="number" name="normal_price" id="editPrice" class="form-control"><div class="form-text" id="editPriceHelp">Wajib diisi untuk template selain Special Price.</div></div>
                     <div class="col-md-4"><label class="form-label">Diskon (%)</label><input type="number" step="0.01" min="0" name="discount_percent" id="editDiscount" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Harga Promo</label><input type="number" min="0" name="promo_price" id="editPromo" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Alokasi (Pcs)</label><input type="number" min="0" name="allocation_pcs" id="editAllocation" class="form-control"></div>
@@ -475,6 +477,13 @@
             document.getElementById('editName').value = d.name;
             document.getElementById('editVariant').value = d.variant;
             document.getElementById('editPrice').value = d.price;
+            const normalPrice = document.getElementById('editPrice');
+            const normalPriceHelp = document.getElementById('editPriceHelp');
+            const isSpecialPrice = d.template === 'special-price';
+            normalPrice.required = !isSpecialPrice;
+            normalPriceHelp.textContent = isSpecialPrice
+                ? 'Boleh dikosongkan untuk template Special Price.'
+                : 'Wajib diisi untuk template selain Special Price.';
             document.getElementById('editDiscount').value = d.discount;
             document.getElementById('editPromo').value = d.promo;
             document.getElementById('editAllocation').value = d.allocation;
@@ -512,6 +521,7 @@
             tabelBody.innerHTML = '';
 
             getChecked().forEach(cb => {
+                const id      = cb.dataset.id;
                 const sku     = cb.dataset.sku;
                 const name    = cb.dataset.name;
                 const variant = cb.dataset.variant;
@@ -523,26 +533,26 @@
                 row.innerHTML = `
                     <td>
                         ${sku}
-                        <input type="hidden" name="skus[]" value="${sku}">
+                        <input type="hidden" name="tag_ids[]" value="${id}">
                     </td>
                     <td>${name}${variant ? ' - ' + variant : ''}</td>
                     <td>
-                        <input type="hidden" name="size[${sku}]" value="${size}">
-                        ${size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${sku}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : (size === 'mpdf' ? '<span class="badge text-bg-info">A4 mPDF</span>' : '<span class="text-muted">Kecil</span>')}
+                        <input type="hidden" name="size[${id}]" value="${size}">
+                        ${size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${id}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : ((size === 'mpdf' || size === 'segitiga' || size === 'special-price' || size === 'diskon') ? `<span class="badge text-bg-info">${size === 'segitiga' ? 'Segitiga mPDF' : (size === 'special-price' ? 'Special Price mPDF' : (size === 'diskon' ? 'Segitiga Diskon mPDF' : 'A4 mPDF'))}</span>` : '<span class="text-muted">Kecil</span>')}
                     </td>
                     <td>
-                        <input type="number" name="qty[${sku}]" value="1" min="1" class="form-control form-control-sm" required>
+                        <input type="number" name="qty[${id}]" value="1" min="1" class="form-control form-control-sm" required>
                     </td>
                 `;
                 tabelBody.appendChild(row);
             });
-            const usesMpdf = getChecked().some(cb => cb.dataset.size === 'mpdf');
+            const usesMpdf = getChecked().some(cb => ['mpdf', 'segitiga', 'special-price', 'diskon'].includes(cb.dataset.size));
             document.getElementById('formCetak').action = usesMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
         });
 
         // Pastikan pilihan A4 mPDF tetap memakai controller baru saat form submit.
         document.getElementById('formCetak').addEventListener('submit', function () {
-            const hasMpdf = this.querySelector('input[name^="size["][value="mpdf"]') !== null;
+            const hasMpdf = ['mpdf', 'segitiga', 'special-price', 'diskon'].some(value => this.querySelector(`input[name^="size["][value="${value}"]`) !== null);
             if (hasMpdf) {
                 this.action = '<?= base_url('print-mpdf') ?>';
             }

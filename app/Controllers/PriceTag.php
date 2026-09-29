@@ -105,7 +105,7 @@ class PriceTag extends BaseController
 
                 return redirect()->to($redirectPath)->with(
                     'error',
-                    'Header Excel tidak ditemukan. Minimal gunakan kolom SKU/PLU, Nama Produk, dan Harga Normal.'
+                    'Header Excel tidak ditemukan. Minimal gunakan kolom SKU/PLU, Nama Produk, dan Harga Normal atau Harga Promo.'
                 );
             }
 
@@ -155,7 +155,22 @@ class PriceTag extends BaseController
                     'import_date'      => $importDate,
                 ];
 
-                if ($dataInsert['name'] === '' || $dataInsert['normal_price'] === null) continue;
+                // Template biasa tetap wajib memiliki Harga Normal. Pengecualian
+                // hanya untuk file Special Price: tidak ada Harga Normal, tetapi
+                // tersedia kolom Harga Promo sebagai satu-satunya harga jual.
+                // Special Price boleh tidak memiliki Harga Normal, baik ketika
+                // kolomnya tidak ada maupun ketika kolomnya ada tetapi kosong.
+                // Syaratnya, baris tersebut memiliki Harga Promo.
+                $isSpecialPriceImport = $dataInsert['normal_price'] === null
+                    && $dataInsert['promo_price'] !== null;
+                if ($isSpecialPriceImport) {
+                    // Kolom normal_price di database wajib NOT NULL. Untuk
+                    // Special Price, harga sebenarnya tetap promo_price;
+                    // normal_price hanya diisi 0 sebagai placeholder teknis.
+                    $dataInsert['normal_price'] = 0;
+                }
+                if ($dataInsert['name'] === '') continue;
+                if (! $isSpecialPriceImport && $dataInsert['normal_price'] === null) continue;
 
                 $importRows[] = $dataInsert;
                 $jumlahData++;
@@ -209,7 +224,7 @@ class PriceTag extends BaseController
     public function updateTemplate(int $id)
     {
         $size = (string) $this->request->getPost('template_size');
-        if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
+        if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf', 'segitiga', 'special-price', 'diskon'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
         $model = new PriceTagModel();
         if (! $model->find($id)) return redirect()->back()->with('error', 'Produk tidak ditemukan.');
         $savedSize = $size !== '' ? $size : null;
@@ -341,7 +356,10 @@ class PriceTag extends BaseController
                 }
             }
 
-            if (isset($map['sku_plu'], $map['name'], $map['normal_price'])) {
+            $hasRequiredStandardHeaders = isset($map['sku_plu'], $map['name'], $map['normal_price']);
+            $hasRequiredSpecialHeaders = isset($map['sku_plu'], $map['name'], $map['promo_price'])
+                && ! isset($map['normal_price']);
+            if ($hasRequiredStandardHeaders || $hasRequiredSpecialHeaders) {
                 return $map;
             }
         }
@@ -376,7 +394,7 @@ class PriceTag extends BaseController
         // keterangan alokasi, bukan bagian dari varian.
         if (preg_match(
             '/^\s*(?<produk>[^#]+?)\s*#\s*(?<varian>.*?)\s+'
-            . '(?:Sisa\s+)?Alok\b[^=\r\n]*=\s*(?<alokasi>\d+)/iu',
+            . '(?:Sisa\s+)?Alok(?:asi)?\b[^=\r\n]*=\s*(?<alokasi>\d+)/iu',
             $text,
             $match
         ) === 1) {
@@ -400,13 +418,13 @@ class PriceTag extends BaseController
         // Alokasi dapat berada setelah variant atau langsung setelah nama produk.
         $allocationText = $variantText !== '' ? $variantText : $name;
         if (preg_match(
-            '/\b(?:sisa\s+)?alok(?:\s+[^=]+)?\s*=\s*(\d+)\s*pcs?\b/iu',
+            '/\b(?:sisa\s+)?alok(?:asi)?(?:\s+[^=]+)?\s*=\s*(\d+)\s*pcs?\b/iu',
             $allocationText,
             $allocation
         )) {
             $result['allocation_pcs'] = (int) $allocation[1];
             $allocationText = preg_replace(
-                '/\b(?:sisa\s+)?alok(?:\s+[^=]+)?\s*=\s*\d+\s*pcs?\b/iu',
+                '/\b(?:sisa\s+)?alok(?:asi)?(?:\s+[^=]+)?\s*=\s*\d+\s*pcs?\b/iu',
                 '',
                 $allocationText
             ) ?? $allocationText;

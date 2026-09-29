@@ -9,22 +9,29 @@ class PrintMpdf extends BaseController
 {
     public function index()
     {
-        $skus     = (array) $this->request->getPost('skus');
+        $tagIds   = (array) $this->request->getPost('tag_ids');
         $qtyMap   = (array) $this->request->getPost('qty');
         $importId = (int) $this->request->getPost('import_id');
 
-        if ($skus === []) {
+        if ($tagIds === []) {
             return redirect()->back()->with('error', 'Pilih minimal 1 produk untuk dicetak.');
         }
 
         $model = new MpdfPriceTagModel();
         $tags  = [];
-        foreach ($skus as $sku) {
-            $tag = $model->findForPrint((int) session()->get('id'), (string) $sku, $importId ?: null);
+        foreach ($tagIds as $tagId) {
+            $query = $model->where('id', (int) $tagId);
+            if ($importId > 0) {
+                $query->where('import_id', $importId);
+            } else {
+                $query->where('uploaded_by', (int) session()->get('id'))
+                      ->where('import_date', date('Y-m-d'));
+            }
+            $tag = $query->first();
             if ($tag === null) {
                 continue;
             }
-            for ($i = 0, $qty = max(1, (int) ($qtyMap[$sku] ?? 1)); $i < $qty; $i++) {
+            for ($i = 0, $qty = max(1, (int) ($qtyMap[$tagId] ?? 1)); $i < $qty; $i++) {
                 $tags[] = $tag;
             }
         }
@@ -38,7 +45,13 @@ class PrintMpdf extends BaseController
                 'row' => $tag,
                 'qty' => 1,
             ], $tags);
-            $pdf = (new PopA4Pdf())->render($items);
+            $sizes = (array) $this->request->getPost('size');
+            $template = in_array('diskon', $sizes, true)
+                ? 'diskon'
+                : (in_array('special-price', $sizes, true)
+                    ? 'special'
+                    : (in_array('segitiga', $sizes, true) ? 'segitiga' : ''));
+            $pdf = (new PopA4Pdf($template))->render($items, $template);
 
             return $this->response
                 ->setHeader('Content-Type', 'application/pdf')

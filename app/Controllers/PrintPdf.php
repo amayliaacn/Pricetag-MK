@@ -11,20 +11,19 @@ class PrintPdf extends BaseController
 {
     public function index()
     {
-        $selectedSkus = (array) $this->request->getPost('skus');
+        $selectedIds  = (array) $this->request->getPost('tag_ids');
         $qtyMap       = (array) $this->request->getPost('qty');
         $sizeMap      = (array) $this->request->getPost('size');
         $allvarMap    = (array) $this->request->getPost('allvar');
         $importId     = (int) $this->request->getPost('import_id');
 
-        if (empty($selectedSkus)) {
+        if (empty($selectedIds)) {
             return redirect()->to('/import-history')->with('error', 'Pilih minimal 1 produk untuk dicetak.');
         }
 
         $model      = new PriceTagModel();
         $userId     = (int) session()->get('id');
         $importDate = date('Y-m-d'); // sesuai data yang sedang tampil di halaman list
-        $importTags = [];
         if ($importId > 0) {
             $history = (new ImportHistoryModel())->findVisibleImport(
                 $importId,
@@ -34,21 +33,25 @@ class PrintPdf extends BaseController
             if (! $history) {
                 return redirect()->to('/import-history')->with('error', 'Data impor tidak ditemukan.');
             }
-            foreach ($model->forImport($importId) as $tag) {
-                $importTags[(string) $tag['sku_plu']] = $tag;
-            }
         }
 
         // Kelompokkan produk berdasarkan template yang sesuai dengan datanya.
         $groups = [];
-        foreach ($selectedSkus as $sku) {
-            $product = $importId > 0
-                ? ($importTags[(string) $sku] ?? null)
-                : $model->findBySkuForUser($userId, $importDate, $sku);
+        foreach ($selectedIds as $tagId) {
+            $productQuery = $model->where('id', (int) $tagId);
+            if ($importId > 0) {
+                $productQuery->where('import_id', $importId);
+            } else {
+                $productQuery->where('uploaded_by', $userId)
+                             ->where('import_date', $importDate);
+            }
+            $product = $productQuery->first();
             if ($product === null) continue;
 
-            $size = (string) ($sizeMap[$sku] ?? '');
-            $allvar = isset($allvarMap[$sku]) && $allvarMap[$sku] === '1';
+            $sku = (string) $product['sku_plu'];
+
+            $size = (string) ($sizeMap[$tagId] ?? '');
+            $allvar = isset($allvarMap[$tagId]) && $allvarMap[$tagId] === '1';
             if (! in_array($size, ['kcl', 'tgg'], true)) {
                 return redirect()->back()->with('error', 'Pastikan semua produk sudah memilih ukuran template.');
             }
@@ -70,7 +73,7 @@ class PrintPdf extends BaseController
 
             $groups[$templateKey][] = [
                 'sku'          => $sku,
-                'qty'          => max(1, (int) ($qtyMap[$sku] ?? 1)),
+                'qty'          => max(1, (int) ($qtyMap[$tagId] ?? 1)),
                 'field_values' => DocxLabelMerger::buildFieldValues($product, $template['fields']),
             ];
         }
