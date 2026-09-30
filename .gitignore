@@ -14,6 +14,10 @@
 /writable/uploads/*
 /writable/pricetag_downloads/*
 !/writable/pricetag_downloads/.gitkeep
+/writable/mpdf/mpdf/*
+!/writable/mpdf/mpdf/.gitkeep
+/writable/pricetag_tmp/*
+!/writable/pricetag_tmp/.gitkeep
 
 # Keep directory placeholders
 !.gitkeep

@@ -8,7 +8,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="<?= base_url('assets/css/admin-theme.css') ?>" rel="stylesheet">
     <style>
-        #tabelProdukDetail { width: 100%; table-layout: fixed; }
+        /* Tabel detail tidak boleh memaksa 13 kolom masuk ke layar sempit.
+           Lebar minimum ditangani oleh .table-responsive sehingga pengguna
+           dapat menggeser tabel secara horizontal. */
+        #tabelProdukDetail { width: 100%; min-width: 1180px; table-layout: fixed; }
         #tabelProdukDetail th, #tabelProdukDetail td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         #tabelProdukDetail thead th {
             white-space: normal;
@@ -24,7 +27,7 @@
             text-overflow: clip;
             overflow-wrap: anywhere;
         }
-        #tabelProdukDetail .template-size { width: 100%; min-width: 0; }
+        #tabelProdukDetail .template-size { width: 100%; min-width: 92px; }
         #tabelProdukDetail .template-size-wrapper { position: relative; }
         #tabelProdukDetail .template-size-wrapper.is-required .template-size {
             border-color: #ff8a1f;
@@ -69,7 +72,24 @@
         .search-print-card .search-control i { position: absolute; left: 10px; top: 10px; color: #6c757d; }
         .search-print-card .search-control input { padding-left: 32px; }
         .search-print-card .control-divider { height: 48px; border-left: 1px solid #dee2e6; }
-        .detail-table-card { width: 100%; }
+        .detail-table-card { width: 100%; overflow: visible; }
+        .detail-table-card .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: auto;
+        }
+        .detail-table-card .table-responsive::-webkit-scrollbar { height: 12px; }
+        .detail-table-card .table-responsive::-webkit-scrollbar-thumb {
+            background: #adb5bd;
+            border-radius: 999px;
+        }
+        .detail-table-card .table-responsive::-webkit-scrollbar-track { background: #f1f3f5; }
+        @media (max-width: 767.98px) {
+            .detail-table-card .px-3.pt-3 { flex-wrap: wrap; }
+            .detail-table-card .px-3.pt-3 > div { min-width: 0; }
+        }
         @media (min-width: 1400px) {
             .detail-table-card { width: calc(100vw - 66px); margin-left: 0; position: relative; left: 50%; transform: translateX(-50%); }
         }
@@ -546,16 +566,22 @@
                 `;
                 tabelBody.appendChild(row);
             });
-            const usesMpdf = getChecked().some(cb => ['mpdf', 'segitiga', 'special-price', 'diskon'].includes(cb.dataset.size));
-            document.getElementById('formCetak').action = usesMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
+            const sizes = getChecked().map(cb => cb.dataset.size);
+            const hasMpdf = sizes.some(size => ['mpdf', 'segitiga', 'special-price', 'diskon'].includes(size));
+            const hasLibre = sizes.some(size => ['kcl', 'tgg'].includes(size));
+            document.getElementById('formCetak').action = hasMpdf && hasLibre
+                ? '<?= base_url('print-mixed') ?>'
+                : (hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>');
         });
 
         // Pastikan pilihan A4 mPDF tetap memakai controller baru saat form submit.
         document.getElementById('formCetak').addEventListener('submit', function () {
-            const hasMpdf = ['mpdf', 'segitiga', 'special-price', 'diskon'].some(value => this.querySelector(`input[name^="size["][value="${value}"]`) !== null);
-            if (hasMpdf) {
-                this.action = '<?= base_url('print-mpdf') ?>';
-            }
+            const sizes = [...this.querySelectorAll('input[name^="size["]')].map(input => input.value);
+            const hasMpdf = sizes.some(size => ['mpdf', 'segitiga', 'special-price', 'diskon'].includes(size));
+            const hasLibre = sizes.some(size => ['kcl', 'tgg'].includes(size));
+            this.action = hasMpdf && hasLibre
+                ? '<?= base_url('print-mixed') ?>'
+                : (hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>');
         });
     </script>
     <?= view('partials/app_footer') ?>

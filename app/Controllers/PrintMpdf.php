@@ -18,7 +18,8 @@ class PrintMpdf extends BaseController
         }
 
         $model = new MpdfPriceTagModel();
-        $tags  = [];
+        $groups = [];
+        $sizes  = (array) $this->request->getPost('size');
         foreach ($tagIds as $tagId) {
             $query = $model->where('id', (int) $tagId);
             if ($importId > 0) {
@@ -31,35 +32,68 @@ class PrintMpdf extends BaseController
             if ($tag === null) {
                 continue;
             }
-            for ($i = 0, $qty = max(1, (int) ($qtyMap[$tagId] ?? 1)); $i < $qty; $i++) {
-                $tags[] = $tag;
-            }
+            $size = (string) ($sizes[$tagId] ?? 'mpdf');
+            $template = match ($size) {
+                'segitiga' => 'segitiga',
+                'special-price' => 'special',
+                'diskon' => 'diskon',
+                default => 'a4',
+            };
+            $groups[$template][] = [
+                'row' => $tag,
+                'qty' => max(1, (int) ($qtyMap[$tagId] ?? 1)),
+            ];
         }
 
-        if ($tags === []) {
+        if ($groups === []) {
             return redirect()->back()->with('error', 'Produk tidak ditemukan.');
         }
 
         try {
-            $items = array_map(static fn (array $tag): array => [
-                'row' => $tag,
-                'qty' => 1,
-            ], $tags);
-            $sizes = (array) $this->request->getPost('size');
-            $template = in_array('diskon', $sizes, true)
-                ? 'diskon'
-                : (in_array('special-price', $sizes, true)
-                    ? 'special'
-                    : (in_array('segitiga', $sizes, true) ? 'segitiga' : ''));
-            $pdf = (new PopA4Pdf($template))->render($items, $template);
+            $pdfs = [];
+            foreach ($groups as $template => $items) {
+                $pdfs[] = $this->writeTemporaryPdf(
+                    (new PopA4Pdf($template))->render($items, $template)
+                );
+            }
+            $pdf = $this->combinePdfs($pdfs);
 
             return $this->response
                 ->setHeader('Content-Type', 'application/pdf')
                 ->setHeader('Content-Disposition', 'inline; filename="price-tag-mpdf-a4.pdf"')
-                ->setBody($pdf);
+                ->setBody((string) file_get_contents($pdf));
         } catch (\Throwable $e) {
             log_message('error', 'Cetak mPDF gagal: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
+    }
+
+    private function writeTemporaryPdf(string $contents): string
+    {
+        $dir = WRITEPATH . 'pricetag_tmp/';
+        if (! is_dir($dir) && ! mkdir($dir, 0775, true) && ! is_dir($dir)) {
+            throw new \RuntimeException('Folder PDF sementara tidak dapat dibuat.');
+        }
+        $path = $dir . 'mpdf_' . bin2hex(random_bytes(8)) . '.pdf';
+        if (file_put_contents($path, $contents, LOCK_EX) === false) {
+            throw new \RuntimeException('PDF sementara tidak dapat disimpan.');
+        }
+        return $path;
+    }
+
+    private function combinePdfs(array $paths): string
+    {
+        if (count($paths) === 1) return $paths[0];
+        $output = WRITEPATH . 'pricetag_tmp/combined_' . bin2hex(random_bytes(8)) . '.pdf';
+        $command = sprintf(
+            'pdftk %s cat output %s 2>&1',
+            implode(' ', array_map('escapeshellarg', $paths)),
+            escapeshellarg($output)
+        );
+        exec($command, $result, $code);
+        if ($code !== 0 || ! is_file($output)) {
+            throw new \RuntimeException('Gagal menggabungkan hasil PDF.');
+        }
+        return $output;
     }
 }

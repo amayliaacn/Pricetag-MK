@@ -60,9 +60,20 @@
 
     <section class="mk-card p-3 p-lg-4 mb-3">
         <div class="row g-4 align-items-center">
-            <div class="col-lg-6 border-lg-end">
+            <div class="col-lg-<?= session()->get('role') === 'user' ? '7' : '6' ?> border-lg-end">
                 <form action="<?= base_url('pricetag/import') ?>" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="return_to" value="import-history">
+                    <?php if (session()->get('role') === 'user'): ?>
+                    <div class="d-flex flex-wrap flex-lg-nowrap gap-2 align-items-end">
+                        <div class="flex-grow-1" style="min-width:0;">
+                            <label for="file_excel" class="form-label">Pilih File Excel</label>
+                            <input id="file_excel" type="file" name="file_excel" class="form-control" accept=".xlsx,.xls" required>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-success text-nowrap"><i class="bi bi-upload me-1"></i>Import Excel</button>
+                        </div>
+                    </div>
+                    <?php else: ?>
                     <label for="file_excel" class="form-label">Pilih File Excel</label>
                     <input id="file_excel" type="file" name="file_excel" class="form-control" accept=".xlsx,.xls" required>
                     <div class="form-text mt-2">Format file harus .xlsx. Pastikan data sesuai dengan template.</div>
@@ -82,9 +93,11 @@
                             <button type="submit" class="btn btn-success text-nowrap"><i class="bi bi-upload me-1"></i>Import Excel</button>
                         </div>
                     </div>
+                    <?php endif; ?>
+                    <?php if (session()->get('role') === 'user'): ?><div class="form-text mt-2">Format file harus .xlsx. Pastikan data sesuai dengan template.</div><?php endif; ?>
                 </form>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-<?= session()->get('role') === 'user' ? '5' : '6' ?>">
                 <form method="get" action="<?= base_url('import-history') ?>">
                     <div class="row g-2 align-items-end justify-content-lg-end">
                         <?php if (session()->get('role') === 'super_admin'): ?>

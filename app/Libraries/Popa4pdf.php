@@ -37,7 +37,9 @@ class PopA4Pdf
         'arial'      => ['R' => 'arial.ttf', 'B' => 'arialbd.ttf', 'I' => 'ariali.ttf', 'BI' => 'arialbi.ttf'],
         'berlinsans' => ['R' => 'BRLNSDB.TTF'],
         'baskerville'=> ['R' => 'BASKVILL.TTF'],
-        'bookantiqua'=> ['R' => 'BOOKOS.TTF', 'B' => 'BOOKOSB.TTF'],
+        // Hanya BOOKOS.TTF tersedia di assets/fonts; gunakan font reguler
+        // sebagai fallback untuk style bold agar mPDF tidak gagal memuat font.
+        'bookantiqua'=> ['R' => 'BOOKOS.TTF'],
         'arialnarrow'=> ['R' => 'ARIALN.TTF', 'B' => 'ARIALNB.TTF', 'I' => 'ARIALNI.TTF', 'BI' => 'ARIALNBI.TTF'],
         'bodonimt'   => ['R' => 'BOD_R.TTF'],
         'bodoniblack'=> ['R' => 'BOD_BLAR.TTF'],
@@ -106,8 +108,8 @@ class PopA4Pdf
         'lama'    => ['bookantiqua', 7.97, 1.91,   4.75, 12.82, 'left',  '#000000', '#000000 1pt'],
         'rp_baru' => ['bookantiqua', 1.40, 1.60,   1.80, 19.20, 'left',  '#000000', null],
         'baru'    => ['arialblack', 12.55, 7.97,   4.19, 21.85, 'left',  '#FF0000', null],
-        'plu_lbl' => ['bahnschrift', 1.39, 0.80,   7.64, 23.35, 'left',  '#000033', '#000000 0.7pt'],
-        'plu_val' => ['bahnschrift', 2.59, 0.80,   9.13, 23.35, 'left',  '#000033', '#000000 0.7pt'],
+        // PLU dibuat satu elemen terpusat, sama seperti desain "special price".
+        'plu'     => ['arialblack',  5.20, 0.66,   9.38, 23.32, 'center', '#000080', null],
     ];
 
     private const SEG_STRIKE = ['x1' => 3.2, 'y1' => 13.55, 'over' => 0.4, 'slope' => 0.16, 'thick' => 0.18];
@@ -128,7 +130,7 @@ class PopA4Pdf
     // maxRatio = batas lebar huruf terhadap tinggi (0 = bebas), supaya nama pendek tidak melar.
     private const SPC_EL = [
         'judul'       => ['bernardmt',  12.10, 3.10,  9.80,  7.44, 'center', '#FF0000', '#000000 0.08pt', 0],
-        'nama_produk' => ['bernardmt',  15.50, 2.80,  9.20, 10.98, 'center', '#00FFFF', '#000000 0.08pt', 0.8],
+        'nama_produk' => ['bernardmt',  15.50, 2.80,  9.20, 10.98, 'center', '#101AE0', '#000000 0.08pt', 0.8],
         'variant'     => ['arialblack',  8.00, 0.95,  9.16, 13.28, 'center', '#000000', null,              0],
         'rp'          => ['bookantiqua', 1.50, 1.00,  1.59, 16.73, 'left',   '#000000', null,              0],
         'harga'       => ['arialblack', 12.90, 7.97,  3.98, 22.22, 'left',   '#FF0000', '#000000 0.04pt', 0],
@@ -337,8 +339,7 @@ class PopA4Pdf
             'lama'    => number_format($normal, 0, ',', '.'),
             'rp_baru' => 'Rp',
             'baru'    => number_format($promo, 0, ',', '.'),
-            'plu_lbl' => 'PLU :',
-            'plu_val' => (string) ($row['sku_plu'] ?? ''),
+            'plu'     => 'PLU : ' . (string) ($row['sku_plu'] ?? ''),
         ];
 
         $S = ['w' => self::SEG_BOX_W * 10, 'h' => self::SEG_BOX_H * 10, 'el' => []];
