@@ -36,8 +36,8 @@ class PrintMixed extends BaseController
                 if (!$row) continue;
                 $size = (string) ($sizes[$id] ?? '');
                 $count = max(1, (int) ($qty[$id] ?? 1));
-                if (in_array($size, ['mpdf','segitiga','special-price','diskon'], true)) {
-                    $template = match ($size) { 'segitiga' => 'segitiga', 'special-price' => 'special', 'diskon' => 'diskon', default => 'a4' };
+                if (in_array($size, ['mpdf','a5','disc','fresh','curah','segitiga','special-price','diskon'], true)) {
+                    $template = match ($size) { 'segitiga' => 'segitiga', 'special-price' => 'special', 'diskon' => 'diskon', 'a5' => 'a5', 'disc' => 'disc', 'fresh' => 'fresh', 'curah' => 'curah', default => 'a4' };
                     $mpdfItems[$template][] = ['row' => $row, 'qty' => $count];
                     continue;
                 }

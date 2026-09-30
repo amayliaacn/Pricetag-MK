@@ -8,17 +8,21 @@ use Mpdf\Mpdf;
 
 /**
  * Cetak POP Price Tag A4 langsung dari HTML (mPDF), tanpa Word/LibreOffice.
- * Satu file ini menangani TIGA desain kartu:
+ * Satu file ini menangani DELAPAN desain kartu:
  *   - 'a4'       -> kartu "MINYAK GORENG" (Picture1.jpg)
  *   - 'segitiga' -> kartu "Segitiga Turun Harga" / TESSA-TP.06 (Picture3.png)
  *   - 'special'  -> kartu "Segitiga Special Price" (Picture3.png / gambar sendiri)
- *   - 'diskon'   -> kartu "DISKON 33%" (GIZZI-MILK), view: segitiga-diskon.php
- * Tiap desain punya konstanta sendiri (A4_*, SEG_*, SPC_*, DSK_*) supaya tidak saling bentrok.
+ *   - 'diskon'   -> kartu "DISKON 33%" (GIZZI-MILK), view: segitiga-discount.php
+ *   - 'a5'       -> kartu A5, ukuran cetak fisik 19,5 x 13,5 cm (mis. LE MINERALE GALON 15 LT)
+ *   - 'disc'     -> kartu landscape "KAOS WANITA / ARTIKEL TERTENTU / DISC 50%", view: discount-a5.php
+ *   - 'fresh'    -> 6 kartu per halaman A4 (2 x 3) "Manna Kampus FRESH" /100gr, view: butcher.php
+ *   - 'curah'    -> 6 kartu per halaman A4 (2 x 3) "BAWANG KATING CURAH" + harga coret, view: curah-6up.php
+ * Tiap desain punya konstanta sendiri (A4_*, SEG_*, SPC_*, DSK_*, A5_*, DSC_*, FRS_*, CRH_*) supaya tidak saling bentrok.
  *
  * Pemakaian (controller):
  *   $pdf = (new \App\Libraries\PopA4Pdf())->render([
  *       ['row' => $rowDb, 'qty' => 3],
- *   ], 'diskon');   // 'a4' (default) | 'segitiga' | 'special' | 'diskon'
+ *   ], 'diskon');   // 'a4' (default) | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'fresh' | 'curah'
  *   return $this->response->setContentType('application/pdf')->setBody($pdf);
  */
 class PopA4Pdf
@@ -140,7 +144,7 @@ class PopA4Pdf
 
     /* ============================================================================
      * DESAIN 4: "diskon" — kartu DISKON 33% (contoh: GIZZI-MILK WF SELECTION)
-     * Ukuran & posisi kartu di A4 sama dengan "segitiga". View: segitiga-diskon.php
+     * Ukuran & posisi kartu di A4 sama dengan "segitiga". View: segitiga-discount.php
      * ==========================================================================*/
 
     // Gambar latar tanpa teks. Sementara sama dengan segitiga; kalau punya gambar khusus
@@ -176,6 +180,146 @@ class PopA4Pdf
 
     private const DSK_STRIKE = ['x1' => 2.15, 'y1' => 19.45, 'over' => 0.35, 'slope' => 0.20, 'thick' => 0.15];
 
+    /* ============================================================================
+     * DESAIN 5: "a5" — kartu A5, ukuran cetak fisik 19,5 x 13,5 cm (landscape)
+     * Contoh: LE MINERALE GALON 15 LT. Beda dari desain lain: hampir semua teks
+     * pakai ukuran WordArt (pt) persis dari Word, dikonversi ke cm.
+     * ==========================================================================*/
+
+    private const A5_IMG_FILE = 'assets/img/Picture4.jpg';
+    // Ukuran cetak fisik dikonfirmasi user: 19,5 cm (lebar) x 13,5 cm (tinggi).
+    // Kalau ternyata kebalik (13,5 lebar x 19,5 tinggi / potret), tukar dua angka di bawah ini.
+    private const A5_BOX_W = 19.50;
+    private const A5_BOX_H = 13.50;
+    private const A5_BOX_X = 0.75;
+    private const A5_BOX_Y = 0.75;
+
+    private const A5_FONTS = [
+        // 'arialblack', 'arialnarrow', 'bookantiqua' dipakai bersama desain lain di atas.
+        'calistomt'     => ['R' => 'CALIST.TTF'],                        // Calisto MT (label "Rp")
+        'centurygothic' => ['R' => 'GOTHIC.TTF', 'B' => 'GOTHICB.TTF'],  // Century Gothic (Akhir Periode)
+    ];
+
+    // teks               family           w      h      x      base    align  warna     outline          maxSkew
+    private const A5_EL = [
+        'merk'      => ['arialblack',    17.46, 0.95,  1.05,  3.31,  'left', '#00B0F0', '#000000 0.25pt', 0],
+        'plu'       => ['arialnarrow',    4.45, 0.64, 18.70,  4.45,  'right','#000000', null,             0],
+        'rp_lama'   => ['calistomt',      0.56, 0.64,  1.73,  5.10,  'left', '#FF0000', null,             0],
+        'lama'      => ['bookantiqua',    4.13, 1.27,  2.35,  5.67,  'left', '#FF0000', '#FF0000 0.45pt',  1.3],
+        'rp_baru'   => ['calistomt',      0.78, 0.82,  5.90,  7.95,  'left', '#FF0000', null,             0],
+        'big'       => ['bookantiqua',    7.62, 6.20,  7.15, 11.90,  'left', '#FF0000', '#FF0000 0.45pt',  1.3],
+        'small'     => ['bookantiqua',    4.45, 1.75, 14.05, 11.90,  'left', '#FF0000', '#FF0000 0.45pt',  1.3],
+        'periode1'  => ['centurygothic',  2.94, 0.64,  1.29, 11.10,  'left', '#000000', null,             0],
+        'periode2'  => ['centurygothic',  2.94, 0.64,  1.29, 11.90,  'left', '#000000', null,             0],
+    ];
+
+    // Garis coret pada harga lama (cm, relatif kartu)
+    private const A5_STRIKE = ['x1' => 1.60, 'y1' => 5.45, 'over' => 0.35, 'slope' => 0.14, 'thick' => 0.15];
+
+    /* ============================================================================
+     * DESAIN 6: "disc" — kartu LANDSCAPE "KAOS WANITA / ARTIKEL TERTENTU / DISC 50%"
+     * Kartu 19,5 x 13,7 cm (perkiraan dari contoh), di tengah atas halaman A4.
+     * View: disc-artikel.php
+     * ==========================================================================*/
+
+    private const DSC_BOX_W = 19.50;
+    private const DSC_BOX_H = 13.70;
+    private const DSC_BOX_X = (21.00 - self::DSC_BOX_W) / 2;
+    private const DSC_BOX_Y = 0.40;
+
+    // Gambar latar (kuning + kotak putih + logo MURAH, tanpa teks) - OPSIONAL.
+    // Kalau file ini tidak ada, view menggambar bingkainya sendiri dengan HTML/CSS.
+    private const DSC_IMG_FILE = 'assets/img/Picture4.jpg';
+
+    // Bingkai cadangan (cm), dipakai kalau gambar latar tidak ada.
+    private const DSC_FRAME = [
+        'kuning'  => '#FFED00',
+        'in_x'    => 0.55,   // jarak kotak putih dari kiri/kanan
+        'in_top'  => 0.50,   // dari atas
+        'in_bot'  => 0.53,   // dari bawah
+        'radius'  => 0.90,   // sudut rounded
+        'badge'   => ['x' => 0.55, 'y' => 0.20, 'w' => 6.50, 'h' => 1.50],
+    ];
+
+    // Jarak angka diskon ke tanda % (cm)
+    private const DSC_GAP_PERSEN = 0.88;
+
+    // Teks tetap yang bisa diganti
+    private const DSC_TEKS_ARTIKEL = 'ARTIKEL TERTENTU';
+    private const DSC_TEKS_LABEL   = 'DISC';
+
+    // teks           family         w      h      x      base    align     warna      outline           maxRatio
+    private const DSC_EL = [
+        'nama_produk' => ['arialblack',  13.45, 1.30,  9.87,  3.55, 'center', '#00B0F0', '#000000 0.08pt', 0.9],
+        'artikel'     => ['arialnarrow',  5.07, 0.92, 15.10,  4.77, 'center', '#000000', null,              0],
+        'label'       => ['berlinsans',   3.19, 0.76,  2.71,  6.22, 'left',   '#000000', null,              0],
+        'angka'       => ['bernardmt',    7.62, 7.10,  7.33, 12.52, 'left',   '#FF0000', '#FF0000 0.05pt', 1.1],
+        'persen'      => ['berlinsans',   1.34, 1.60,  0.00,  7.06, 'left',   '#FF0000', null,              0],   // x dihitung otomatis
+    ];
+
+
+    /* ============================================================================
+     * DESAIN 7: "fresh" — 6 kartu per halaman A4 (2 kolom x 3 baris)
+     * Contoh: Manna Kampus FRESH, harga per 100gr. Latar = Picture5.jpg (SATU kartu, tanpa teks).
+     * View: butcher.php. Satu item = satu kartu; qty = jumlah kartu yang dicetak.
+     * Kartu diisi urut kiri-kanan, atas-bawah; tiap 6 kartu pindah halaman.
+     * ==========================================================================*/
+
+    private const FRS_IMG_FILE = 'assets/img/Picture5.jpg';
+
+    // Ukuran satu kartu (cm) - perkiraan dari contoh; ubah kalau ukuran aslinya beda.
+    private const FRS_CARD_W = 9.85;
+    private const FRS_CARD_H = 7.80;
+    // Pojok kiri-atas kotak 2 x 3 kartu di halaman A4 (kotak dibuat di tengah horizontal).
+    private const FRS_GRID_X = (21.00 - 2 * self::FRS_CARD_W) / 2;
+    private const FRS_GRID_Y = 0.30;
+    private const FRS_PER_PAGE = 6;
+
+    private const FRS_TEKS_SATUAN = '/100gr';
+
+    // Ukuran dalam cm, x/base relatif ke pojok kiri-atas SATU kartu.
+    // teks           family          w      h      x      base   align   warna      outline           maxRatio
+    private const FRS_EL = [
+        'nama_produk' => ['berlinsans',    4.44, 0.62, 2.77, 4.83, 'left', '#FF0000', '#C00000 0.1pt',  1.0],
+        'rp'          => ['calistomt',     0.32, 0.42, 3.12, 5.84, 'left', '#000000', null,             0],
+        'harga'       => ['bookantiqua',   5.40, 1.75, 3.87, 7.21, 'left', '#FF0000', '#FF0000 0.75pt', 0.95],
+        'satuan'      => ['calistomt',     1.27, 0.38, 7.56, 4.83, 'left', '#000000', null,             0],
+        'plu'         => ['centurygothic', 1.75, 0.36, 1.80, 7.05, 'left', '#000000', null,             0],
+    ];
+
+
+    /* ============================================================================
+     * DESAIN 8: "curah" — 6 kartu per halaman A4 (2 kolom x 3 baris), ada harga coret
+     * Contoh: BAWANG KATING CURAH, harga per 100gr. Latar = Picture6.jpg (SATU kartu, tanpa teks).
+     * View: curah-6up.php. Satu item = satu kartu; qty = jumlah kartu yang dicetak.
+     * Nama produk dipecah 2 baris otomatis: kata pertama (kecil) + sisanya (besar).
+     * Kalau mau atur sendiri, isi $row['line1'] dan/atau $row['line2'].
+     * ==========================================================================*/
+
+    private const CRH_IMG_FILE = 'assets/img/Picture6.jpg';
+
+    // Ukuran satu kartu (cm) - perkiraan dari contoh; kartu saling menempel tanpa jarak.
+    private const CRH_CARD_W = 10.10;
+    private const CRH_CARD_H = 8.50;
+    private const CRH_GRID_X = (21.00 - 2 * self::CRH_CARD_W) / 2;
+    private const CRH_GRID_Y = 0.30;
+    private const CRH_PER_PAGE = 6;
+
+    private const CRH_TEKS_SATUAN = '/100gr';
+
+    // Ukuran dalam cm, x/base relatif ke pojok kiri-atas SATU kartu.
+    // teks          family          w      h      x      base   align     warna      outline           maxRatio
+    private const CRH_EL = [
+        'baris1'   => ['berlinsans',    4.14, 0.68, 4.89, 1.56, 'center', '#FF0000', '#C00000 0.1pt',  1.0],
+        'baris2'   => ['berlinsans',    9.66, 0.95, 5.06, 2.81, 'center', '#FF0000', '#C00000 0.1pt',  1.0],
+        'plu'      => ['centurygothic', 2.70, 0.36, 0.57, 3.80, 'left',   '#000000', null,             0],
+        'lama'     => ['calibri',       2.80, 0.72, 6.31, 4.14, 'left',   '#FF0000', null,             1.1],
+        'baru'     => ['calibri',       6.46, 2.00, 2.13, 6.50, 'left',   '#FF0000', '#FF0000 0.3pt',  0.9],
+    ];
+
+    // Garis coret hitam pada harga lama (cm, relatif ke kartu)
+    private const CRH_STRIKE = ['x1' => 5.93, 'y1' => 4.22, 'over' => 0.30, 'slope' => 0.23, 'thick' => 0.10];
+
     /* ========================================================================== */
 
     private Mpdf $mpdf;
@@ -192,7 +336,17 @@ class PopA4Pdf
         $fd = (new FontVariables())->getDefaults();
 
         // Font semua desain digabung di sini supaya bisa dipakai mPDF.
-        $fontdata = self::A4_FONTS + self::SEG_FONTS;
+        $fontdata = self::A4_FONTS + self::SEG_FONTS + self::A5_FONTS;
+
+        // Calibri Bold (desain 'curah'). Kalau file tidak ditemukan, otomatis pakai Arial Bold.
+        $calibri = 'arialbd.ttf';
+        foreach (['calibrib.ttf', 'CALIBRIB.TTF', 'Calibrib.ttf'] as $f) {
+            if (is_file(FCPATH . 'assets/fonts/' . $f)) {
+                $calibri = $f;
+                break;
+            }
+        }
+        $fontdata['calibri'] = ['R' => $calibri];
 
         // MingLiU-ExtB (opsional, lihat DSK_PAKAI_MINGLIU). File TTC berisi beberapa font; nomor 2 = MingLiU-ExtB.
         // Kalau tampilan hurufnya bukan yang diinginkan, coba ubah nomor 2 menjadi 1 atau 3.
@@ -217,16 +371,26 @@ class PopA4Pdf
 
     /**
      * @param array<int,array{row:array,qty?:int}> $items
-     * @param string $template 'a4' (default) | 'segitiga' | 'special' | 'diskon'
+     * @param string $template 'a4' (default) | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'fresh' | 'curah'
      */
     public function render(array $items, string $template = 'a4'): string
     {
+        // Desain multi-kartu (6 per halaman) punya alur sendiri.
+        if ($template === 'fresh') {
+            return $this->renderFresh($items);
+        }
+        if ($template === 'curah') {
+            return $this->renderCurah($items);
+        }
+
         $first = true;
         foreach ($items as $it) {
             $html = match ($template) {
                 'segitiga' => $this->pageHtmlSegitiga($it['row']),
                 'special'  => $this->pageHtmlSpecial($it['row']),
                 'diskon'   => $this->pageHtmlDiskon($it['row']),
+                'a5'       => $this->pageHtmlA5($it['row']),
+                'disc'     => $this->pageHtmlDisc($it['row']),
                 default    => $this->pageHtmlA4($it['row']),
             };
 
@@ -473,6 +637,256 @@ class PopA4Pdf
         return view('pricetag/templates/segitiga-discount', compact('S', 'L', 'box', 'img'));
     }
 
+    /* ====================== DESAIN 5: "a5" ====================== */
+
+    private function pageHtmlA5(array $row): string
+    {
+        $promo  = (int) round((float) $row['promo_price']);
+        $normal = (int) round((float) $row['normal_price']);
+
+        $text = [
+            'merk'     => mb_strtoupper(trim((string) ($row['name'] ?? '') . ' ' . ($row['variant'] ?? ''))),
+            'plu'      => '( PLU : ' . ($row['sku_plu'] ?? '') . ' )',
+            'rp_lama'  => 'Rp',
+            'lama'     => number_format($normal, 0, ',', '.'),
+            'rp_baru'  => 'Rp',
+            'big'      => $promo >= 1000 ? (string) intdiv($promo, 1000) : (string) $promo,
+            'small'    => $promo >= 1000 ? '.' . str_pad((string) ($promo % 1000), 3, '0', STR_PAD_LEFT) : '',
+            'periode1' => 'Akhir Periode :',
+            'periode2' => $this->tanggal($row['end_period'] ?? ''),
+        ];
+
+        $S = ['w' => self::A5_BOX_W * 10, 'h' => self::A5_BOX_H * 10, 'el' => []];
+        foreach (self::A5_EL as $key => $def) {
+            [$fam, $w, $h, $x, $base, $align, $color, $outline, $maxSkew] = $def;
+            $element = in_array($key, ['big', 'small'], true)
+                ? $this->stretchBox($fam, $text[$key], ['x' => $x, 'w' => $w, 'h' => $h, 'base' => $base, 'max' => 1.0], $align)
+                : $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, 0, (float) $maxSkew);
+            $S['el'][$key] = $element + [
+                'color' => $color, 'outline' => $outline,
+            ];
+        }
+
+        $lama = $S['el']['lama'];
+        $x2   = self::A5_EL['lama'][3] + ($lama['sx'] * $lama['w0']) / 10 + self::A5_STRIKE['over'];
+        $len  = $x2 - self::A5_STRIKE['x1'];
+        $rise = $len * self::A5_STRIKE['slope'];
+        $pad  = self::A5_STRIKE['thick'];
+        $L = ['strike' => [
+            'left' => round(self::A5_BOX_X + self::A5_STRIKE['x1'], 3),
+            'top'  => round(self::A5_BOX_Y + self::A5_STRIKE['y1'] - $rise - $pad, 3),
+            'w'    => round($len, 3), 'h' => round($rise + 2 * $pad, 3),
+            'y1'   => round($rise + $pad, 3), 'y2' => round($pad, 3), 'sw' => $pad,
+        ]];
+
+        $box = ['x' => self::A5_BOX_X, 'y' => self::A5_BOX_Y, 'w' => self::A5_BOX_W, 'h' => self::A5_BOX_H];
+        $img = FCPATH . self::A5_IMG_FILE;
+
+        return view('pricetag/templates/turun-hrg-a5', compact('S', 'L', 'box', 'img'));
+    }
+
+    /* ====================== DESAIN 6: "disc" ====================== */
+
+    private function pageHtmlDisc(array $row): string
+    {
+        $promo  = (int) round((float) ($row['promo_price'] ?? 0));
+        $normal = (int) round((float) ($row['normal_price'] ?? 0));
+
+        // Persen diskon: cari di beberapa kemungkinan nama kolom, atau hitung dari harga.
+        $pct = 0;
+        foreach (['discount_percent', 'discount_pct', 'disc_percent', 'diskon', 'discount', 'percent'] as $k) {
+            if (isset($row[$k]) && $row[$k] !== '' && (float) $row[$k] > 0) {
+                $pct = (int) round((float) $row[$k]);
+                break;
+            }
+        }
+        if ($pct <= 0 && $normal > 0 && $promo > 0) {
+            $pct = (int) round((1 - $promo / $normal) * 100);
+        }
+
+        $variant = mb_strtoupper(trim((string) ($row['variant'] ?? '')));
+        $text = [
+            'nama_produk' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
+            'artikel'     => $variant !== '' ? $variant : self::DSC_TEKS_ARTIKEL,
+            'label'       => self::DSC_TEKS_LABEL,
+            'angka'       => (string) $pct,
+            'persen'      => '%',
+        ];
+
+        $S = ['w' => self::DSC_BOX_W * 10, 'h' => self::DSC_BOX_H * 10, 'el' => []];
+        foreach (self::DSC_EL as $key => $def) {
+            [$fam, $w, $h, $x, $base, $align, $color, $outline, $maxRatio] = $def;
+            if ($key === 'persen') {
+                // tanda % menempel di kanan angka diskon, berapa pun lebar angkanya
+                $a = $S['el']['angka'];
+                $x = ($a['x'] + $a['sx'] * $a['w0']) / 10 + self::DSC_GAP_PERSEN;
+            }
+            $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $maxRatio) + [
+                'color' => $color, 'outline' => $outline,
+            ];
+        }
+
+        $box   = ['x' => self::DSC_BOX_X, 'y' => self::DSC_BOX_Y, 'w' => self::DSC_BOX_W, 'h' => self::DSC_BOX_H];
+        $file  = FCPATH . self::DSC_IMG_FILE;
+        $img   = is_file($file) ? $file : null;
+        $frame = self::DSC_FRAME;
+
+        return view('pricetag/templates/discount-a5', compact('S', 'box', 'img', 'frame'));
+    }
+
+    /* ====================== DESAIN 7: "fresh" (6 kartu per halaman) ====================== */
+
+    /** Kumpulkan semua kartu (qty dijabarkan), bagi per 6, satu halaman A4 tiap 6 kartu. */
+    private function renderFresh(array $items): string
+    {
+        $rows = [];
+        foreach ($items as $it) {
+            $qty = max(1, (int) ($it['qty'] ?? 1));
+            for ($i = 0; $i < $qty; $i++) {
+                $rows[] = $it['row'];
+            }
+        }
+
+        $first = true;
+        foreach (array_chunk($rows, self::FRS_PER_PAGE) as $chunk) {
+            if (! $first) {
+                $this->mpdf->AddPage();
+            }
+            $this->mpdf->WriteHTML($this->pageHtmlFresh($chunk));
+            $first = false;
+        }
+        return $this->mpdf->Output('', 'S');
+    }
+
+    /** @param array<int,array> $rows maksimal 6 baris data */
+    private function pageHtmlFresh(array $rows): string
+    {
+        $size  = ['w' => self::FRS_CARD_W, 'h' => self::FRS_CARD_H];
+        $cards = [];
+
+        foreach (array_values($rows) as $i => $row) {
+            $promo = (int) round((float) ($row['promo_price'] ?? 0));
+            $text = [
+                'nama_produk' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
+                'rp'          => 'Rp',
+                'harga'       => number_format($promo, 0, ',', '.'),
+                'satuan'      => self::FRS_TEKS_SATUAN,
+                'plu'         => 'PLU : ' . (string) ($row['sku_plu'] ?? ''),
+            ];
+
+            $S = ['w' => self::FRS_CARD_W * 10, 'h' => self::FRS_CARD_H * 10, 'el' => []];
+            foreach (self::FRS_EL as $key => $def) {
+                [$fam, $w, $h, $x, $base, $align, $color, $outline, $maxRatio] = $def;
+                $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $maxRatio) + [
+                    'color' => $color, 'outline' => $outline,
+                ];
+            }
+
+            $cards[] = [
+                'x' => round(self::FRS_GRID_X + ($i % 2) * self::FRS_CARD_W, 3),
+                'y' => round(self::FRS_GRID_Y + intdiv($i, 2) * self::FRS_CARD_H, 3),
+                'S' => $S,
+            ];
+        }
+
+        $img = FCPATH . self::FRS_IMG_FILE;
+
+        return view('pricetag/templates/butcher', compact('cards', 'size', 'img'));
+    }
+
+    /* ====================== DESAIN 8: "curah" (6 kartu per halaman + harga coret) ====================== */
+
+    /** Kumpulkan semua kartu (qty dijabarkan), bagi per 6, satu halaman A4 tiap 6 kartu. */
+    private function renderCurah(array $items): string
+    {
+        $rows = [];
+        foreach ($items as $it) {
+            $qty = max(1, (int) ($it['qty'] ?? 1));
+            for ($i = 0; $i < $qty; $i++) {
+                $rows[] = $it['row'];
+            }
+        }
+
+        $first = true;
+        foreach (array_chunk($rows, self::CRH_PER_PAGE) as $chunk) {
+            if (! $first) {
+                $this->mpdf->AddPage();
+            }
+            $this->mpdf->WriteHTML($this->pageHtmlCurah($chunk));
+            $first = false;
+        }
+        return $this->mpdf->Output('', 'S');
+    }
+
+    /** @param array<int,array> $rows maksimal 6 baris data */
+    private function pageHtmlCurah(array $rows): string
+    {
+        $size  = ['w' => self::CRH_CARD_W, 'h' => self::CRH_CARD_H];
+        $cards = [];
+
+        foreach (array_values($rows) as $i => $row) {
+            $promo  = (int) round((float) ($row['promo_price'] ?? 0));
+            $normal = (int) round((float) ($row['normal_price'] ?? 0));
+            $adaCoret = $normal > 0 && $normal !== $promo;
+
+            // Nama produk -> 2 baris: kata pertama (kecil) + sisanya (besar)
+            $nama = mb_strtoupper(trim((string) ($row['name'] ?? '')));
+            $pos  = mb_strpos($nama, ' ');
+            $l1   = $pos === false ? '' : mb_substr($nama, 0, $pos);
+            $l2   = $pos === false ? $nama : trim(mb_substr($nama, $pos + 1));
+            if (isset($row['line1'])) {
+                $l1 = mb_strtoupper(trim((string) $row['line1']));
+            }
+            if (isset($row['line2'])) {
+                $l2 = mb_strtoupper(trim((string) $row['line2']));
+            }
+
+            $text = [
+                'baris1'  => $l1,
+                'baris2'  => $l2,
+                'plu'     => 'PLU : ' . (string) ($row['sku_plu'] ?? ''),
+                'rp_lama' => $adaCoret ? 'Rp.' : '',
+                'lama'    => $adaCoret ? number_format($normal, 0, ',', '.') : '',
+                'rp_baru' => 'Rp.',
+                'satuan'  => self::CRH_TEKS_SATUAN,
+                'baru'    => number_format($promo, 0, ',', '.'),
+            ];
+
+            $S = ['w' => self::CRH_CARD_W * 10, 'h' => self::CRH_CARD_H * 10, 'el' => []];
+            foreach (self::CRH_EL as $key => $def) {
+                [$fam, $w, $h, $x, $base, $align, $color, $outline, $maxRatio] = $def;
+                $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $maxRatio) + [
+                    'color' => $color, 'outline' => $outline,
+                ];
+            }
+
+            $cx = round(self::CRH_GRID_X + ($i % 2) * self::CRH_CARD_W, 3);
+            $cy = round(self::CRH_GRID_Y + intdiv($i, 2) * self::CRH_CARD_H, 3);
+
+            // Garis coret hitam pada harga lama (ikut lebar angkanya)
+            $strike = null;
+            if ($adaCoret) {
+                $lama = $S['el']['lama'];
+                $x2   = ($lama['x'] + $lama['sx'] * $lama['w0']) / 10 + self::CRH_STRIKE['over'];
+                $len  = $x2 - self::CRH_STRIKE['x1'];
+                $rise = $len * self::CRH_STRIKE['slope'];
+                $pad  = self::CRH_STRIKE['thick'];
+                $strike = [
+                    'left' => round($cx + self::CRH_STRIKE['x1'], 3),
+                    'top'  => round($cy + self::CRH_STRIKE['y1'] - $rise - $pad, 3),
+                    'w'    => round($len, 3), 'h' => round($rise + 2 * $pad, 3),
+                    'y1'   => round($rise + $pad, 3), 'y2' => round($pad, 3), 'sw' => $pad,
+                ];
+            }
+
+            $cards[] = ['x' => $cx, 'y' => $cy, 'S' => $S, 'strike' => $strike];
+        }
+
+        $img = FCPATH . self::CRH_IMG_FILE;
+
+        return view('pricetag/templates/vegetable', compact('cards', 'size', 'img'));
+    }
+
     /* ---------------- util bersama ---------------- */
 
     private function tanggal(string $ymd): string
@@ -524,10 +938,13 @@ class PopA4Pdf
     }
 
     /**
-     * Dipakai desain "segitiga" & "special": kotak wCm/hCm/xCm/baseCm terpisah (dari tabel WordArt).
-     * $maxRatio > 0 membatasi lebar huruf maksimal (sx <= sy * maxRatio) agar teks pendek tidak melar.
+     * Dipakai desain "segitiga", "special", "diskon", "a5" & "disc": kotak wCm/hCm/xCm/baseCm terpisah
+     * (dari tabel WordArt). $maxRatio > 0 membatasi lebar huruf maksimal (sx <= sy * maxRatio)
+     * agar teks pendek tidak melar. $maxSkew > 0 membatasi PERBEDAAN skala tinggi vs lebar
+     * (dipakai kalau font asli membuat huruf jadi kurus/gepeng ekstrem saat diregangkan) -
+     * skala yang lebih besar dipangkas supaya tidak lebih dari $maxSkew kali skala yang lebih kecil.
      */
-    private function stretchEl(string $fam, string $text, float $wCm, float $hCm, float $xCm, float $baseCm, string $align, float $maxRatio = 0): array
+    private function stretchEl(string $fam, string $text, float $wCm, float $hCm, float $xCm, float $baseCm, string $align, float $maxRatio = 0, float $maxSkew = 0): array
     {
         $base = 10.0;
         $this->setFont($fam, '', $base / 0.352778);
@@ -540,6 +957,13 @@ class PopA4Pdf
         $sx = ($wCm * 10) / $w0;
         if ($maxRatio > 0) {
             $sx = min($sx, $sy * $maxRatio);
+        }
+        if ($maxSkew > 0) {
+            if ($sy > $sx * $maxSkew) {
+                $sy = $sx * $maxSkew;
+            } elseif ($sx > $sy * $maxSkew) {
+                $sx = $sy * $maxSkew;
+            }
         }
         $drawn = $w0 * $sx;
         $xMm = $xCm * 10;

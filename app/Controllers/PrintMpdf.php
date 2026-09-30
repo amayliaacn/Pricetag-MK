@@ -37,6 +37,10 @@ class PrintMpdf extends BaseController
                 'segitiga' => 'segitiga',
                 'special-price' => 'special',
                 'diskon' => 'diskon',
+                'a5' => 'a5',
+                'disc' => 'disc',
+                'fresh' => 'fresh',
+                'curah' => 'curah',
                 default => 'a4',
             };
             $groups[$template][] = [
@@ -60,6 +64,8 @@ class PrintMpdf extends BaseController
 
             return $this->response
                 ->setHeader('Content-Type', 'application/pdf')
+                ->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                ->setHeader('Pragma', 'no-cache')
                 ->setHeader('Content-Disposition', 'inline; filename="price-tag-mpdf-a4.pdf"')
                 ->setBody((string) file_get_contents($pdf));
         } catch (\Throwable $e) {

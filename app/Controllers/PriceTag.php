@@ -120,9 +120,14 @@ class PriceTag extends BaseController
             //   - SKU sama, tanggal sama  -> data lama di baris itu di-UPDATE
             //   - SKU baru di tanggal ini -> jadi baris baru
             //   - Data tanggal SEBELUMNYA tidak disentuh sama sekali (riwayat aman)
+            $autoSkuCounter = 0;
+            $autoSkuPrefix = 'AUTO-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
             foreach (array_slice($sheetData, $headerMap['row'] + 1) as $row) {
                 $sku = trim((string) ($row[$headerMap['sku_plu']] ?? ''));
-                if ($sku === '') continue;
+                if ($sku === '') {
+                    $autoSkuCounter++;
+                    $sku = $autoSkuPrefix . '-' . str_pad((string) $autoSkuCounter, 4, '0', STR_PAD_LEFT);
+                }
 
                 // Kolom sumber pada file Excel berisi satu kalimat gabungan,
                 // misalnya: PRODUK #VARIAN Sisa Alok= 60pc.
@@ -162,7 +167,8 @@ class PriceTag extends BaseController
                 // kolomnya tidak ada maupun ketika kolomnya ada tetapi kosong.
                 // Syaratnya, baris tersebut memiliki Harga Promo.
                 $isSpecialPriceImport = $dataInsert['normal_price'] === null
-                    && $dataInsert['promo_price'] !== null;
+                    && ($dataInsert['promo_price'] !== null
+                        || (float) ($dataInsert['discount_percent'] ?? 0) > 0);
                 if ($isSpecialPriceImport) {
                     // Kolom normal_price di database wajib NOT NULL. Untuk
                     // Special Price, harga sebenarnya tetap promo_price;
@@ -224,7 +230,7 @@ class PriceTag extends BaseController
     public function updateTemplate(int $id)
     {
         $size = (string) $this->request->getPost('template_size');
-        if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf', 'segitiga', 'special-price', 'diskon'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
+        if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf', 'a5', 'disc', 'fresh', 'curah', 'segitiga', 'special-price', 'diskon'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
         $model = new PriceTagModel();
         if (! $model->find($id)) return redirect()->back()->with('error', 'Produk tidak ditemukan.');
         $savedSize = $size !== '' ? $size : null;
@@ -303,15 +309,24 @@ class PriceTag extends BaseController
         $sku = trim((string) $this->request->getPost('sku_plu'));
         $name = trim((string) $this->request->getPost('name'));
         $importId = (int) $this->request->getPost('import_id');
-        if ($sku === '' || $name === '') return redirect()->back()->with('error', 'PLU dan nama produk wajib diisi.');
+        $normalInput = trim((string) $this->request->getPost('normal_price'));
+        $promoInput = trim((string) $this->request->getPost('promo_price'));
+        if ($sku === '') {
+            $sku = 'AUTO-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
+        }
+        if ($name === '') return redirect()->back()->with('error', 'Nama produk wajib diisi.');
+        $discountInput = trim((string) $this->request->getPost('discount_percent'));
+        if ($normalInput === '' && $promoInput === '' && $discountInput === '') {
+            return redirect()->back()->with('error', 'Isi Harga Normal, Harga Promo, atau Diskon (%).');
+        }
 
         $data = [
             'sku_plu' => $sku,
             'name' => $name,
             'variant' => trim((string) $this->request->getPost('variant')) ?: null,
-            'normal_price' => (int) $this->request->getPost('normal_price'),
-            'discount_percent' => $this->request->getPost('discount_percent') === '' ? null : (float) $this->request->getPost('discount_percent'),
-            'promo_price' => $this->request->getPost('promo_price') === '' ? null : (int) $this->request->getPost('promo_price'),
+            'normal_price' => $normalInput === '' ? 0 : (int) $normalInput,
+            'discount_percent' => $discountInput === '' ? null : (float) $discountInput,
+            'promo_price' => $promoInput === '' ? null : (int) $promoInput,
             'allocation_pcs' => $this->request->getPost('allocation_pcs') === '' ? null : (int) $this->request->getPost('allocation_pcs'),
             'start_period' => $this->request->getPost('start_period') ?: null,
             'end_period' => $this->request->getPost('end_period') ?: null,
