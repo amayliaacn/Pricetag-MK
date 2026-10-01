@@ -36,8 +36,22 @@ class PrintMixed extends BaseController
                 if (!$row) continue;
                 $size = (string) ($sizes[$id] ?? '');
                 $count = max(1, (int) ($qty[$id] ?? 1));
-                if (in_array($size, ['mpdf','a5','disc','fresh','curah','segitiga','special-price','diskon'], true)) {
-                    $template = match ($size) { 'segitiga' => 'segitiga', 'special-price' => 'special', 'diskon' => 'diskon', 'a5' => 'a5', 'disc' => 'disc', 'fresh' => 'fresh', 'curah' => 'curah', default => 'a4' };
+                if ($size === 'a5' && (float) ($row['promo_price'] ?? 0) <= 0 && (float) ($row['discount_percent'] ?? 0) <= 0) {
+                    return redirect()->back()->with('error', 'A5 Discount/Turun Harga memerlukan Diskon atau Harga Promo.');
+                }
+                if ($size === 'curah' && (float) ($row['promo_price'] ?? 0) <= 0 && (float) ($row['discount_percent'] ?? 0) <= 0) {
+                    return redirect()->back()->with('error', 'Template Vegetable memerlukan Diskon atau Harga Promo.');
+                }
+                if (in_array($size, ['mpdf','a5','fresh','curah','segitiga'], true)) {
+                    $template = match ($size) {
+                        'segitiga' => ((float) ($row['discount_percent'] ?? 0) > 0 ? 'diskon' : ((float) ($row['promo_price'] ?? 0) > 0 ? 'segitiga' : 'special')),
+                        'a5' => ((float) ($row['discount_percent'] ?? 0) > 0
+                            ? ((float) ($row['normal_price'] ?? 0) > 0 ? 'disc2' : 'disc')
+                            : 'a5'),
+                        'fresh' => 'fresh',
+                        'curah' => 'curah',
+                        default => 'a4',
+                    };
                     $mpdfItems[$template][] = ['row' => $row, 'qty' => $count];
                     continue;
                 }

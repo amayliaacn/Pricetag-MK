@@ -33,12 +33,17 @@ class PrintMpdf extends BaseController
                 continue;
             }
             $size = (string) ($sizes[$tagId] ?? 'mpdf');
+            if ($size === 'a5' && (float) ($tag['promo_price'] ?? 0) <= 0 && (float) ($tag['discount_percent'] ?? 0) <= 0) {
+                return redirect()->back()->with('error', 'A5 Discount/Turun Harga memerlukan Diskon atau Harga Promo.');
+            }
+            if ($size === 'curah' && (float) ($tag['promo_price'] ?? 0) <= 0 && (float) ($tag['discount_percent'] ?? 0) <= 0) {
+                return redirect()->back()->with('error', 'Template Vegetable memerlukan Diskon atau Harga Promo.');
+            }
             $template = match ($size) {
-                'segitiga' => 'segitiga',
-                'special-price' => 'special',
-                'diskon' => 'diskon',
-                'a5' => 'a5',
-                'disc' => 'disc',
+                'segitiga' => ((float) ($tag['discount_percent'] ?? 0) > 0 ? 'diskon' : ((float) ($tag['promo_price'] ?? 0) > 0 ? 'segitiga' : 'special')),
+                'a5' => ((float) ($tag['discount_percent'] ?? 0) > 0
+                    ? ((float) ($tag['normal_price'] ?? 0) > 0 ? 'disc2' : 'disc')
+                    : 'a5'),
                 'fresh' => 'fresh',
                 'curah' => 'curah',
                 default => 'a4',

@@ -8,21 +8,22 @@ use Mpdf\Mpdf;
 
 /**
  * Cetak POP Price Tag A4 langsung dari HTML (mPDF), tanpa Word/LibreOffice.
- * Satu file ini menangani DELAPAN desain kartu:
+ * Satu file ini menangani SEMBILAN desain kartu:
  *   - 'a4'       -> kartu "MINYAK GORENG" (Picture1.jpg)
  *   - 'segitiga' -> kartu "Segitiga Turun Harga" / TESSA-TP.06 (Picture3.png)
  *   - 'special'  -> kartu "Segitiga Special Price" (Picture3.png / gambar sendiri)
  *   - 'diskon'   -> kartu "DISKON 33%" (GIZZI-MILK), view: segitiga-discount.php
  *   - 'a5'       -> kartu A5, ukuran cetak fisik 19,5 x 13,5 cm (mis. LE MINERALE GALON 15 LT)
  *   - 'disc'     -> kartu landscape "KAOS WANITA / ARTIKEL TERTENTU / DISC 50%", view: discount-a5.php
+ *   - 'disc2'    -> kartu landscape DISC 50% + harga normal dicoret + harga setelah diskon, view: discount2-a5.php
  *   - 'fresh'    -> 6 kartu per halaman A4 (2 x 3) "Manna Kampus FRESH" /100gr, view: butcher.php
  *   - 'curah'    -> 6 kartu per halaman A4 (2 x 3) "BAWANG KATING CURAH" + harga coret, view: curah-6up.php
- * Tiap desain punya konstanta sendiri (A4_*, SEG_*, SPC_*, DSK_*, A5_*, DSC_*, FRS_*, CRH_*) supaya tidak saling bentrok.
+ * Tiap desain punya konstanta sendiri (A4_*, SEG_*, SPC_*, DSK_*, A5_*, DSC_*, DS2_*, FRS_*, CRH_*) supaya tidak saling bentrok.
  *
  * Pemakaian (controller):
  *   $pdf = (new \App\Libraries\PopA4Pdf())->render([
  *       ['row' => $rowDb, 'qty' => 3],
- *   ], 'diskon');   // 'a4' (default) | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'fresh' | 'curah'
+ *   ], 'diskon');   // 'a4' (default) | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'fresh' | 'curah'
  *   return $this->response->setContentType('application/pdf')->setBody($pdf);
  */
 class PopA4Pdf
@@ -259,6 +260,33 @@ class PopA4Pdf
 
 
     /* ============================================================================
+     * DESAIN 6b: "disc2" — kartu LANDSCAPE DISC 50% + harga normal (dicoret) + harga setelah diskon
+     * Ukuran, posisi di A4, gambar latar, dan bingkai cadangan SAMA dengan "disc" (DSC_*).
+     * Contoh: KAOS WANITA, DISC 50%, Rp 52.900 -> Rp 26.450. View: discount2-a5.php
+     * ==========================================================================*/
+
+    // Jarak angka diskon ke tanda % (cm)
+    private const DS2_GAP_PERSEN = 0.73;
+
+    // x/base relatif ke pojok kiri-atas kartu (cm).
+    // teks           family         w      h      x      base    align     warna      outline           maxRatio
+    private const DS2_EL = [
+        'nama_produk' => ['arialblack',  13.45, 1.30,  9.87,  3.55, 'center', '#00B0F0', '#000000 0.08pt', 0.9],
+        'artikel'     => ['arialnarrow',  5.07, 0.92, 15.08,  4.77, 'center', '#000000', null,              0],
+        'label'       => ['berlinsans',   2.75, 0.62,  3.17,  5.99, 'left',   '#000000', null,              0],
+        'angka'       => ['bookantiqua',  5.90, 3.50,  6.83,  8.89, 'left',   '#FF0000', '#FF0000 0.3pt',   1.15],
+        'persen'      => ['berlinsans',   0.88, 1.26,  0.00,  6.53, 'left',   '#FF0000', null,              0],   // x dihitung otomatis
+        // Beri jarak cukup antara label Rp dan angka harga normal agar tidak bertumpuk.
+        'rp_lama'     => ['arialblack',   1.00, 0.38,  1.72,  9.69, 'left',   '#000000', null,              0],
+        'lama'        => ['bernardmt',    5.08, 1.41,  2.95, 11.07, 'left',   '#000000', '#000000 0.15pt',  1.4],
+        'rp_baru'     => ['arialblack',   1.60, 0.70,  9.00, 11.60, 'left',   '#000000', null,              0],
+        'baru'        => ['bernardmt',    6.18, 3.20, 11.45, 12.98, 'left',   '#FF0000', '#FF0000 0.08pt',  0.8],
+    ];
+
+    // Garis coret merah pada harga normal (cm, relatif kartu)
+    private const DS2_STRIKE = ['x1' => 2.93, 'y1' => 11.15, 'over' => 0.80, 'slope' => 0.26, 'thick' => 0.15];
+
+    /* ============================================================================
      * DESAIN 7: "fresh" — 6 kartu per halaman A4 (2 kolom x 3 baris)
      * Contoh: Manna Kampus FRESH, harga per 100gr. Latar = Picture5.jpg (SATU kartu, tanpa teks).
      * View: butcher.php. Satu item = satu kartu; qty = jumlah kartu yang dicetak.
@@ -371,7 +399,7 @@ class PopA4Pdf
 
     /**
      * @param array<int,array{row:array,qty?:int}> $items
-     * @param string $template 'a4' (default) | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'fresh' | 'curah'
+     * @param string $template 'a4' (default) | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'fresh' | 'curah'
      */
     public function render(array $items, string $template = 'a4'): string
     {
@@ -391,6 +419,7 @@ class PopA4Pdf
                 'diskon'   => $this->pageHtmlDiskon($it['row']),
                 'a5'       => $this->pageHtmlA5($it['row']),
                 'disc'     => $this->pageHtmlDisc($it['row']),
+                'disc2'    => $this->pageHtmlDisc2($it['row']),
                 default    => $this->pageHtmlA4($it['row']),
             };
 
@@ -536,7 +565,7 @@ class PopA4Pdf
 
     private function pageHtmlSpecial(array $row): string
     {
-        $promo = (int) round((float) $row['promo_price']);
+        $promo = (int) round((float) (($row['promo_price'] ?? 0) > 0 ? $row['promo_price'] : ($row['normal_price'] ?? 0)));
 
         $text = [
             'judul'       => 'Special Price',
@@ -588,7 +617,7 @@ class PopA4Pdf
 
         $text = [
             'periode'     => 'Akhir Periode : ' . mb_strtoupper($this->tanggal($row['end_period'] ?? '')),
-            'alokasi'     => 'Alokasi : ' . number_format((float) ($row['allocation_pcs'] ?? 0), 0, ',', '.') . ' Pc',
+            'alokasi'     => 'Alokasi : ' . number_format((float) ($row['allocation_pcs'] ?? 0), 0, ',', '.') . ' Pcs',
             'nama_produk' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
             'variant'     => mb_strtoupper(trim((string) ($row['variant'] ?? ''))),
             'label'       => 'DISKON',
@@ -734,6 +763,82 @@ class PopA4Pdf
         return view('pricetag/templates/discount-a5', compact('S', 'box', 'img', 'frame'));
     }
 
+    /* ====================== DESAIN 6b: "disc2" ====================== */
+
+    private function pageHtmlDisc2(array $row): string
+    {
+        $promo  = (int) round((float) ($row['promo_price'] ?? 0));
+        $normal = (int) round((float) ($row['normal_price'] ?? 0));
+
+        // Persen diskon: cari di beberapa kemungkinan nama kolom.
+        $pct = 0;
+        foreach (['discount_percent', 'discount_pct', 'disc_percent', 'diskon', 'discount', 'percent'] as $k) {
+            if (isset($row[$k]) && $row[$k] !== '' && (float) $row[$k] > 0) {
+                $pct = (int) round((float) $row[$k]);
+                break;
+            }
+        }
+        // Harga promo kosong tapi persen ada -> hitung dari harga normal.
+        if ($promo <= 0 && $pct > 0 && $normal > 0) {
+            $promo = (int) round($normal * (1 - $pct / 100));
+        }
+        // Persen kosong tapi harga ada -> hitung dari harga.
+        if ($pct <= 0 && $normal > 0 && $promo > 0) {
+            $pct = (int) round((1 - $promo / $normal) * 100);
+        }
+
+        $adaCoret = $normal > 0 && $normal !== $promo;
+        $variant  = mb_strtoupper(trim((string) ($row['variant'] ?? '')));
+
+        $text = [
+            'nama_produk' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
+            'artikel'     => $variant !== '' ? $variant : self::DSC_TEKS_ARTIKEL,
+            'label'       => self::DSC_TEKS_LABEL,
+            'angka'       => (string) $pct,
+            'persen'      => '%',
+            'rp_lama'     => $adaCoret ? 'Rp' : '',
+            'lama'        => $adaCoret ? number_format($normal, 0, ',', '.') : '',
+            'rp_baru'     => 'Rp',
+            'baru'        => number_format($promo, 0, ',', '.'),
+        ];
+
+        $S = ['w' => self::DSC_BOX_W * 10, 'h' => self::DSC_BOX_H * 10, 'el' => []];
+        foreach (self::DS2_EL as $key => $def) {
+            [$fam, $w, $h, $x, $base, $align, $color, $outline, $maxRatio] = $def;
+            if ($key === 'persen') {
+                // tanda % menempel di kanan angka diskon, berapa pun lebar angkanya
+                $a = $S['el']['angka'];
+                $x = ($a['x'] + $a['sx'] * $a['w0']) / 10 + self::DS2_GAP_PERSEN;
+            }
+            $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $maxRatio) + [
+                'color' => $color, 'outline' => $outline,
+            ];
+        }
+
+        // Garis coret merah pada harga normal (ikut lebar angkanya)
+        $L = ['strike' => null];
+        if ($adaCoret) {
+            $lama = $S['el']['lama'];
+            $x2   = ($lama['x'] + $lama['sx'] * $lama['w0']) / 10 + self::DS2_STRIKE['over'];
+            $len  = $x2 - self::DS2_STRIKE['x1'];
+            $rise = $len * self::DS2_STRIKE['slope'];
+            $pad  = self::DS2_STRIKE['thick'];
+            $L['strike'] = [
+                'left' => round(self::DSC_BOX_X + self::DS2_STRIKE['x1'], 3),
+                'top'  => round(self::DSC_BOX_Y + self::DS2_STRIKE['y1'] - $rise - $pad, 3),
+                'w'    => round($len, 3), 'h' => round($rise + 2 * $pad, 3),
+                'y1'   => round($rise + $pad, 3), 'y2' => round($pad, 3), 'sw' => $pad,
+            ];
+        }
+
+        $box   = ['x' => self::DSC_BOX_X, 'y' => self::DSC_BOX_Y, 'w' => self::DSC_BOX_W, 'h' => self::DSC_BOX_H];
+        $file  = FCPATH . self::DSC_IMG_FILE;
+        $img   = is_file($file) ? $file : null;
+        $frame = self::DSC_FRAME;
+
+        return view('pricetag/templates/discount2-a5', compact('S', 'L', 'box', 'img', 'frame'));
+    }
+
     /* ====================== DESAIN 7: "fresh" (6 kartu per halaman) ====================== */
 
     /** Kumpulkan semua kartu (qty dijabarkan), bagi per 6, satu halaman A4 tiap 6 kartu. */
@@ -765,7 +870,9 @@ class PopA4Pdf
         $cards = [];
 
         foreach (array_values($rows) as $i => $row) {
-            $promo = (int) round((float) ($row['promo_price'] ?? 0));
+            // Butcher hanya memiliki satu harga: selalu gunakan Harga Normal.
+            // Harga Promo boleh tersimpan, tetapi tidak dipakai pada desain ini.
+            $promo = (int) round((float) ($row['normal_price'] ?? 0));
             $text = [
                 'nama_produk' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
                 'rp'          => 'Rp',

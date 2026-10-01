@@ -160,23 +160,14 @@ class PriceTag extends BaseController
                     'import_date'      => $importDate,
                 ];
 
-                // Template biasa tetap wajib memiliki Harga Normal. Pengecualian
-                // hanya untuk file Special Price: tidak ada Harga Normal, tetapi
-                // tersedia kolom Harga Promo sebagai satu-satunya harga jual.
-                // Special Price boleh tidak memiliki Harga Normal, baik ketika
-                // kolomnya tidak ada maupun ketika kolomnya ada tetapi kosong.
-                // Syaratnya, baris tersebut memiliki Harga Promo.
-                $isSpecialPriceImport = $dataInsert['normal_price'] === null
-                    && ($dataInsert['promo_price'] !== null
-                        || (float) ($dataInsert['discount_percent'] ?? 0) > 0);
-                if ($isSpecialPriceImport) {
-                    // Kolom normal_price di database wajib NOT NULL. Untuk
-                    // Special Price, harga sebenarnya tetap promo_price;
-                    // normal_price hanya diisi 0 sebagai placeholder teknis.
+                if ($dataInsert['name'] === '') continue;
+                // Pengecualian: A5 Discount dapat hanya berisi persentase
+                // diskon tanpa Harga Normal. Database memakai 0 sebagai
+                // penanda bahwa Harga Normal memang tidak tersedia.
+                if ($dataInsert['normal_price'] === null) {
+                    if ((float) ($dataInsert['discount_percent'] ?? 0) <= 0) continue;
                     $dataInsert['normal_price'] = 0;
                 }
-                if ($dataInsert['name'] === '') continue;
-                if (! $isSpecialPriceImport && $dataInsert['normal_price'] === null) continue;
 
                 $importRows[] = $dataInsert;
                 $jumlahData++;
@@ -230,7 +221,7 @@ class PriceTag extends BaseController
     public function updateTemplate(int $id)
     {
         $size = (string) $this->request->getPost('template_size');
-        if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf', 'a5', 'disc', 'fresh', 'curah', 'segitiga', 'special-price', 'diskon'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
+        if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf', 'a5', 'fresh', 'curah', 'segitiga'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
         $model = new PriceTagModel();
         if (! $model->find($id)) return redirect()->back()->with('error', 'Produk tidak ditemukan.');
         $savedSize = $size !== '' ? $size : null;
@@ -297,8 +288,9 @@ class PriceTag extends BaseController
             'start_period' => $this->request->getPost('start_period') ?: null,
             'end_period' => $this->request->getPost('end_period') ?: null,
         ];
-        if ($data['sku_plu'] === '' || $data['name'] === '') {
-            return redirect()->back()->with('error', 'PLU dan nama produk wajib diisi.');
+        if ($data['sku_plu'] === '' || $data['name'] === ''
+            || ($this->request->getPost('normal_price') === '' && $this->request->getPost('discount_percent') === '')) {
+            return redirect()->back()->with('error', 'PLU, nama produk, dan Harga Normal wajib diisi.');
         }
         $model->update($id, $data);
         return redirect()->back()->with('success', 'Data produk berhasil diperbarui.');
@@ -316,8 +308,8 @@ class PriceTag extends BaseController
         }
         if ($name === '') return redirect()->back()->with('error', 'Nama produk wajib diisi.');
         $discountInput = trim((string) $this->request->getPost('discount_percent'));
-        if ($normalInput === '' && $promoInput === '' && $discountInput === '') {
-            return redirect()->back()->with('error', 'Isi Harga Normal, Harga Promo, atau Diskon (%).');
+        if ($normalInput === '' && $discountInput === '') {
+            return redirect()->back()->with('error', 'Harga Normal wajib diisi.');
         }
 
         $data = [
@@ -374,7 +366,9 @@ class PriceTag extends BaseController
             $hasRequiredStandardHeaders = isset($map['sku_plu'], $map['name'], $map['normal_price']);
             $hasRequiredSpecialHeaders = isset($map['sku_plu'], $map['name'], $map['promo_price'])
                 && ! isset($map['normal_price']);
-            if ($hasRequiredStandardHeaders || $hasRequiredSpecialHeaders) {
+            $hasDiscountOnlyHeaders = isset($map['sku_plu'], $map['name'], $map['discount_percent'])
+                && ! isset($map['normal_price']);
+            if ($hasRequiredStandardHeaders || $hasRequiredSpecialHeaders || $hasDiscountOnlyHeaders) {
                 return $map;
             }
         }
