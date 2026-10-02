@@ -288,6 +288,11 @@ class PriceTag extends BaseController
             'start_period' => $this->request->getPost('start_period') ?: null,
             'end_period' => $this->request->getPost('end_period') ?: null,
         ];
+        if ($this->request->getPost('discount_percent') !== ''
+            && $this->request->getPost('promo_price') !== '') {
+            return redirect()->back()->withInput()
+                ->with('error', 'Isi Diskon atau Harga Promo saja, tidak boleh keduanya.');
+        }
         if ($data['sku_plu'] === '' || $data['name'] === ''
             || ($this->request->getPost('normal_price') === '' && $this->request->getPost('discount_percent') === '')) {
             return redirect()->back()->with('error', 'PLU, nama produk, dan Harga Normal wajib diisi.');
@@ -310,6 +315,10 @@ class PriceTag extends BaseController
         $discountInput = trim((string) $this->request->getPost('discount_percent'));
         if ($normalInput === '' && $discountInput === '') {
             return redirect()->back()->with('error', 'Harga Normal wajib diisi.');
+        }
+        if ($discountInput !== '' && $promoInput !== '') {
+            return redirect()->back()->withInput()
+                ->with('error', 'Isi Diskon atau Harga Promo saja, tidak boleh keduanya.');
         }
 
         $data = [

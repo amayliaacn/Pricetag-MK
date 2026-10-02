@@ -406,6 +406,20 @@
         const editModal      = new bootstrap.Modal(document.getElementById('modalEdit'));
         const formEdit       = document.getElementById('formEdit');
 
+        // Diskon dan Harga Promo adalah dua cara alternatif untuk menentukan harga akhir.
+        // Saat salah satunya diisi, kosongkan yang lain agar data tidak bertentangan.
+        document.querySelectorAll('#formEdit, #modalTambah form').forEach(form => {
+            const discount = form.querySelector('[name="discount_percent"]');
+            const promo = form.querySelector('[name="promo_price"]');
+            if (!discount || !promo) return;
+            discount.addEventListener('input', () => {
+                if (discount.value !== '') promo.value = '';
+            });
+            promo.addEventListener('input', () => {
+                if (promo.value !== '') discount.value = '';
+            });
+        });
+
         const templateToast = document.getElementById('templateToast');
         let toastTimer;
         document.querySelectorAll('.template-size-form').forEach(form => {
