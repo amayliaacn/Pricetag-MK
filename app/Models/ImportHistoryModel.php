@@ -10,7 +10,7 @@ class ImportHistoryModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['file_name', 'snapshot', 'outlet_id', 'imported_at', 'imported_by'];
+    protected $allowedFields    = ['file_name', 'source_type', 'snapshot', 'outlet_id', 'imported_at', 'imported_by'];
 
     public function findVisibleImport(int $id, string $role, ?int $outletId): ?array
     {
@@ -36,6 +36,8 @@ class ImportHistoryModel extends Model
         } elseif (! empty($filters['outlet_id'])) {
             $builder->where('import_history.outlet_id', (int) $filters['outlet_id']);
         }
+
+        $builder->where('import_history.source_type', (int) ($filters['source_type'] ?? 0));
 
         if (! empty($filters['month']) && ! empty($filters['year'])) {
             $builder->where('MONTH(import_history.imported_at)', (int) $filters['month'])

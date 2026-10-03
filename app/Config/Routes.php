@@ -24,6 +24,11 @@ $routes->post('/pricetag/template/(:num)', 'PriceTag::updateTemplate/$1', ['filt
 $routes->post('/pricetag/printed/(:num)', 'PriceTag::setPrinted/$1', ['filter' => 'auth']);
 $routes->get('/import-history', 'ImportHistory::index', ['filter' => 'auth']);
 $routes->post('/import-history/delete/(:num)', 'ImportHistory::delete/$1', ['filter' => 'auth']);
+$routes->post('/import-history/manual/create', 'ImportHistory::createManual', ['filter' => 'auth']);
+$routes->get('/import-history/manual/(:num)', 'ImportHistory::manual/$1', ['filter' => 'auth']);
+$routes->post('/import-history/manual/(:num)/save', 'ImportHistory::saveManual/$1', ['filter' => 'auth']);
+$routes->get('/import-history/manual/(:num)', 'ImportHistory::manual/$1', ['filter' => 'auth']);
+$routes->post('/import-history/manual/(:num)/save', 'ImportHistory::saveManual/$1', ['filter' => 'auth']);
 $routes->post('/pricetag/import', 'PriceTag::import', ['filter' => 'auth']);
 $routes->post('print-pdf', 'PrintPdf::index', ['filter' => 'auth']);
 $routes->get('print-pdf/(:segment)', 'PrintPdf::download/$1', ['filter' => 'auth']);
