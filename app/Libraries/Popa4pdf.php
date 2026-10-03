@@ -435,6 +435,49 @@ class PopA4Pdf
         return $this->mpdf->Output('', 'S');
     }
 
+    /**
+     * Render beberapa template mPDF dalam satu dokumen PDF.
+     * @param array<string,array<int,array{row:array,qty?:int}>> $groups
+     */
+    public function renderMixed(array $groups): string
+    {
+        $first = true;
+        foreach ($groups as $template => $items) {
+            foreach ($items as $it) {
+                if ($template === 'fresh' || $template === 'curah') {
+                    $rows = [];
+                    $qty = max(1, (int) ($it['qty'] ?? 1));
+                    for ($i = 0; $i < $qty; $i++) $rows[] = $it['row'];
+                    $perPage = $template === 'fresh' ? self::FRS_PER_PAGE : self::CRH_PER_PAGE;
+                    foreach (array_chunk($rows, $perPage) as $chunk) {
+                        if (! $first) $this->mpdf->AddPage();
+                        $this->mpdf->WriteHTML($template === 'fresh'
+                            ? $this->pageHtmlFresh($chunk)
+                            : $this->pageHtmlCurah($chunk));
+                        $first = false;
+                    }
+                    continue;
+                }
+                $html = match ($template) {
+                    'segitiga' => $this->pageHtmlSegitiga($it['row']),
+                    'special'  => $this->pageHtmlSpecial($it['row']),
+                    'diskon'   => $this->pageHtmlDiskon($it['row']),
+                    'a5'       => $this->pageHtmlA5($it['row']),
+                    'disc'     => $this->pageHtmlDisc($it['row']),
+                    'disc2'    => $this->pageHtmlDisc2($it['row']),
+                    default    => $this->pageHtmlA4($it['row']),
+                };
+                $qty = max(1, (int) ($it['qty'] ?? 1));
+                for ($i = 0; $i < $qty; $i++) {
+                    if (! $first) $this->mpdf->AddPage();
+                    $this->mpdf->WriteHTML($html);
+                    $first = false;
+                }
+            }
+        }
+        return $this->mpdf->Output('', 'S');
+    }
+
     /* ====================== DESAIN 1: "a4" ====================== */
 
     private function pageHtmlA4(array $row): string

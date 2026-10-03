@@ -21,6 +21,11 @@ class PrintPdf extends BaseController
             return redirect()->to('/import-history')->with('error', 'Pilih minimal 1 produk untuk dicetak.');
         }
 
+        $selectedSizes = array_values(array_unique(array_filter(array_map('strval', array_intersect_key($sizeMap, array_flip($selectedIds))))));
+        if (count($selectedSizes) > 1) {
+            return redirect()->back()->with('error', 'Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');
+        }
+
         $model      = new PriceTagModel();
         $userId     = (int) session()->get('id');
         $importDate = date('Y-m-d'); // sesuai data yang sedang tampil di halaman list
@@ -175,7 +180,8 @@ class PrintPdf extends BaseController
         $outputPath = WRITEPATH . 'pricetag_tmp/combined_' . bin2hex(random_bytes(8)) . '.pdf';
         $files = array_map('escapeshellarg', $pdfPaths);
         $command = sprintf(
-            'pdftk %s cat output %s 2>&1',
+            '"%s" %s cat output %s 2>&1',
+            'C:\\Program Files (x86)\\PDFtk Server\\bin\\pdftk.exe',
             implode(' ', $files),
             escapeshellarg($outputPath)
         );

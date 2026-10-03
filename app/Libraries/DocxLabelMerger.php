@@ -139,7 +139,8 @@ class DocxLabelMerger
         $outPath   = $this->workDir . '/' . $outName;
         $pageSpec  = implode(' ', array_fill(0, $qty, '1'));
         $cmd       = sprintf(
-            'pdftk %s cat %s output %s 2>&1',
+            '"%s" %s cat %s output %s 2>&1',
+            'C:\\Program Files (x86)\\PDFtk Server\\bin\\pdftk.exe',
             escapeshellarg($pdfPath),
             $pageSpec,
             escapeshellarg($outPath)
@@ -165,7 +166,8 @@ class DocxLabelMerger
 
         $files = array_map('escapeshellarg', $pdfPaths);
         $cmd   = sprintf(
-            'pdftk %s cat output %s 2>&1',
+            '"%s" %s cat output %s 2>&1',
+            'C:\\Program Files (x86)\\PDFtk Server\\bin\\pdftk.exe',
             implode(' ', $files),
             escapeshellarg($outPath)
         );

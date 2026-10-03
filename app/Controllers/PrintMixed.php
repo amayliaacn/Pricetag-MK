@@ -18,6 +18,10 @@ class PrintMixed extends BaseController
         $allvar = (array) $this->request->getPost('allvar');
         $importId = (int) $this->request->getPost('import_id');
         if ($ids === []) return redirect()->back()->with('error', 'Pilih minimal 1 produk untuk dicetak.');
+        $selectedSizes = array_values(array_unique(array_filter(array_map('strval', array_intersect_key($sizes, array_flip($ids))))));
+        if (count($selectedSizes) > 1) {
+            return redirect()->back()->with('error', 'Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');
+        }
 
         if ($importId > 0 && !(new ImportHistoryModel())->findVisibleImport($importId, (string) session()->get('role'), session()->get('outlet_id') === null ? null : (int) session()->get('outlet_id'))) {
             return redirect()->to('/import-history')->with('error', 'Data impor tidak ditemukan.');
@@ -67,7 +71,9 @@ class PrintMixed extends BaseController
             }
 
             $pdfs = [];
-            foreach ($mpdfItems as $template => $items) $pdfs[] = $this->writeMpdf($items, $template);
+            if ($mpdfItems !== []) {
+                $pdfs[] = $this->writeMpdfMixed($mpdfItems);
+            }
             foreach ($libreGroups as $key => $items) { $mergers[$key] = new DocxLabelMerger(PriceTagTemplates::find($key)['docx']); $pdfs[] = $mergers[$key]->generate($items); }
             if ($pdfs === []) return redirect()->back()->with('error', 'Produk yang dipilih tidak ditemukan.');
             $path = $this->combine($pdfs);
@@ -94,6 +100,19 @@ class PrintMixed extends BaseController
 
         return $path;
     }
+    private function writeMpdfMixed(array $groups): string
+    {
+        $pdf = (new PopA4Pdf())->renderMixed($groups);
+        $dir = WRITEPATH . 'pricetag_tmp/';
+        if (! is_dir($dir) && ! mkdir($dir, 0775, true) && ! is_dir($dir)) {
+            throw new \RuntimeException('Folder PDF sementara tidak dapat dibuat.');
+        }
+        $path = $dir . 'mpdf_' . bin2hex(random_bytes(8)) . '.pdf';
+        if (file_put_contents($path, $pdf, LOCK_EX) === false) {
+            throw new \RuntimeException('Hasil mPDF sementara tidak dapat disimpan.');
+        }
+        return $path;
+    }
     private function promoPrice(array $r): ?int { $p=(float)($r['promo_price']??0); $n=(float)($r['normal_price']??0); $d=(float)($r['discount_percent']??0); return $p>0?(int)round($p):($n>0&&$d>0?(int)round($n*(1-$d/100)):null); }
-    private function combine(array $paths): string { if(count($paths)===1)return $paths[0]; $out=WRITEPATH.'pricetag_tmp/combined_'.bin2hex(random_bytes(8)).'.pdf'; exec('pdftk '.implode(' ',array_map('escapeshellarg',$paths)).' cat output '.escapeshellarg($out).' 2>&1',$o,$c); if($c!==0||!is_file($out))throw new \RuntimeException('Gagal menggabungkan hasil PDF.'); return $out; }
+    private function combine(array $paths): string { if(count($paths)===1)return $paths[0]; $out=WRITEPATH.'pricetag_tmp/combined_'.bin2hex(random_bytes(8)).'.pdf'; $pdftk='C:\\Program Files (x86)\\PDFtk Server\\bin\\pdftk.exe'; exec('"'.$pdftk.'" '.implode(' ',array_map('escapeshellarg',$paths)).' cat output '.escapeshellarg($out).' 2>&1',$o,$c); if($c!==0||!is_file($out))throw new \RuntimeException('Gagal menggabungkan hasil PDF: '.implode("\n",$o)); return $out; }
 }
