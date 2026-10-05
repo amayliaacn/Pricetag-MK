@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 use App\Models\ImportHistoryModel;
 use App\Models\OutletModel;
+use App\Libraries\ProductTextParser;
+use App\Models\PriceTagModel;
 
 class ImportHistory extends BaseController
 {
@@ -126,13 +128,19 @@ class ImportHistory extends BaseController
         $rows = $this->request->getPost('rows');
         $rows = is_array($rows) ? array_values($rows) : [];
         $cleanRows = [];
+        $parser = new ProductTextParser();
         foreach ($rows as $row) {
             if (! is_array($row)) continue;
+            $brandText = trim((string) ($row['brand'] ?? ''));
+            $parsedProduct = $parser->parse($brandText);
             $clean = [
-                'start_period' => trim((string) ($row['start_period'] ?? '')),
-                'end_period'   => trim((string) ($row['end_period'] ?? '')),
+                'start_period' => $this->normalizeManualDate($row['start_period'] ?? ''),
+                'end_period'   => $this->normalizeManualDate($row['end_period'] ?? ''),
                 'sku_plu'      => trim((string) ($row['sku_plu'] ?? '')),
                 'brand'        => trim((string) ($row['brand'] ?? '')),
+                'name'         => $parsedProduct['name'],
+                'variant'      => $parsedProduct['variant'],
+                'allocation_pcs' => $parsedProduct['allocation_pcs'],
                 'normal_price' => (float) ($row['normal_price'] ?? 0),
                 'promo'        => trim((string) ($row['promo'] ?? '')),
             ];
@@ -145,6 +153,49 @@ class ImportHistory extends BaseController
             'snapshot' => json_encode($cleanRows, JSON_UNESCAPED_UNICODE),
         ]);
 
+        // Sinkronkan produk manual ke price_tags agar setiap produk memiliki
+        // ID valid dan dapat dipilih untuk dicetak seperti produk Excel.
+        $priceTagModel = new PriceTagModel();
+        $existingTags = $priceTagModel->where('import_id', $id)->findAll();
+        $templateBySku = [];
+        foreach ($existingTags as $existingTag) {
+            if (! empty($existingTag['sku_plu']) && ! empty($existingTag['template_size'])) {
+                $templateBySku[(string) $existingTag['sku_plu']] = $existingTag['template_size'];
+            }
+        }
+        $priceTagModel->where('import_id', $id)->delete();
+        foreach ($cleanRows as $row) {
+            $sku = $row['sku_plu'] !== '' ? $row['sku_plu'] : 'AUTO-MANUAL-' . date('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
+            $promo = trim((string) ($row['promo'] ?? ''));
+            $discount = null;
+            if (preg_match('/(\d+(?:[.,]\d+)?)\s*%/', $promo, $promoMatch)) {
+                $discount = (float) str_replace(',', '.', $promoMatch[1]);
+            }
+            $promoPrice = null;
+            if ($discount === null && preg_match('/\d/', $promo)) {
+                // Nilai nominal seperti "11.900" atau "Rp 11.900"
+                // disimpan sebagai harga promo, bukan diskon.
+                $promoDigits = preg_replace('/[^0-9]/', '', $promo);
+                $promoPrice = $promoDigits !== '' ? (int) $promoDigits : null;
+            }
+            $priceTagModel->insert([
+                'sku_plu'          => $sku,
+                'name'             => $row['name'],
+                'variant'          => $row['variant'],
+                'normal_price'     => (float) $row['normal_price'],
+                'discount_percent' => $discount,
+                'promo_price'      => $promoPrice,
+                'allocation_pcs'   => $row['allocation_pcs'],
+                'start_period'     => $row['start_period'] ?: null,
+                'end_period'       => $row['end_period'] ?: null,
+                'uploaded_by'      => (int) session()->get('id'),
+                'import_date'      => date('Y-m-d'),
+                'import_id'        => $id,
+                'template_size'    => $templateBySku[(string) $sku] ?? null,
+                'is_printed'       => 0,
+            ]);
+        }
+
         return redirect()->to(base_url('import-history/manual/' . $id))->with('success', 'Data manual berhasil disimpan.');
     }
 
@@ -154,5 +205,15 @@ class ImportHistory extends BaseController
         $outletId = session()->get('outlet_id');
         $history = (new ImportHistoryModel())->findVisibleImport($id, $role, $outletId === null ? null : (int) $outletId);
         return $history && (int) ($history['source_type'] ?? 0) === 1 ? $history : null;
+    }
+
+    private function normalizeManualDate($value): string
+    {
+        $value = trim((string) $value);
+        foreach (['Y-m-d', 'd-M-y', 'd-M-Y'] as $format) {
+            $date = \DateTimeImmutable::createFromFormat($format, $value);
+            if ($date && $date->format($format) === $value) return $date->format('Y-m-d');
+        }
+        return '';
     }
 }

@@ -98,7 +98,8 @@
         }
     </style>
 </head>
-<body class="mk-body">
+<?php $isManualDetail = ! empty($history) && (int) ($history['source_type'] ?? 0) === 1; $detailLabel = $isManualDetail ? 'Detail Input' : 'Detail Import'; $infoLabel = $isManualDetail ? 'Informasi Input' : 'Informasi Import'; ?>
+<body class="mk-body <?= $isManualDetail ? 'manual-detail-page' : '' ?>">
     <nav class="navbar navbar-expand-lg mk-topbar">
         <div class="container">
             <a class="navbar-brand" href="<?= base_url('dashboard') ?>"><img src="<?= base_url('assets/img/logo.png') ?>" alt="Manna Kampus" class="mk-logo-sm"></a>
@@ -118,21 +119,21 @@
         <li class="breadcrumb-item"><a href="<?= base_url('dashboard') ?>" class="text-decoration-none"><i class="bi bi-house-door text-warning"></i></a></li>
         <li class="breadcrumb-item"><a href="<?= base_url('dashboard') ?>" class="text-decoration-none">Dashboard</a></li>
         <?php if (! empty($history)): ?><li class="breadcrumb-item"><a href="<?= base_url('import-history') ?>" class="text-decoration-none text-warning fw-semibold">History Import</a></li><?php endif; ?>
-        <li class="breadcrumb-item active" aria-current="page">Detail Import</li>
+        <li class="breadcrumb-item active" aria-current="page"><?= $detailLabel ?></li>
     </ol></nav><?php if (session()->get('outlet_name') || session()->get('outlet_code')): ?><div class="mk-dashboard-outlet"><i class="bi bi-shop"></i><div><small>OUTLET AKTIF</small><strong><?= esc(session()->get('outlet_code') ?: session()->get('outlet_name')) ?></strong></div></div><?php endif; ?></div>
     <div class="d-flex flex-wrap justify-content-between align-items-end gap-0 mb-2" style="<?= session()->get('role') === 'user' ? 'margin-top:-25px;' : '' ?>">
-        <div><h2 class="mk-title mb-1"><?= ! empty($history) ? 'Detail Import' : 'Daftar Data Price Tag' ?></h2>
-            <p class="mk-subtitle mb-0"><?= ! empty($history) ? 'Detail data produk dari file yang telah diimport.' : 'Kelola, cari, dan cetak price tag produk.' ?></p>
+        <div><h2 class="mk-title mb-1"><?= ! empty($history) ? $detailLabel : 'Daftar Data Price Tag' ?></h2>
+            <p class="mk-subtitle mb-0"><?= ! empty($history) ? ($isManualDetail ? 'Detail data produk yang telah diinput secara manual.' : 'Detail data produk dari file yang telah diimport.') : 'Kelola, cari, dan cetak price tag produk.' ?></p>
         </div>
         <div class="d-flex gap-2">
-        <?php if (! empty($history)): ?><a href="<?= base_url('import-history') ?>" class="btn mk-btn-primary btn-sm">History Import</a><?php endif; ?>
+        <?php if (! empty($history)): ?><a href="<?= base_url('import-history?mode=' . ($isManualDetail ? 'manual' : 'excel')) ?>" class="btn mk-btn-primary btn-sm"><?= $isManualDetail ? 'History Input Manual' : 'History Import' ?></a><?php endif; ?>
             <a href="<?= base_url('dashboard') ?>" class="btn btn-primary btn-sm mk-icon-link" style="min-width:190px; justify-content:center;"><i class="bi bi-speedometer2"></i><span>Kembali ke Dashboard</span></a>
         </div>
     </div>
     <?php if (! empty($history)): ?>
         <section class="mk-template-banner mb-3 py-3">
             <div class="mk-template-icon"><i class="bi bi-file-earmark-text"></i></div>
-            <div class="mk-template-copy"><h5>Informasi Import</h5><p class="mb-0"><i class="bi bi-file-earmark me-2"></i><?= esc($history['file_name']) ?> <span class="mx-2">|</span> <i class="bi bi-shop me-1"></i><?= esc($history['outlet_code'] . ' - ' . $history['outlet_name']) ?> <span class="mx-2">|</span> <i class="bi bi-calendar3 me-1"></i><?= esc(date('d M Y', strtotime($history['imported_at']))) ?> <span class="mx-2">|</span> <i class="bi bi-clock me-1"></i><?= esc(date('H:i:s', strtotime($history['imported_at']))) ?> <span class="mx-2">|</span> <i class="bi bi-person me-1"></i><?= esc($history['username'] ?? '-') ?></p></div>
+            <div class="mk-template-copy"><h5><?= $infoLabel ?></h5><p class="mb-0"><i class="bi bi-file-earmark me-2"></i><?= esc($history['file_name']) ?> <span class="mx-2">|</span> <i class="bi bi-shop me-1"></i><?= esc($history['outlet_code'] . ' - ' . $history['outlet_name']) ?> <span class="mx-2">|</span> <i class="bi bi-calendar3 me-1"></i><?= esc(date('d M Y', strtotime($history['imported_at']))) ?> <span class="mx-2">|</span> <i class="bi bi-clock me-1"></i><?= esc(date('H:i:s', strtotime($history['imported_at']))) ?> <span class="mx-2">|</span> <i class="bi bi-person me-1"></i><?= esc($history['username'] ?? '-') ?></p></div>
         </section>
     <?php endif; ?>
     <div class="container mt-4">
@@ -197,7 +198,7 @@
 
         <div class="card shadow-sm detail-table-card">
             <div class="card-body p-0">
-                <div class="px-3 pt-3 d-flex justify-content-between align-items-start gap-3"><div><h4 class="mb-1"><i class="bi bi-database text-warning me-2"></i>Data Produk</h4><p class="text-muted mb-3">Daftar produk yang diimport dari file Excel.</p></div><button type="button" class="btn btn-primary btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalTambah"><i class="bi bi-plus-lg me-1"></i>Tambah Produk</button></div>
+                <div class="px-3 pt-3 d-flex justify-content-between align-items-start gap-3"><div><h4 class="mb-1"><i class="bi bi-database text-warning me-2"></i>Data Produk</h4><p class="text-muted mb-3"><?= $isManualDetail ? 'Daftar produk yang diinput manual dari file ' . esc($history['file_name']) . '.' : 'Daftar produk yang diimport dari file Excel.' ?></p></div><?php if ($isManualDetail): ?><a class="btn btn-primary btn-sm text-nowrap" href="<?= base_url('import-history/manual/' . (int) $history['id']) ?>"><i class="bi bi-pencil me-1"></i>Edit Data Input</a><?php else: ?><button type="button" class="btn btn-primary btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalTambah"><i class="bi bi-plus-lg me-1"></i>Tambah Produk</button><?php endif; ?></div>
                 <div class="table-responsive">
                 <table id="tabelProdukDetail" class="table table-striped table-hover m-0 align-middle">
                     <colgroup>
@@ -223,12 +224,12 @@
                             <th>Alokasi (Pcs)</th>
                             <th>Status Cetak</th>
                             <th>Ukuran Template *</th>
-                            <th>Aksi</th>
+                        <?php if (! $isManualDetail): ?><th>Aksi</th><?php endif; ?>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($tags)): ?>
-                            <tr><td colspan="13" class="text-center py-3">Belum ada data produk.</td></tr>
+                            <tr id="emptySourceState"><td colspan="<?= $isManualDetail ? 12 : 13 ?>" class="text-center py-3">Belum ada data produk</td></tr>
                         <?php else: ?>
                             <?php foreach ($tags as $tagIndex => $tag): ?>
                                 <?php
@@ -256,7 +257,7 @@
                                     <td class="product-name-cell"><?= esc($tag['name']) ?></td>
                                     <td><?= esc($tag['variant']) ?: '-' ?></td>
                                     <td>Rp <?= number_format($tag['normal_price'], 0, ',', '.') ?></td>
-                                    <td><?= !empty($tag['discount_percent']) ? number_format($tag['discount_percent'], 0, ',', '.') . '%' : (!empty($tag['promo_price']) ? 'Rp ' . number_format($tag['promo_price'], 0, ',', '.') : '-') ?></td>
+                                    <td><?= !empty($tag['discount_percent']) ? number_format($tag['discount_percent'], 0, ',', '.') . '%' : (!empty($tag['promo_price']) ? 'Rp ' . number_format($tag['promo_price'], 0, ',', '.') : (!empty($tag['promo_text']) ? esc($tag['promo_text']) : '-')) ?></td>
                                     <td>
                                         <?= !empty($tag['allocation_pcs']) ? number_format($tag['allocation_pcs'], 0, ',', '.') : '-' ?>
                                     </td>
@@ -293,6 +294,7 @@
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
+                            <tr id="emptyFilterState" style="display:none"><td colspan="<?= $isManualDetail ? 12 : 13 ?>" class="text-center py-3">Produk tidak ditemukan</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -402,7 +404,7 @@
         const tabelBody      = document.getElementById('tabelProdukTerpilih');
         const searchProduk   = document.getElementById('searchProduk');
         const filterUkuran   = document.getElementById('filterUkuran');
-        const productRows    = document.querySelectorAll('tbody tr');
+        const productRows    = document.querySelectorAll('#tabelProdukDetail tbody tr');
         const editModal      = new bootstrap.Modal(document.getElementById('modalEdit'));
         const formEdit       = document.getElementById('formEdit');
 
@@ -424,6 +426,11 @@
         let toastTimer;
         document.querySelectorAll('.template-size-form').forEach(form => {
             const select = form.querySelector('.template-size');
+            <?php if ($isManualDetail): ?>
+            select.disabled = false;
+            const skuCell = form.closest('tr')?.querySelector('td:nth-child(5)');
+            if (skuCell) { const sku = document.createElement('input'); sku.type = 'hidden'; sku.name = 'sku_plu'; sku.value = skuCell.textContent.trim(); form.appendChild(sku); }
+            <?php endif; ?>
             let previousValue = select.value;
             select.addEventListener('change', async () => {
                 const formData = new FormData(form);
@@ -535,6 +542,7 @@
         function filterRows() {
             const keyword = searchProduk.value.trim().toLowerCase();
             const ukuran = filterUkuran.value;
+            let visibleProducts = 0;
 
             productRows.forEach(row => {
                 const checkbox = row.querySelector('.product-check');
@@ -546,15 +554,19 @@
                     || checkbox.dataset.variant.toLowerCase().includes(keyword);
                 const matchesSize = ukuran === 'all' || (sizeSelect && sizeSelect.value === ukuran);
                 row.style.display = matches && matchesSize ? '' : 'none';
+                if (matches && matchesSize) visibleProducts++;
                 if (ukuran !== 'all') {
                     checkbox.checked = matches && matchesSize;
                 }
             });
+            const emptyFilterState = document.getElementById('emptyFilterState');
+            if (emptyFilterState) emptyFilterState.style.display = visibleProducts === 0 ? '' : 'none';
             updateTombolCetak();
         }
 
         searchProduk.addEventListener('input', filterRows);
         filterUkuran.addEventListener('change', filterRows);
+        filterRows();
 
         // Bangun isi modal setiap kali tombol Cetak ditekan
         btnCetak.addEventListener('click', function () {
