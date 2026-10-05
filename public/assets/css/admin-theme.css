@@ -7,7 +7,15 @@
     --mk-muted: #746b64;
 }
 
+html,
+html body {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
 body.mk-body {
+    margin: 0;
+    padding: 0;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -16,8 +24,10 @@ body.mk-body {
         linear-gradient(135deg, #fffaf5 0%, #f6f7fb 48%, #fff 100%);
     color: var(--mk-ink);
 }
+.manual-detail-page #tabelProdukDetail tbody tr:not(#emptySourceState):not(#emptyFilterState) > td:last-child { display: none; }
 
 .mk-topbar {
+    margin-top: 0 !important;
     background: rgba(255, 255, 255, .96);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(234, 223, 214, .9);
@@ -220,6 +230,100 @@ body.mk-body > .mk-dashboard-footer {
     margin: auto 0 0;
     border-left: 0;
     border-right: 0;
+}
+
+/* Halaman input manual memiliki tabel panjang, sehingga footer harus mengikuti
+   akhir konten dan tidak diposisikan sebagai footer viewport. */
+body.mk-manual-entry-page > .container {
+    display: block;
+    min-height: 0;
+}
+
+.manual-save-floating {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1040;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .2);
+}
+
+.manual-actions-floating {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    width: min(calc(100% - 48px), 1180px);
+    min-height: 72px;
+    padding: 14px 16px !important;
+    margin: 0 !important;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: rgba(255,255,255,.97);
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    z-index: 1040;
+}
+.manual-actions-spacer { flex: 1; }
+.manual-row-total { white-space: nowrap; color: #4b5563; font-size: .9rem; }
+.manual-row-total strong { color: #111827; margin-left: 4px; }
+
+@media (max-width: 576px) {
+    .manual-actions-floating { left: 14px; right: 14px; bottom: 14px; transform: none; width: auto; gap: 8px !important; padding: 10px !important; }
+    .manual-actions-floating .btn { padding-left: 9px; padding-right: 9px; font-size: .8rem; }
+    .manual-row-total { font-size: .75rem; }
+}
+
+@media (max-width: 576px) {
+    .manual-save-floating {
+        right: 14px;
+        bottom: 14px;
+    }
+}
+
+body.mk-manual-entry-page > .mk-dashboard-footer {
+    position: static !important;
+    display: flex;
+    margin: 24px 0 0;
+    flex-shrink: 0;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    inset: auto !important;
+    transform: none !important;
+}
+
+body.mk-manual-entry-page {
+    display: block;
+    min-height: 100vh;
+    margin: 0;
+}
+
+body.mk-manual-entry-page > .mk-topbar,
+body.mk-manual-entry-page > .container {
+    width: 100%;
+}
+
+body.mk-manual-entry-page > .mk-topbar.manual-page-topbar {
+    position: relative;
+    top: 0 !important;
+    margin: -24px 0 0 !important;
+}
+
+body.mk-manual-entry-page > .container {
+    min-height: 0;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+body.mk-manual-entry-page > .manual-entry-container {
+    width: calc(100% - 32px);
+    max-width: 1400px;
+}
+
+@media (max-width: 1399.98px) {
+    body.mk-manual-entry-page > .manual-entry-container {
+        width: 100%;
+    }
 }
 
 /* Dashboard hanya berisi menu utama, sehingga seluruh halaman cukup satu layar. */
