@@ -15,6 +15,7 @@ class PrintPdf extends BaseController
         $qtyMap       = (array) $this->request->getPost('qty');
         $sizeMap      = (array) $this->request->getPost('size');
         $allvarMap    = (array) $this->request->getPost('allvar');
+        $discountMode = (array) $this->request->getPost('discount_mode');
         $importId     = (int) $this->request->getPost('import_id');
 
         if (empty($selectedIds)) {
@@ -79,7 +80,7 @@ class PrintPdf extends BaseController
             // promo otomatis agar tetap tercetak pada POP.
             $product['promo_price'] = $this->calculatePromoPrice($product);
 
-            $templateKey = $this->templateKeyForProduct($product, $size, $allvar);
+            $templateKey = $this->templateKeyForProduct($product, $size, $allvar, (string) ($discountMode[$tagId] ?? 'auto'));
             $template = PriceTagTemplates::find($templateKey);
             if ($template === null) continue;
 
@@ -147,9 +148,10 @@ class PrintPdf extends BaseController
         }
     }
 
-    private function templateKeyForProduct(array $product, string $size, bool $allvar): string
+    private function templateKeyForProduct(array $product, string $size, bool $allvar, string $discountMode = 'auto'): string
     {
-        $program = ((float) ($product['discount_percent'] ?? 0) > 0)
+        $discount = (float) ($product['discount_percent'] ?? 0);
+        $program = ($discount > 0 && ($discount >= 10 || $discountMode === 'show'))
             ? 'disc-reg'
             : 'turun-harga';
         $allocation = (int) ($product['allocation_pcs'] ?? 0) > 0;

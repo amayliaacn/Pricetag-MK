@@ -248,6 +248,7 @@
                                             data-variant="<?= esc($tag['variant'] ?? '') ?>"
                                             data-size="<?= esc($templateSize) ?>"
                                             data-allocation="<?= (int) ($tag['allocation_pcs'] ?? 0) ?>"
+                                            data-discount="<?= (float) ($tag['discount_percent'] ?? 0) ?>"
                                         >
                                     </td>
                                     <td><?= (($page - 1) * $perPage) + $tagIndex + 1 ?></td>
@@ -580,7 +581,13 @@
                 const variant = cb.dataset.variant;
                 const size = cb.dataset.size;
                 const allocation = Number(cb.dataset.allocation || 0);
+                const discount = Number(cb.dataset.discount || 0);
                 const canAllvar = size === 'tgg' && allocation === 0;
+                const isA4 = size === 'mpdf';
+                const hasDiscountTemplate = ['kcl', 'tgg', 'a5', 'segitiga'].includes(size);
+                const showDiscountInfo = discount > 0 && discount < 10;
+                const canChooseDiscount = showDiscountInfo && hasDiscountTemplate && !isA4;
+                const showA4DiscountInfo = showDiscountInfo && isA4;
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -592,6 +599,7 @@
                     <td>
                         <input type="hidden" name="size[${id}]" value="${size}">
                         ${size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${id}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : ((size === 'mpdf' || size === 'a5' || size === 'fresh' || size === 'curah' || size === 'segitiga') ? `${size === 'curah' ? 'Vegetable' : (size === 'fresh' ? 'Butcher' : (size === 'a5' ? 'A5' : (size === 'segitiga' ? 'Segitiga' : 'A4')))}` : '<span class="text-muted">Kecil</span>')}
+                        ${canChooseDiscount ? `<div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="auto" checked> Turun harga</label><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="show"> Tampil diskon</label></div>` : (showA4DiscountInfo ? `<input type="hidden" name="discount_mode[${id}]" value="auto"><div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" checked disabled> Turun harga</label><label class="d-block text-muted" title="Pilihan ini tidak tersedia untuk template A4"><input type="radio" disabled> Tampil diskon <span class="fst-italic">(tidak tersedia untuk A4)</span></label></div>` : (showDiscountInfo ? `<input type="hidden" name="discount_mode[${id}]" value="auto"><div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" checked disabled> Turun harga</label><label class="d-block text-muted"><input type="radio" disabled> Tampil diskon <span class="fst-italic">(tidak tersedia untuk ukuran ini)</span></label></div>` : `<input type="hidden" name="discount_mode[${id}]" value="auto">`))}
                     </td>
                     <td>
                         <input type="number" name="qty[${id}]" value="1" min="1" class="form-control form-control-sm" required>
