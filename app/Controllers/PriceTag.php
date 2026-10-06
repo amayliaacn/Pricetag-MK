@@ -13,6 +13,9 @@ class PriceTag extends BaseController
 {
     public function index()
     {
+        $requestedPerPage = (int) ($this->request->getGet('per_page') ?? 10);
+        $perPage = in_array($requestedPerPage, [10, 30, 50, 100], true) ? $requestedPerPage : 30;
+        $page = max(1, (int) ($this->request->getGet('page') ?? 1));
         $model  = new PriceTagModel();
         $userId = (int) session()->get('id');
         $importId = $this->request->getGet('import');
@@ -81,11 +84,20 @@ class PriceTag extends BaseController
             $tags = $model->forUserAndDate($userId, date('Y-m-d'));
         }
 
+        $totalTags = count($tags);
+        $totalPages = max(1, (int) ceil($totalTags / $perPage));
+        $page = min($page, $totalPages);
+        $tags = array_slice($tags, ($page - 1) * $perPage, $perPage);
+
         $data = [
             'title'     => $history ? 'Detail Import - ' . $history['file_name'] : 'Data Price Tag',
             'tags'      => $tags,
             'history'   => $history,
             'templates' => PriceTagTemplates::all(),
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'totalTags' => $totalTags,
+            'perPage' => $perPage,
         ];
 
         return view('pricetag/index', $data);

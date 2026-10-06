@@ -11,6 +11,9 @@ class ImportHistory extends BaseController
 {
     public function index()
     {
+        $requestedPerPage = (int) ($this->request->getGet('per_page') ?? 10);
+        $perPage = in_array($requestedPerPage, [10, 30, 50, 100], true) ? $requestedPerPage : 30;
+        $page = max(1, (int) ($this->request->getGet('page') ?? 1));
         $role = (string) session()->get('role');
         $outletId = session()->get('outlet_id');
         $mode = $this->request->getGet('mode') === 'manual' ? 'manual' : 'excel';
@@ -34,13 +37,18 @@ class ImportHistory extends BaseController
                            ->orderBy('year', 'DESC')
                            ->get()->getResultArray();
 
+        $allHistory = (new ImportHistoryModel())->filteredHistory($role, $outletId === null ? null : (int) $outletId, $filters);
+        $totalHistory = count($allHistory);
+        $totalPages = max(1, (int) ceil($totalHistory / $perPage));
+        $page = min($page, $totalPages);
+
         return view('import_history/index', [
             'title'   => 'History Import',
-            'history' => (new ImportHistoryModel())->filteredHistory(
-                $role,
-                $outletId === null ? null : (int) $outletId,
-                $filters
-            ),
+            'history' => array_slice($allHistory, ($page - 1) * $perPage, $perPage),
+            'historyTotal' => $totalHistory,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'perPage' => $perPage,
             'outlets' => $role === 'super_admin' ? (new OutletModel())->orderBy('code')->findAll() : [],
             'activeOutlets' => $role === 'super_admin' ? (new OutletModel())->activeOutlets() : [],
             'years'   => array_column($years, 'year'),

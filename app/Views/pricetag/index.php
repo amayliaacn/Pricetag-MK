@@ -196,7 +196,7 @@
             </div>
         <?php endif; ?>
 
-        <div class="card shadow-sm detail-table-card">
+        <div id="product-table-header" class="card shadow-sm detail-table-card">
             <div class="card-body p-0">
                 <div class="px-3 pt-3 d-flex justify-content-between align-items-start gap-3"><div><h4 class="mb-1"><i class="bi bi-database text-warning me-2"></i>Data Produk</h4><p class="text-muted mb-3"><?= $isManualDetail ? 'Daftar produk yang diinput manual dari file ' . esc($history['file_name']) . '.' : 'Daftar produk yang diimport dari file Excel.' ?></p></div><?php if ($isManualDetail): ?><a class="btn btn-primary btn-sm text-nowrap" href="<?= base_url('import-history/manual/' . (int) $history['id']) ?>"><i class="bi bi-pencil me-1"></i>Edit Data Input</a><?php else: ?><button type="button" class="btn btn-primary btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalTambah"><i class="bi bi-plus-lg me-1"></i>Tambah Produk</button><?php endif; ?></div>
                 <div class="table-responsive">
@@ -250,7 +250,7 @@
                                             data-allocation="<?= (int) ($tag['allocation_pcs'] ?? 0) ?>"
                                         >
                                     </td>
-                                    <td><?= $tagIndex + 1 ?></td>
+                                    <td><?= (($page - 1) * $perPage) + $tagIndex + 1 ?></td>
                                     <td><?= esc($formatPeriod($tag['start_period'] ?? null)) ?></td>
                                     <td><?= esc($formatPeriod($tag['end_period'] ?? null)) ?></td>
                                     <td><?= str_starts_with((string) ($tag['sku_plu'] ?? ''), 'AUTO-') ? '<span class="text-muted">Tanpa PLU</span>' : esc($tag['sku_plu']) ?></td>
@@ -299,6 +299,7 @@
                     </tbody>
                 </table>
                 </div>
+                <?= view('partials/pagination', ['total' => $totalTags, 'page' => $page, 'perPage' => $perPage, 'totalPages' => $totalPages, 'baseUrl' => 'pricetag', 'params' => ['import' => (int) $history['id']], 'anchor' => 'product-table-header']) ?>
             </div>
         </div>
     </div>
