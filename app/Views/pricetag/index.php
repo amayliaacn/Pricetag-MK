@@ -609,20 +609,16 @@
             });
             const sizes = getChecked().map(cb => cb.dataset.size);
             const hasMpdf = sizes.some(size => ['mpdf', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
-            const hasLibre = sizes.some(size => ['kcl', 'tgg'].includes(size));
-            document.getElementById('formCetak').action = hasMpdf && hasLibre
-                ? '<?= base_url('print-mixed') ?>'
-                : (hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>');
+            document.getElementById('formCetak').action = hasMpdf
+                ? '<?= base_url('print-mpdf') ?>'
+                : '<?= base_url('print-pdf') ?>';
         });
 
         // Pastikan pilihan A4 mPDF tetap memakai controller baru saat form submit.
         document.getElementById('formCetak').addEventListener('submit', function () {
             const sizes = [...this.querySelectorAll('input[name^="size["]')].map(input => input.value);
             const hasMpdf = sizes.some(size => ['mpdf', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
-            const hasLibre = sizes.some(size => ['kcl', 'tgg'].includes(size));
-            this.action = hasMpdf && hasLibre
-                ? '<?= base_url('print-mixed') ?>'
-                : (hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>');
+            this.action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
         });
     </script>
     <?= view('partials/app_footer') ?>

@@ -21,6 +21,10 @@ class PrintMpdf extends BaseController
         $model = new MpdfPriceTagModel();
         $groups = [];
         $sizes  = (array) $this->request->getPost('size');
+        $selectedSizes = array_values(array_unique(array_filter(array_map('strval', array_intersect_key($sizes, array_flip($tagIds))))));
+        if (count($selectedSizes) > 1) {
+            return redirect()->back()->with('error', 'Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');
+        }
         foreach ($tagIds as $tagId) {
             $query = $model->where('id', (int) $tagId);
             if ($importId > 0) {
@@ -70,13 +74,7 @@ class PrintMpdf extends BaseController
         }
 
         try {
-            $pdfs = [];
-            foreach ($groups as $template => $items) {
-                $pdfs[] = $this->writeTemporaryPdf(
-                    (new PopA4Pdf($template))->render($items, $template)
-                );
-            }
-            $pdf = $this->combinePdfs($pdfs);
+            $pdf = $this->writeTemporaryPdf((new PopA4Pdf())->renderMixed($groups));
 
             return $this->response
                 ->setHeader('Content-Type', 'application/pdf')
@@ -126,7 +124,8 @@ class PrintMpdf extends BaseController
         if (count($paths) === 1) return $paths[0];
         $output = WRITEPATH . 'pricetag_tmp/combined_' . bin2hex(random_bytes(8)) . '.pdf';
         $command = sprintf(
-            'pdftk %s cat output %s 2>&1',
+            '"%s" %s cat output %s 2>&1',
+            'C:\\Program Files (x86)\\PDFtk Server\\bin\\pdftk.exe',
             implode(' ', array_map('escapeshellarg', $paths)),
             escapeshellarg($output)
         );
