@@ -12,6 +12,7 @@ class PrintMpdf extends BaseController
         $tagIds   = (array) $this->request->getPost('tag_ids');
         $qtyMap   = (array) $this->request->getPost('qty');
         $importId = (int) $this->request->getPost('import_id');
+        $discountMode = (array) $this->request->getPost('discount_mode');
 
         if ($tagIds === []) {
             return redirect()->back()->with('error', 'Pilih minimal 1 produk untuk dicetak.');
@@ -43,10 +44,20 @@ class PrintMpdf extends BaseController
             if ($size === 'curah' && (float) ($tag['promo_price'] ?? 0) <= 0 && (float) ($tag['discount_percent'] ?? 0) <= 0) {
                 return redirect()->back()->with('error', 'Template Vegetable memerlukan Diskon atau Harga Promo.');
             }
+            // Saat memakai mode Turun Harga, pastikan template menerima harga
+            // hasil perhitungan meskipun promo_price belum tersimpan di database.
+            // A4 tidak memiliki template diskon; selalu gunakan Turun Harga.
+            $mode = $size === 'mpdf' ? 'auto' : (string) ($discountMode[$tagId] ?? 'auto');
+            $showDiscount = $this->showDiscount($tag, $mode);
+            // Harga turun hanya memakai hasil hitung untuk diskon < 10%.
+            // Mode tampil diskon dan diskon >= 10% tetap memakai data lama.
+            if (in_array($size, ['mpdf', 'a5', 'segitiga'], true) && ! $showDiscount && (float) ($tag['discount_percent'] ?? 0) > 0) {
+                $tag['promo_price'] = $this->calculatePromoPrice($tag);
+            }
             $template = match ($size) {
-                'segitiga' => ((float) ($tag['discount_percent'] ?? 0) > 0 ? 'diskon' : ((float) ($tag['promo_price'] ?? 0) > 0 ? 'segitiga' : 'special')),
+                'segitiga' => ($showDiscount ? 'diskon' : ((float) ($tag['promo_price'] ?? 0) > 0 ? 'segitiga' : 'special')),
                 'a5' => ((float) ($tag['discount_percent'] ?? 0) > 0
-                    ? ((float) ($tag['normal_price'] ?? 0) > 0 ? 'disc2' : 'disc')
+                    ? ($showDiscount ? ((float) ($tag['normal_price'] ?? 0) > 0 ? 'disc2' : 'disc') : 'a5')
                     : 'a5'),
                 'fresh' => 'fresh',
                 'curah' => 'curah',
@@ -75,6 +86,24 @@ class PrintMpdf extends BaseController
             log_message('error', 'Cetak mPDF gagal: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
+    }
+
+    private function showDiscount(array $tag, string $mode): bool
+    {
+        $discount = (float) ($tag['discount_percent'] ?? 0);
+        return $discount > 0 && ($discount >= 10 || $mode === 'show');
+    }
+
+    private function calculatePromoPrice(array $tag): ?int
+    {
+        $promo = (float) ($tag['promo_price'] ?? 0);
+        $normal = (float) ($tag['normal_price'] ?? 0);
+        $discount = (float) ($tag['discount_percent'] ?? 0);
+
+        if ($promo > 0) return (int) round($promo);
+        if ($normal <= 0 || $discount <= 0) return null;
+
+        return (int) round($normal * (1 - ($discount / 100)));
     }
 
     private function writeTemporaryPdf(string $contents): string

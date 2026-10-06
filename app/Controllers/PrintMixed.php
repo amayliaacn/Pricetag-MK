@@ -16,6 +16,7 @@ class PrintMixed extends BaseController
         $qty = (array) $this->request->getPost('qty');
         $sizes = (array) $this->request->getPost('size');
         $allvar = (array) $this->request->getPost('allvar');
+        $discountMode = (array) $this->request->getPost('discount_mode');
         $importId = (int) $this->request->getPost('import_id');
         if ($ids === []) return redirect()->back()->with('error', 'Pilih minimal 1 produk untuk dicetak.');
         $selectedSizes = array_values(array_unique(array_filter(array_map('strval', array_intersect_key($sizes, array_flip($ids))))));
@@ -46,11 +47,19 @@ class PrintMixed extends BaseController
                 if ($size === 'curah' && (float) ($row['promo_price'] ?? 0) <= 0 && (float) ($row['discount_percent'] ?? 0) <= 0) {
                     return redirect()->back()->with('error', 'Template Vegetable memerlukan Diskon atau Harga Promo.');
                 }
+                // Samakan dengan jalur PDF kecil/tanggung: harga promo hasil
+                // diskon dihitung sementara untuk kebutuhan template cetak.
+                // A4 tidak memiliki template diskon; selalu gunakan Turun Harga.
+                $mode = $size === 'mpdf' ? 'auto' : (string) ($discountMode[$id] ?? 'auto');
+                $showDiscount = $this->showDiscount($row, $mode);
+                if (in_array($size, ['mpdf', 'a5', 'segitiga'], true) && ! $showDiscount && (float) ($row['discount_percent'] ?? 0) > 0) {
+                    $row['promo_price'] = $this->promoPrice($row);
+                }
                 if (in_array($size, ['mpdf','a5','fresh','curah','segitiga'], true)) {
                     $template = match ($size) {
-                        'segitiga' => ((float) ($row['discount_percent'] ?? 0) > 0 ? 'diskon' : ((float) ($row['promo_price'] ?? 0) > 0 ? 'segitiga' : 'special')),
+                        'segitiga' => ($showDiscount ? 'diskon' : ((float) ($row['promo_price'] ?? 0) > 0 ? 'segitiga' : 'special')),
                         'a5' => ((float) ($row['discount_percent'] ?? 0) > 0
-                            ? ((float) ($row['normal_price'] ?? 0) > 0 ? 'disc2' : 'disc')
+                            ? ($showDiscount ? ((float) ($row['normal_price'] ?? 0) > 0 ? 'disc2' : 'disc') : 'a5')
                             : 'a5'),
                         'fresh' => 'fresh',
                         'curah' => 'curah',
@@ -61,7 +70,7 @@ class PrintMixed extends BaseController
                 }
                 if (!in_array($size, ['kcl','tgg'], true)) continue;
                 $row['promo_price'] = $this->promoPrice($row);
-                $program = ((float) ($row['discount_percent'] ?? 0) > 0) ? 'disc-reg' : 'turun-harga';
+                $program = $this->showDiscount($row, (string) ($discountMode[$id] ?? 'auto')) ? 'disc-reg' : 'turun-harga';
                 $allocation = (int) ($row['allocation_pcs'] ?? 0) > 0;
                 $key = $size === 'tgg'
                     ? $program . '-tgg' . (($allvar[$id] ?? '') === '1' && !$allocation ? '-allvar' : ($allocation ? '-allocation' : ''))
@@ -114,5 +123,10 @@ class PrintMixed extends BaseController
         return $path;
     }
     private function promoPrice(array $r): ?int { $p=(float)($r['promo_price']??0); $n=(float)($r['normal_price']??0); $d=(float)($r['discount_percent']??0); return $p>0?(int)round($p):($n>0&&$d>0?(int)round($n*(1-$d/100)):null); }
+<<<<<<< HEAD
+    private function showDiscount(array $row, string $mode): bool { $d=(float)($row['discount_percent']??0); return $d>0 && ($d>=10 || $mode==='show'); }
+    private function combine(array $paths): string { if(count($paths)===1)return $paths[0]; $out=WRITEPATH.'pricetag_tmp/combined_'.bin2hex(random_bytes(8)).'.pdf'; exec('pdftk '.implode(' ',array_map('escapeshellarg',$paths)).' cat output '.escapeshellarg($out).' 2>&1',$o,$c); if($c!==0||!is_file($out))throw new \RuntimeException('Gagal menggabungkan hasil PDF.'); return $out; }
+=======
     private function combine(array $paths): string { if(count($paths)===1)return $paths[0]; $out=WRITEPATH.'pricetag_tmp/combined_'.bin2hex(random_bytes(8)).'.pdf'; $pdftk='C:\\Program Files (x86)\\PDFtk Server\\bin\\pdftk.exe'; exec('"'.$pdftk.'" '.implode(' ',array_map('escapeshellarg',$paths)).' cat output '.escapeshellarg($out).' 2>&1',$o,$c); if($c!==0||!is_file($out))throw new \RuntimeException('Gagal menggabungkan hasil PDF: '.implode("\n",$o)); return $out; }
+>>>>>>> origin/main
 }
