@@ -60,8 +60,13 @@ function turunHrgBesarPtScale($base, $scale) {
 
 function turunHrgBesarSplitPromoPrice($promoPrice) {
     $promoPrice = (int) $promoPrice;
-    $ribuan     = intdiv($promoPrice, 1000);
-    $ratusan    = str_pad((string) ($promoPrice % 1000), 3, '0', STR_PAD_LEFT);
+    if ($promoPrice >= 1000) {
+        $ribuan  = intdiv($promoPrice, 1000);
+        $ratusan = str_pad((string) ($promoPrice % 1000), 3, '0', STR_PAD_LEFT);
+    } else {
+        $ribuan  = intdiv($promoPrice, 100);
+        $ratusan = str_pad((string) ($promoPrice % 100), 2, '0', STR_PAD_LEFT);
+    }
     return [$ribuan, $ratusan];
 }
 
