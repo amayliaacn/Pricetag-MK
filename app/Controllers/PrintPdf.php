@@ -40,17 +40,29 @@ class PrintPdf extends BaseController
             }
         }
 
+        // Ambil seluruh produk terpilih dalam satu query, bukan satu query
+        // untuk setiap produk. Setelah itu proses tetap mengikuti urutan ID
+        // yang dikirim oleh form agar hasil cetak tidak berubah.
+        $selectedIds = array_values(array_unique(array_filter(
+            array_map('intval', $selectedIds),
+            static fn (int $id): bool => $id > 0
+        )));
+        $productQuery = $model->whereIn('id', $selectedIds);
+        if ($importId > 0) {
+            $productQuery->where('import_id', $importId);
+        } else {
+            $productQuery->where('uploaded_by', $userId)
+                         ->where('import_date', $importDate);
+        }
+        $productsById = [];
+        foreach ($productQuery->findAll() as $product) {
+            $productsById[(int) $product['id']] = $product;
+        }
+
         // Kelompokkan produk berdasarkan template yang sesuai dengan datanya.
         $groups = [];
         foreach ($selectedIds as $tagId) {
-            $productQuery = $model->where('id', (int) $tagId);
-            if ($importId > 0) {
-                $productQuery->where('import_id', $importId);
-            } else {
-                $productQuery->where('uploaded_by', $userId)
-                             ->where('import_date', $importDate);
-            }
-            $product = $productQuery->first();
+            $product = $productsById[$tagId] ?? null;
             if ($product === null) continue;
 
             $sku = (string) $product['sku_plu'];

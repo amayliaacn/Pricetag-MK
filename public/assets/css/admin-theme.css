@@ -7,7 +7,15 @@
     --mk-muted: #746b64;
 }
 
+html,
+html body {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
 body.mk-body {
+    margin: 0;
+    padding: 0;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -16,8 +24,10 @@ body.mk-body {
         linear-gradient(135deg, #fffaf5 0%, #f6f7fb 48%, #fff 100%);
     color: var(--mk-ink);
 }
+.manual-detail-page #tabelProdukDetail tbody tr:not(#emptySourceState):not(#emptyFilterState) > td:last-child { display: none; }
 
 .mk-topbar {
+    margin-top: 0 !important;
     background: rgba(255, 255, 255, .96);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(234, 223, 214, .9);
@@ -220,6 +230,108 @@ body.mk-body > .mk-dashboard-footer {
     margin: auto 0 0;
     border-left: 0;
     border-right: 0;
+}
+
+/* Halaman input manual memiliki tabel panjang, sehingga footer harus mengikuti
+   akhir konten dan tidak diposisikan sebagai footer viewport. */
+body.mk-manual-entry-page > .container {
+    display: block;
+    min-height: 0;
+}
+
+.manual-save-floating {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1040;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .2);
+}
+
+.manual-actions-floating {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    width: min(calc(100% - 48px), 1180px);
+    min-height: 72px;
+    padding: 14px 16px !important;
+    margin: 0 !important;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: rgba(255,255,255,.97);
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    z-index: 1040;
+}
+.manual-actions-spacer { flex: 1; }
+.manual-row-total { white-space: nowrap; color: #4b5563; font-size: .9rem; }
+.manual-row-total strong { color: #111827; margin-left: 4px; }
+
+@media (max-width: 576px) {
+    .manual-actions-floating { left: 14px; right: 14px; bottom: 14px; transform: none; width: auto; gap: 8px !important; padding: 10px !important; }
+    .manual-actions-floating .btn { padding-left: 9px; padding-right: 9px; font-size: .8rem; }
+    .manual-row-total { font-size: .75rem; }
+}
+
+.mk-pagination { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-top:16px; padding:12px 14px; border:1px solid #e8edf2; border-radius:14px; }
+.mk-pagination-size, .mk-pagination-total { color:#4b5563; font-size:.86rem; white-space:nowrap; }
+.mk-pagination-size select { margin:0 7px; padding:7px 28px 7px 10px; border:1px solid #dbe2e8; border-radius:8px; background:#fff; }
+.mk-pagination .page-link { min-width:36px; margin:0 3px; border:1px solid #e1e7ed; border-radius:8px !important; color:#374151; text-align:center; }
+.mk-pagination .page-item.active .page-link { background:#ff7800; border-color:#ff7800; color:#fff; }
+.mk-pagination .page-item.disabled .page-link { color:#9ca3af; background:#f8fafc; }
+@media (max-width: 768px) { .mk-pagination { flex-wrap:wrap; justify-content:center; } .mk-pagination-total { width:100%; text-align:center; } }
+
+@media (max-width: 576px) {
+    .manual-save-floating {
+        right: 14px;
+        bottom: 14px;
+    }
+}
+
+body.mk-manual-entry-page > .mk-dashboard-footer {
+    position: static !important;
+    display: flex;
+    margin: 24px 0 0;
+    flex-shrink: 0;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    inset: auto !important;
+    transform: none !important;
+}
+
+body.mk-manual-entry-page {
+    display: block;
+    min-height: 100vh;
+    margin: 0;
+}
+
+body.mk-manual-entry-page > .mk-topbar,
+body.mk-manual-entry-page > .container {
+    width: 100%;
+}
+
+body.mk-manual-entry-page > .mk-topbar.manual-page-topbar {
+    position: relative;
+    top: 0 !important;
+    margin: -24px 0 0 !important;
+}
+
+body.mk-manual-entry-page > .container {
+    min-height: 0;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+body.mk-manual-entry-page > .manual-entry-container {
+    width: calc(100% - 32px);
+    max-width: 1400px;
+}
+
+@media (max-width: 1399.98px) {
+    body.mk-manual-entry-page > .manual-entry-container {
+        width: 100%;
+    }
 }
 
 /* Dashboard hanya berisi menu utama, sehingga seluruh halaman cukup satu layar. */
@@ -631,4 +743,116 @@ body.mk-dashboard-page > .container {
     .mk-topbar .d-flex {
         flex-wrap: wrap;
     }
+}
+.mk-mode-tabs {
+    display: flex;
+    width: 100%;
+    max-width: 660px;
+    border-bottom: 1px solid #dbe5f0;
+}
+
+.mk-mode-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 72px;
+    flex: 0 0 50%;
+    padding: 12px 20px;
+    color: #172b43;
+    background: #f8fbff;
+    border: 1px solid #dbe5f0;
+    border-bottom: 0;
+    text-decoration: none;
+    font-weight: 700;
+    transition: .15s ease;
+}
+
+.mk-mode-tab + .mk-mode-tab { border-left: 0; }
+
+.mk-tab-icon {
+    position: relative;
+    display: inline-flex;
+    width: 38px;
+    height: 38px;
+    align-items: center;
+    justify-content: center;
+}
+
+.mk-tab-icon > i:first-child {
+    color: #394554;
+    font-size: 32px;
+    line-height: 1;
+}
+
+.mk-tab-icon .mk-tab-plus {
+    position: absolute;
+    right: -5px;
+    bottom: -4px;
+    color: #394554;
+    background: #f8fbff;
+    border-radius: 50%;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.mk-excel-tab-icon > i:first-child { color: #394554; }
+.mk-mode-tab.active .mk-excel-tab-icon > i:first-child,
+.mk-mode-tab:hover .mk-excel-tab-icon > i:first-child { color: #159447; }
+
+.mk-mode-tab.active .mk-excel-tab-icon .mk-tab-plus,
+.mk-mode-tab:hover .mk-excel-tab-icon .mk-tab-plus { color: #159447; }
+
+.mk-mode-tab.active {
+    color: #172b43;
+    background: #fffaf5;
+    border-color: #ff6b12;
+    border-bottom: 3px solid #ff6b12;
+}
+
+.mk-mode-tab.active .mk-tab-icon > i:first-child,
+.mk-mode-tab.active .mk-tab-plus { color: #ff6b12; }
+
+.mk-mode-tab:hover { background: #fffaf5; color: #172b43; }
+
+.mk-manual-banner-icon .mk-tab-icon > i:first-child,
+.mk-manual-banner-icon .mk-tab-plus { color: #ff6b12; }
+.mk-template-icon.mk-manual-banner-icon > .mk-tab-icon {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    display: inline-flex;
+    width: 58px;
+    height: 70px;
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    color: #ff6b12;
+    font-size: inherit;
+}
+.mk-template-icon.mk-manual-banner-icon > .mk-tab-icon > i:first-child {
+    color: #ff6b12;
+    font-size: 58px;
+}
+.mk-template-icon.mk-manual-banner-icon > .mk-tab-icon .mk-tab-plus {
+    right: -7px;
+    bottom: 3px;
+    color: #ff6b12;
+    background: #fff1e5;
+    font-size: 20px;
+}
+.mk-manual-tab:hover .mk-tab-icon > i:first-child,
+.mk-manual-tab:hover .mk-tab-plus,
+.mk-manual-tab.active .mk-tab-icon > i:first-child,
+.mk-manual-tab.active .mk-tab-plus { color: #ff6b12; }
+
+/* Excel selalu memakai aksen hijau saat aktif atau diarahkan. */
+.mk-mode-tab.mk-excel-tab:hover .mk-excel-tab-icon > i:first-child,
+.mk-mode-tab.mk-excel-tab.active .mk-excel-tab-icon > i:first-child,
+.mk-mode-tab.mk-excel-tab:hover .mk-excel-tab-icon .mk-tab-plus,
+.mk-mode-tab.mk-excel-tab.active .mk-excel-tab-icon .mk-tab-plus { color: #159447; }
+
+@media (max-width: 576px) {
+    .mk-mode-tab { gap: 8px; padding: 10px 8px; font-size: .85rem; }
+    .mk-tab-icon > i:first-child { font-size: 25px; }
 }

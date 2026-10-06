@@ -236,10 +236,14 @@ class DocxLabelMerger
                 return number_format((float) $value, 0, ',', '.');
 
             case 'thousands_id':
-                return number_format((int) floor(((float) $value) / 1000), 0, ',', '.');
+                $amount = (int) $value;
+                return number_format($amount >= 1000 ? intdiv($amount, 1000) : intdiv($amount, 100), 0, ',', '.');
 
             case 'hundreds_id':
-                return str_pad((string) ((int) $value % 1000), 3, '0', STR_PAD_LEFT);
+                $amount = (int) $value;
+                return $amount >= 1000
+                    ? str_pad((string) ($amount % 1000), 3, '0', STR_PAD_LEFT)
+                    : str_pad((string) ($amount % 100), 2, '0', STR_PAD_LEFT);
 
             case 'date_id_short':
                 try {

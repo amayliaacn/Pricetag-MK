@@ -64,6 +64,8 @@ class PopA4Pdf
     private const A4_W_MERK    = 17.0;
     private const A4_W_VARIANT = 16.7;
     private const A4_W_BIG     = 11.3;
+    // Jarak aman (cm) antara ujung kanan angka besar dan awal angka kecil (".900")
+    private const A4_GAP_BIG_SMALL = 0.35;
 
     private const A4_POS = [
         'periode' => ['right' => 18.47, 'base' => 2.01],
@@ -490,9 +492,22 @@ class PopA4Pdf
             'plu'     => (string) ($row['sku_plu'] ?? ''),
             'periode' => $this->tanggal($row['end_period'] ?? ''),
             'normal'  => number_format($normal, 0, ',', '.'),
-            'big'     => $promo >= 1000 ? (string) intdiv($promo, 1000) : (string) $promo,
-            'small'   => $promo >= 1000 ? str_pad((string) ($promo % 1000), 3, '0', STR_PAD_LEFT) : '',
+            // Harga >= 1.000: ribuan besar + tiga digit terakhir kecil.
+            // Harga 100-999: digit ratusan besar + dua digit terakhir kecil.
+            'big'     => $promo >= 1000 ? (string) intdiv($promo, 1000) : (string) intdiv($promo, 100),
+            'small'   => $promo >= 1000
+                ? str_pad((string) ($promo % 1000), 3, '0', STR_PAD_LEFT)
+                : ($promo >= 100 ? str_pad((string) ($promo % 100), 2, '0', STR_PAD_LEFT) : (string) $promo),
         ];
+
+        // Lebar maksimal angka besar: sisakan ruang untuk angka kecil (".900") di kanannya
+        // supaya keduanya tidak saling menimpa. Angka kecil rata kanan di A4_POS['small']['right'].
+        $bigMaxW = self::A4_W_BIG;
+        if ($T['small'] !== '') {
+            $wSmall  = $this->textWidthCm('bookantiqua', '', self::A4_PT_SMALL, '.' . $T['small']);
+            $smallL  = self::A4_POS['small']['right'] - $wSmall;
+            $bigMaxW = max(3.0, min(self::A4_W_BIG, $smallL - self::A4_POS['big']['left'] - self::A4_GAP_BIG_SMALL));
+        }
 
         $F = [
             'note'    => ['family' => 'arial',      'pt' => self::A4_PT_NOTE],
@@ -503,7 +518,7 @@ class PopA4Pdf
             'merk'    => ['family' => 'baskerville', 'pt' => $this->fit('baskerville', '', $T['merk'], self::A4_W_MERK, self::A4_PT_MERK_MAX)],
             'variant' => ['family' => 'berlinsans', 'pt' => $this->fit('berlinsans', '', $T['variant'], self::A4_W_VARIANT, self::A4_PT_VARIANT_MAX)],
             'normal'  => ['family' => 'bookantiqua', 'pt' => self::A4_PT_NORMAL, 'style' => 'B'],
-            'big'     => ['family' => 'bookantiqua', 'pt' => $this->fit('bookantiqua', '', $T['big'], self::A4_W_BIG, self::A4_PT_BIG_MAX)],
+            'big'     => ['family' => 'bookantiqua', 'pt' => $this->fit('bookantiqua', '', $T['big'], $bigMaxW, self::A4_PT_BIG_MAX)],
             'small'   => ['family' => 'bookantiqua', 'pt' => self::A4_PT_SMALL],
         ];
 
@@ -547,13 +562,52 @@ class PopA4Pdf
             'y1'   => round($rise + $pad, 3), 'y2' => round($pad, 3), 'sw' => $pad,
         ];
 
-        $S = [
-            'w'       => self::A4_BOX_W * 10,
-            'h'       => self::A4_BOX_H * 10,
-            'bold'    => self::A4_BIG_BOLD,
-            'variant' => $this->stretchBox('berlinsans', $T['variant'], self::A4_VARIANT_BOX, 'center'),
-            'big'     => $this->stretchBox('bookantiqua', $T['big'], self::A4_BIG_BOX, 'left'),
-        ];
+        $bigBox = self::A4_BIG_BOX;
+
+        // Untuk harga ratusan, "Rp" berada di kiri area angka besar.
+        // Geser angka besar melewati lebar "Rp" agar tidak saling menimpa.
+        if ($promo >= 100 && $promo < 1000) {
+            $bigBox['x'] = 4.25;
+            $bigBox['w'] = 9.25;
+        }
+
+// Lebar angka besar dibuat dinamis.
+// Jika ada angka kecil (.900, .500, dst), sisakan ruang agar tidak bertabrakan.
+if ($T['small'] !== '') {
+    $wSmall = $this->textWidthCm(
+        'bookantiqua',
+        '',
+        self::A4_PT_SMALL,
+        '.' . $T['small']
+    );
+
+    $smallLeft = self::A4_POS['small']['right'] - $wSmall;
+
+    $bigBox['w'] = max(
+        3.0,
+        $smallLeft
+            - self::A4_POS['big']['left']
+            - self::A4_GAP_BIG_SMALL
+    );
+}
+
+$S = [
+    'w'       => self::A4_BOX_W * 10,
+    'h'       => self::A4_BOX_H * 10,
+    'bold'    => self::A4_BIG_BOLD,
+    'variant' => $this->stretchBox(
+        'berlinsans',
+        $T['variant'],
+        self::A4_VARIANT_BOX,
+        'center'
+    ),
+    'big'     => $this->stretchBox(
+        'bookantiqua',
+        $T['big'],
+        $bigBox,
+        'left'
+    ),
+];
 
         $img = FCPATH . self::A4_IMG_FILE;
         return view('pricetag/templates/turun-hrg-a4', compact('T', 'L', 'F', 'S', 'img'));
@@ -722,8 +776,10 @@ class PopA4Pdf
             'rp_lama'  => 'Rp',
             'lama'     => number_format($normal, 0, ',', '.'),
             'rp_baru'  => 'Rp',
-            'big'      => $promo >= 1000 ? (string) intdiv($promo, 1000) : (string) $promo,
-            'small'    => $promo >= 1000 ? '.' . str_pad((string) ($promo % 1000), 3, '0', STR_PAD_LEFT) : '',
+            'big'      => $promo >= 1000 ? (string) intdiv($promo, 1000) : (string) intdiv($promo, 100),
+            'small'    => $promo >= 1000
+                ? '.' . str_pad((string) ($promo % 1000), 3, '0', STR_PAD_LEFT)
+                : ($promo >= 100 ? '.' . str_pad((string) ($promo % 100), 2, '0', STR_PAD_LEFT) : (string) $promo),
             'periode1' => 'Akhir Periode :',
             'periode2' => $this->tanggal($row['end_period'] ?? ''),
         ];

@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\PriceTagModel;
 use App\Models\ImportHistoryModel;
+use App\Libraries\ProductTextParser;
 use App\Libraries\PriceTagTemplates;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
@@ -12,6 +13,9 @@ class PriceTag extends BaseController
 {
     public function index()
     {
+        $requestedPerPage = (int) ($this->request->getGet('per_page') ?? 10);
+        $perPage = in_array($requestedPerPage, [10, 30, 50, 100], true) ? $requestedPerPage : 30;
+        $page = max(1, (int) ($this->request->getGet('page') ?? 1));
         $model  = new PriceTagModel();
         $userId = (int) session()->get('id');
         $importId = $this->request->getGet('import');
@@ -33,13 +37,36 @@ class PriceTag extends BaseController
                 return redirect()->to('/import-history')->with('error', 'Data impor tidak ditemukan.');
             }
 
-            // Gunakan baris asli agar setiap produk memiliki ID dan dapat diedit.
-            $tags = $model->forImport((int) $importId);
-            if (empty($tags)) {
-                $tags = json_decode($history['snapshot'] ?? '[]', true) ?: [];
+            $snapshotRows = json_decode($history['snapshot'] ?? '[]', true) ?: [];
+            // Data manual disimpan sebagai snapshot, lalu dipetakan ke struktur
+            // yang sama dengan price_tags agar halaman detail tetap satu.
+            if ((int) ($history['source_type'] ?? 0) === 1) {
+                $tags = $model->forImport((int) $importId);
+                if (empty($tags)) {
+                    $tags = array_map(static function (array $row): array {
+                        return [
+                            'id' => 0,
+                        'sku_plu' => $row['sku_plu'] ?? '',
+                        'name' => $row['name'] ?? ($row['brand'] ?? ''),
+                        'variant' => $row['variant'] ?? null,
+                        'normal_price' => (float) ($row['normal_price'] ?? 0),
+                        'discount_percent' => 0,
+                        'promo_price' => 0,
+                        'promo_text' => $row['promo'] ?? '',
+                        'allocation_pcs' => $row['allocation_pcs'] ?? null,
+                        'start_period' => $row['start_period'] ?? null,
+                        'end_period' => $row['end_period'] ?? null,
+                        'template_size' => $row['template_size'] ?? null,
+                            'is_printed' => 0,
+                        ];
+                    }, $snapshotRows);
+                }
+            } else {
+                // Gunakan baris asli agar setiap produk memiliki ID dan dapat diedit.
+                $tags = $model->forImport((int) $importId);
+                if (empty($tags)) $tags = $snapshotRows;
             }
 
-            $snapshotRows = json_decode($history['snapshot'] ?? '[]', true) ?: [];
             $snapshotSizes = [];
             foreach ($snapshotRows as $snapshotRow) {
                 if (! empty($snapshotRow['sku_plu']) && ! empty($snapshotRow['template_size'])) {
@@ -57,11 +84,20 @@ class PriceTag extends BaseController
             $tags = $model->forUserAndDate($userId, date('Y-m-d'));
         }
 
+        $totalTags = count($tags);
+        $totalPages = max(1, (int) ceil($totalTags / $perPage));
+        $page = min($page, $totalPages);
+        $tags = array_slice($tags, ($page - 1) * $perPage, $perPage);
+
         $data = [
             'title'     => $history ? 'Detail Import - ' . $history['file_name'] : 'Data Price Tag',
             'tags'      => $tags,
             'history'   => $history,
             'templates' => PriceTagTemplates::all(),
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'totalTags' => $totalTags,
+            'perPage' => $perPage,
         ];
 
         return view('pricetag/index', $data);
@@ -131,7 +167,7 @@ class PriceTag extends BaseController
 
                 // Kolom sumber pada file Excel berisi satu kalimat gabungan,
                 // misalnya: PRODUK #VARIAN Sisa Alok= 60pc.
-                $parsedProduct = $this->parseProductText(
+                $parsedProduct = (new ProductTextParser())->parse(
                     (string) ($row[$headerMap['name']] ?? '')
                 );
                 $promotionSource = $this->valueFromRow($row, $headerMap, 'discount_percent')
@@ -222,6 +258,17 @@ class PriceTag extends BaseController
     {
         $size = (string) $this->request->getPost('template_size');
         if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf', 'a5', 'fresh', 'curah', 'segitiga'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
+        if ($id === 0 && (int) $this->request->getGet('import_id') > 0) {
+            $historyTable = db_connect()->table('import_history');
+            $history = $historyTable->where('id', (int) $this->request->getGet('import_id'))->get()->getRowArray();
+            if ($history && (int) ($history['source_type'] ?? 0) === 1) {
+                $snapshot = json_decode($history['snapshot'] ?? '[]', true) ?: [];
+                foreach ($snapshot as &$row) if ((string) ($row['sku_plu'] ?? '') === (string) $this->request->getPost('sku_plu')) $row['template_size'] = $size !== '' ? $size : null;
+                unset($row);
+                $historyTable->where('id', (int) $this->request->getGet('import_id'))->update(['snapshot' => json_encode($snapshot, JSON_UNESCAPED_UNICODE)]);
+                return $this->response->setJSON(['success' => true, 'template_size' => $size]);
+            }
+        }
         $model = new PriceTagModel();
         if (! $model->find($id)) return redirect()->back()->with('error', 'Produk tidak ditemukan.');
         $savedSize = $size !== '' ? $size : null;
@@ -351,10 +398,9 @@ class PriceTag extends BaseController
             ],
             'variant'          => ['varian', 'variant', 'rasa', 'ukuran', 'variant deskripsi'],
             'normal_price'     => ['harga normal', 'harga jual', 'harga', 'normal price', 'selling price', 'price', 'harga normal rp'],
-            'discount_percent' => [
-                'diskon', 'diskon persen', 'discount', 'diskon %',
-                'diskon harga promo rp', 'diskon harga promo',
-            ],
+            'discount_percent' => ['diskon', 'diskon persen', 'discount', 'diskon %','diskon harga promo rp', 'diskon harga promo',
+                'diskon promo', 'diskon promo %', 'discount percent', 'discount %', 'discount promo', 'discount promo %',
+                'program promo'   ],
             'promo_price'      => ['harga promo', 'promo price', 'harga diskon', 'harga sale', 'sale price', 'harga promo rp'],
             'allocation_pcs'   => ['alokasi', 'alokasi pcs', 'allocation', 'stok', 'qty'],
             'start_period'     => ['awal periode', 'periode mulai', 'start period', 'tanggal mulai'],
@@ -397,6 +443,7 @@ class PriceTag extends BaseController
      * Memecah teks produk dari Excel menjadi nama, varian, dan alokasi.
      * Contoh: "PRODUK #VARIAN Sisa Alok= 60pc".
      */
+    /*
     private function parseProductText(string $text): array
     {
         $text = trim($text);
@@ -461,6 +508,7 @@ class PriceTag extends BaseController
 
         return $result;
     }
+    */
 
     /**
      * Memisahkan isi kolom gabungan Diskon / Harga Promo.
