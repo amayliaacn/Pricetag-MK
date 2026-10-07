@@ -55,8 +55,9 @@ class PrintMixed extends BaseController
                 if (in_array($size, ['mpdf', 'a5', 'segitiga'], true) && ! $showDiscount && (float) ($row['discount_percent'] ?? 0) > 0) {
                     $row['promo_price'] = $this->promoPrice($row);
                 }
-                if (in_array($size, ['mpdf','a5','fresh','curah','segitiga'], true)) {
+                if (in_array($size, ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'], true)) {
                     $template = match ($size) {
+                        'pricetag' => 'pricetag',
                         'segitiga' => ($showDiscount ? 'diskon' : ((float) ($row['promo_price'] ?? 0) > 0 ? 'segitiga' : 'special')),
                         'a5' => ((float) ($row['discount_percent'] ?? 0) > 0
                             ? ($showDiscount ? ((float) ($row['normal_price'] ?? 0) > 0 ? 'disc2' : 'disc') : 'a5')
@@ -123,10 +124,6 @@ class PrintMixed extends BaseController
         return $path;
     }
     private function promoPrice(array $r): ?int { $p=(float)($r['promo_price']??0); $n=(float)($r['normal_price']??0); $d=(float)($r['discount_percent']??0); return $p>0?(int)round($p):($n>0&&$d>0?(int)round($n*(1-$d/100)):null); }
-<<<<<<< HEAD
     private function showDiscount(array $row, string $mode): bool { $d=(float)($row['discount_percent']??0); return $d>0 && ($d>=10 || $mode==='show'); }
-    private function combine(array $paths): string { if(count($paths)===1)return $paths[0]; $out=WRITEPATH.'pricetag_tmp/combined_'.bin2hex(random_bytes(8)).'.pdf'; exec('pdftk '.implode(' ',array_map('escapeshellarg',$paths)).' cat output '.escapeshellarg($out).' 2>&1',$o,$c); if($c!==0||!is_file($out))throw new \RuntimeException('Gagal menggabungkan hasil PDF.'); return $out; }
-=======
     private function combine(array $paths): string { if(count($paths)===1)return $paths[0]; $out=WRITEPATH.'pricetag_tmp/combined_'.bin2hex(random_bytes(8)).'.pdf'; $pdftk='C:\\Program Files (x86)\\PDFtk Server\\bin\\pdftk.exe'; exec('"'.$pdftk.'" '.implode(' ',array_map('escapeshellarg',$paths)).' cat output '.escapeshellarg($out).' 2>&1',$o,$c); if($c!==0||!is_file($out))throw new \RuntimeException('Gagal menggabungkan hasil PDF: '.implode("\n",$o)); return $out; }
->>>>>>> origin/main
 }

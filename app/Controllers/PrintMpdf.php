@@ -55,6 +55,7 @@ class PrintMpdf extends BaseController
                 $tag['promo_price'] = $this->calculatePromoPrice($tag);
             }
             $template = match ($size) {
+                'pricetag' => 'pricetag',
                 'segitiga' => ($showDiscount ? 'diskon' : ((float) ($tag['promo_price'] ?? 0) > 0 ? 'segitiga' : 'special')),
                 'a5' => ((float) ($tag['discount_percent'] ?? 0) > 0
                     ? ($showDiscount ? ((float) ($tag['normal_price'] ?? 0) > 0 ? 'disc2' : 'disc') : 'a5')

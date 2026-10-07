@@ -146,7 +146,7 @@
         <div class="control-divider d-none d-lg-block"></div>
         <div class="size-group">
             <label for="filterUkuran" class="control-label">Filter Template POP</label>
-            <select id="filterUkuran" class="form-select"><option value="all">Semua Ukuran</option><option value="kcl">Kecil</option><option value="tgg">Tanggung</option><option value="mpdf">A4</option><option value="a5">A5</option><option value="segitiga">Segitiga</option><option value="fresh">Butcher</option><option value="curah">Vegetable</option></select>
+            <select id="filterUkuran" class="form-select"><option value="all">Semua Ukuran</option><option value="kcl">Kecil</option><option value="tgg">Tanggung</option><option value="mpdf">A4</option><option value="pricetag">Price Tag</option><option value="a5">A5</option><option value="segitiga">Segitiga</option><option value="fresh">Butcher</option><option value="curah">Vegetable</option></select>
         </div>
 
         <button type="button" id="btnCetak" class="btn btn-danger" disabled data-bs-toggle="modal" data-bs-target="#modalCetak">
@@ -235,7 +235,7 @@
                                 <?php
                                     $tagId = (int) ($tag['id'] ?? 0);
                                     $isPrinted = (int) ($tag['is_printed'] ?? 0) === 1;
-                $templateSize = in_array(($tag['template_size'] ?? ''), ['tgg', 'kcl', 'mpdf', 'a5', 'fresh', 'curah', 'segitiga'], true) ? $tag['template_size'] : '';
+                $templateSize = in_array(($tag['template_size'] ?? ''), ['tgg', 'kcl', 'mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'], true) ? $tag['template_size'] : '';
                                 ?>
                                 <tr>
                                     <td>
@@ -278,7 +278,7 @@
                                             </label>
                                         </form>
                                     </td>
-                                    <td><form method="post" class="template-size-form" action="<?= base_url('pricetag/template/' . $tagId) ?><?= !empty($history['id']) ? '?import_id=' . (int) $history['id'] : '' ?>"><div class="template-size-wrapper <?= $templateSize === '' ? 'is-required' : '' ?>"><i class="bi bi-exclamation-triangle-fill template-size-warning <?= $templateSize === '' ? '' : 'd-none' ?>" aria-hidden="true"></i><select name="template_size" class="form-select form-select-sm template-size" <?= $tagId === 0 ? 'disabled' : '' ?>><option value="" <?= $templateSize === '' ? 'selected' : '' ?>>Pilih ukuran</option><option value="kcl" <?= $templateSize === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="tgg" <?= $templateSize === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="mpdf" <?= $templateSize === 'mpdf' ? 'selected' : '' ?>>A4</option><option value="a5" <?= $templateSize === 'a5' ? 'selected' : '' ?>>A5</option><option value="segitiga" <?= $templateSize === 'segitiga' ? 'selected' : '' ?>>Segitiga</option><option value="fresh" <?= $templateSize === 'fresh' ? 'selected' : '' ?>>Butcher</option><option value="curah" <?= $templateSize === 'curah' ? 'selected' : '' ?>>Vegetable</option></select></div></form></td>
+                                    <td><form method="post" class="template-size-form" action="<?= base_url('pricetag/template/' . $tagId) ?><?= !empty($history['id']) ? '?import_id=' . (int) $history['id'] : '' ?>"><div class="template-size-wrapper <?= $templateSize === '' ? 'is-required' : '' ?>"><i class="bi bi-exclamation-triangle-fill template-size-warning <?= $templateSize === '' ? '' : 'd-none' ?>" aria-hidden="true"></i><select name="template_size" class="form-select form-select-sm template-size" <?= $tagId === 0 ? 'disabled' : '' ?>><option value="" <?= $templateSize === '' ? 'selected' : '' ?>>Pilih ukuran</option><option value="kcl" <?= $templateSize === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="tgg" <?= $templateSize === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="mpdf" <?= $templateSize === 'mpdf' ? 'selected' : '' ?>>A4</option><option value="pricetag" <?= $templateSize === 'pricetag' ? 'selected' : '' ?>>Price Tag</option><option value="a5" <?= $templateSize === 'a5' ? 'selected' : '' ?>>A5</option><option value="segitiga" <?= $templateSize === 'segitiga' ? 'selected' : '' ?>>Segitiga</option><option value="fresh" <?= $templateSize === 'fresh' ? 'selected' : '' ?>>Butcher</option><option value="curah" <?= $templateSize === 'curah' ? 'selected' : '' ?>>Vegetable</option></select></div></form></td>
                                     <td>
                                         <button type="button" class="btn btn-primary mk-icon-btn btn-edit"
                                             data-id="<?= $tagId ?>"
@@ -598,7 +598,7 @@
                     <td>${name}${variant ? ' - ' + variant : ''}</td>
                     <td>
                         <input type="hidden" name="size[${id}]" value="${size}">
-                        ${size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${id}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : ((size === 'mpdf' || size === 'a5' || size === 'fresh' || size === 'curah' || size === 'segitiga') ? `${size === 'curah' ? 'Vegetable' : (size === 'fresh' ? 'Butcher' : (size === 'a5' ? 'A5' : (size === 'segitiga' ? 'Segitiga' : 'A4')))}` : '<span class="text-muted">Kecil</span>')}
+                        ${size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${id}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : ((size === 'mpdf' || size === 'pricetag' || size === 'a5' || size === 'fresh' || size === 'curah' || size === 'segitiga') ? `${size === 'pricetag' ? 'Price Tag' : (size === 'curah' ? 'Vegetable' : (size === 'fresh' ? 'Butcher' : (size === 'a5' ? 'A5' : (size === 'segitiga' ? 'Segitiga' : 'A4'))))}` : '<span class="text-muted">Kecil</span>')}
                         ${canChooseDiscount ? `<div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="auto" checked> Turun harga</label><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="show"> Tampil diskon</label></div>` : (showA4DiscountInfo ? `<input type="hidden" name="discount_mode[${id}]" value="auto"><div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" checked disabled> Turun harga</label><label class="d-block text-muted" title="Pilihan ini tidak tersedia untuk template A4"><input type="radio" disabled> Tampil diskon <span class="fst-italic">(tidak tersedia untuk A4)</span></label></div>` : (showDiscountInfo ? `<input type="hidden" name="discount_mode[${id}]" value="auto"><div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" checked disabled> Turun harga</label><label class="d-block text-muted"><input type="radio" disabled> Tampil diskon <span class="fst-italic">(tidak tersedia untuk ukuran ini)</span></label></div>` : `<input type="hidden" name="discount_mode[${id}]" value="auto">`))}
                     </td>
                     <td>
@@ -608,7 +608,7 @@
                 tabelBody.appendChild(row);
             });
             const sizes = getChecked().map(cb => cb.dataset.size);
-            const hasMpdf = sizes.some(size => ['mpdf', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
+            const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
             document.getElementById('formCetak').action = hasMpdf
                 ? '<?= base_url('print-mpdf') ?>'
                 : '<?= base_url('print-pdf') ?>';
@@ -617,7 +617,7 @@
         // Pastikan pilihan A4 mPDF tetap memakai controller baru saat form submit.
         document.getElementById('formCetak').addEventListener('submit', function () {
             const sizes = [...this.querySelectorAll('input[name^="size["]')].map(input => input.value);
-            const hasMpdf = sizes.some(size => ['mpdf', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
+            const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
             this.action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
         });
     </script>
