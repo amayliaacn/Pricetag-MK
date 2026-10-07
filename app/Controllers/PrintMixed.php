@@ -123,10 +123,6 @@ class PrintMixed extends BaseController
         return $path;
     }
     private function promoPrice(array $r): ?int { $p=(float)($r['promo_price']??0); $n=(float)($r['normal_price']??0); $d=(float)($r['discount_percent']??0); return $p>0?(int)round($p):($n>0&&$d>0?(int)round($n*(1-$d/100)):null); }
-<<<<<<< HEAD
     private function showDiscount(array $row, string $mode): bool { $d=(float)($row['discount_percent']??0); return $d>0 && ($d>=10 || $mode==='show'); }
     private function combine(array $paths): string { if(count($paths)===1)return $paths[0]; $out=WRITEPATH.'pricetag_tmp/combined_'.bin2hex(random_bytes(8)).'.pdf'; exec('pdftk '.implode(' ',array_map('escapeshellarg',$paths)).' cat output '.escapeshellarg($out).' 2>&1',$o,$c); if($c!==0||!is_file($out))throw new \RuntimeException('Gagal menggabungkan hasil PDF.'); return $out; }
-=======
-    private function combine(array $paths): string { if(count($paths)===1)return $paths[0]; $out=WRITEPATH.'pricetag_tmp/combined_'.bin2hex(random_bytes(8)).'.pdf'; $pdftk='C:\\Program Files (x86)\\PDFtk Server\\bin\\pdftk.exe'; exec('"'.$pdftk.'" '.implode(' ',array_map('escapeshellarg',$paths)).' cat output '.escapeshellarg($out).' 2>&1',$o,$c); if($c!==0||!is_file($out))throw new \RuntimeException('Gagal menggabungkan hasil PDF: '.implode("\n",$o)); return $out; }
->>>>>>> origin/main
 }
