@@ -374,6 +374,17 @@
                     <div class="modal-body">
                         <div class="alert alert-info py-2 mb-3">Produk Tanggung dapat dipilih menggunakan template All Varian secara terpisah.</div>
 
+                        <div class="row align-items-center mb-3">
+                            <label for="engineCetak" class="col-sm-3 col-form-label fw-semibold">Mesin cetak</label>
+                            <div class="col-sm-5">
+                                <select name="engine" id="engineCetak" class="form-select">
+                                    <option value="libre" selected>LibreOffice (lama)</option>
+                                    <option value="mpdf">mPDF (uji)</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-4 small text-muted">Pilih mPDF untuk membandingkan hasil dengan LibreOffice.</div>
+                        </div>
+
                         <table class="table table-sm align-middle">
                             <thead>
                                 <tr>
@@ -618,7 +629,14 @@
         document.getElementById('formCetak').addEventListener('submit', function () {
             const sizes = [...this.querySelectorAll('input[name^="size["]')].map(input => input.value);
             const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
-            this.action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
+            const engine = document.getElementById('engineCetak')?.value || 'libre';
+            const hasLegacySize = sizes.some(size => ['kcl', 'tgg'].includes(size));
+
+            if (engine === 'mpdf' && hasLegacySize) {
+                this.action = '<?= base_url('print-mixed') ?>';
+            } else {
+                this.action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
+            }
         });
     </script>
     <?= view('partials/app_footer') ?>

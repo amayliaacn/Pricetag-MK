@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Libraries\DocxLabelMerger;
+use App\Libraries\MpdfLibreTemplate;
 use App\Libraries\PopA4Pdf;
 use App\Libraries\PriceTagTemplates;
 use App\Models\PriceTagModel;
@@ -31,6 +32,7 @@ class PrintMixed extends BaseController
         $model = new PriceTagModel();
         $mpdfItems = [];
         $libreGroups = [];
+        $mpdfLibreGroups = [];
         $mergers = [];
         try {
             foreach ($ids as $id) {
@@ -77,7 +79,15 @@ class PrintMixed extends BaseController
                     ? $program . '-tgg' . (($allvar[$id] ?? '') === '1' && !$allocation ? '-allvar' : ($allocation ? '-allocation' : ''))
                     : $program . '-kcl' . ($allocation ? '-allocation' : '');
                 $tpl = PriceTagTemplates::find($key);
-                if ($tpl) $libreGroups[$key][] = ['sku' => (string) $row['sku_plu'], 'qty' => $count, 'field_values' => DocxLabelMerger::buildFieldValues($row, $tpl['fields'])];
+                if ($tpl) {
+                    // Default tetap Libre. Kirim engine=mpdf untuk memakai jalur baru.
+                    $engine = (string) $this->request->getPost('engine');
+                    if ($engine === 'mpdf') {
+                        $mpdfLibreGroups[$key][] = ['row' => $row, 'qty' => $count];
+                    } else {
+                        $libreGroups[$key][] = ['sku' => (string) $row['sku_plu'], 'qty' => $count, 'field_values' => DocxLabelMerger::buildFieldValues($row, $tpl['fields'])];
+                    }
+                }
             }
 
             $pdfs = [];
@@ -85,6 +95,9 @@ class PrintMixed extends BaseController
                 $pdfs[] = $this->writeMpdfMixed($mpdfItems);
             }
             foreach ($libreGroups as $key => $items) { $mergers[$key] = new DocxLabelMerger(PriceTagTemplates::find($key)['docx']); $pdfs[] = $mergers[$key]->generate($items); }
+            if ($mpdfLibreGroups !== []) {
+                $pdfs[] = $this->writeMpdfLibre($mpdfLibreGroups);
+            }
             if ($pdfs === []) return redirect()->back()->with('error', 'Produk yang dipilih tidak ditemukan.');
             $path = $this->combine($pdfs);
             $dir = WRITEPATH . 'pricetag_downloads/'; if (!is_dir($dir)) mkdir($dir, 0775, true);
@@ -120,6 +133,19 @@ class PrintMixed extends BaseController
         $path = $dir . 'mpdf_' . bin2hex(random_bytes(8)) . '.pdf';
         if (file_put_contents($path, $pdf, LOCK_EX) === false) {
             throw new \RuntimeException('Hasil mPDF sementara tidak dapat disimpan.');
+        }
+        return $path;
+    }
+    private function writeMpdfLibre(array $groups): string
+    {
+        $pdf = (new MpdfLibreTemplate())->render($groups);
+        $dir = WRITEPATH . 'pricetag_tmp/';
+        if (! is_dir($dir) && ! mkdir($dir, 0775, true) && ! is_dir($dir)) {
+            throw new \RuntimeException('Folder PDF sementara tidak dapat dibuat.');
+        }
+        $path = $dir . 'mpdf_libre_' . bin2hex(random_bytes(8)) . '.pdf';
+        if (file_put_contents($path, $pdf, LOCK_EX) === false) {
+            throw new \RuntimeException('Hasil mPDF pengganti Libre tidak dapat disimpan.');
         }
         return $path;
     }
