@@ -11,7 +11,15 @@
     <!-- CSS tabel contenteditable (boleh dipindah ke admin-theme.css) -->
     <style>
         .manual-entry-table td { padding: 6px 8px; }
-        .manual-entry-table td.row-number { width: 48px; text-align: center; }
+        .manual-entry-table { width: 100%; table-layout: fixed; }
+        .manual-entry-table th:nth-child(1), .manual-entry-table td:nth-child(1) { width: 42px; }
+        .manual-entry-table th:nth-child(2), .manual-entry-table td:nth-child(2),
+        .manual-entry-table th:nth-child(3), .manual-entry-table td:nth-child(3) { width: 120px; }
+        .manual-entry-table th:nth-child(4), .manual-entry-table td:nth-child(4) { width: 95px; }
+        .manual-entry-table th:nth-child(5), .manual-entry-table td:nth-child(5) { width: auto; }
+        .manual-entry-table th:nth-child(6), .manual-entry-table td:nth-child(6) { width: 130px; }
+        .manual-entry-table th:nth-child(7), .manual-entry-table td:nth-child(7) { width: 120px; }
+        .manual-entry-table td.row-number { width: 42px; text-align: center; }
         .manual-entry-table td.col-aksi, .manual-entry-table th.col-aksi { width: 70px; text-align: center; }
         .manual-entry-table .cell {
             min-height: 38px; padding: 8px 12px; background: #fff;
@@ -20,7 +28,7 @@
         }
         /* Nama produk/Brand tetap berada di kolom yang sama dan boleh wrap. */
         .manual-entry-table .cell[data-field="brand"] {
-            min-width: 280px; max-width: 430px; white-space: normal;
+            min-width: 0; max-width: none; width: 100%; white-space: normal;
             overflow-y: auto; overflow-x: hidden; overflow-wrap: anywhere;
             height: 38px; max-height: 76px; line-height: 1.35;
         }
@@ -30,9 +38,11 @@
         .manual-entry-table .cell:focus { border-color: #f26b0f; box-shadow: 0 0 0 .2rem rgba(242,107,15,.18); }
         .manual-entry-table .cell.err { border-color: #dc3545; background: #fff5f5; }
         .manual-entry-table .cell.num { text-align: left; }
-        .manual-entry-table thead th { white-space: nowrap; }
-        .manual-entry-table thead th:nth-child(6) { min-width: 175px; }
-        .manual-entry-table { min-width: 1180px; }
+        .manual-entry-table thead th { white-space: nowrap; font-size: 14px; }
+        .manual-entry-table thead th:nth-child(6) { min-width: 0; }
+        .manual-entry-table th, .manual-entry-table td { overflow: hidden; }
+        .manual-entry-table td:not(.row-number):not(.col-aksi) .cell { width: 100%; }
+        .manual-entry-table { min-width: 1250px; }
     </style>
 </head>
 <body class="mk-body mk-manual-entry-page">
@@ -121,7 +131,7 @@
                             <th>Akhir Periode</th>
                             <th>SKU / PLU</th>
                             <th>Brand / Merk <span class="text-danger">*</span></th>
-                            <th>Harga Normal (Rp)</th>
+                            <th>Harga Normal</th>
                             <th>Program Promo</th>
                             <th class="col-aksi">Aksi</th>
                         </tr>
@@ -139,12 +149,12 @@
                         ?>
                         <tr>
                             <td class="row-number"><?= $i + 1 ?></td>
-                            <td><div class="cell" contenteditable="true" data-field="start_period" data-tipe="tgl" data-ph="Contoh: 12-Jul-2026"><?= esc($tgl($row['start_period'] ?? '')) ?></div></td>
-                            <td><div class="cell" contenteditable="true" data-field="end_period" data-tipe="tgl" data-ph="Contoh: 30-Jul-2026"><?= esc($tgl($row['end_period'] ?? '')) ?></div></td>
-                            <td><div class="cell" contenteditable="true" data-field="sku_plu" data-tipe="teks" data-ph="Contoh: 023509"><?= esc($row['sku_plu'] ?? '') ?></div></td>
+                            <td><div class="cell" contenteditable="true" data-field="start_period" data-tipe="tgl" data-ph="12-Jul-2026"><?= esc($tgl($row['start_period'] ?? '')) ?></div></td>
+                            <td><div class="cell" contenteditable="true" data-field="end_period" data-tipe="tgl" data-ph="30-Jul-2026"><?= esc($tgl($row['end_period'] ?? '')) ?></div></td>
+                            <td><div class="cell" contenteditable="true" data-field="sku_plu" data-tipe="teks" data-ph="023509"><?= esc($row['sku_plu'] ?? '') ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="brand" data-tipe="teks" data-ph="Masukkan brand / merk"><?= esc($row['brand'] ?? '') ?></div></td>
-                            <td><div class="cell num" contenteditable="true" data-field="normal_price" data-tipe="rp" data-ph="Contoh: 23.500"><?= $harga > 0 ? number_format($harga, 0, ',', '.') : '' ?></div></td>
-                            <td><div class="cell" contenteditable="true" data-field="promo" data-tipe="teks" data-ph="Contoh: Set 10%"><?= esc($row['promo'] ?? '') ?></div></td>
+                            <td><div class="cell num" contenteditable="true" data-field="normal_price" data-tipe="rp" data-ph="23.500"><?= $harga > 0 ? number_format($harga, 0, ',', '.') : '' ?></div></td>
+                            <td><div class="cell" contenteditable="true" data-field="promo" data-tipe="teks" data-ph="Set 10%"><?= esc($row['promo'] ?? '') ?></div></td>
                             <td class="col-aksi"><button type="button" class="btn btn-danger btn-sm remove-row"><i class="bi bi-trash"></i></button></td>
                         </tr>
                         <?php endfor; ?>
@@ -179,12 +189,12 @@
     const d2   = n => String(n).padStart(2, '0');
 
     const COLS = [
-        {field:'start_period', tipe:'tgl',  ph:'Contoh: 12-Jul-2026',   req:false},
-        {field:'end_period',   tipe:'tgl',  ph:'Contoh: 30-Jul-2026',   req:false},
-        {field:'sku_plu',      tipe:'teks', ph:'Contoh: 023509',        req:false},
+        {field:'start_period', tipe:'tgl',  ph:'12-Jul-2026',   req:false},
+        {field:'end_period',   tipe:'tgl',  ph:'30-Jul-2026',   req:false},
+        {field:'sku_plu',      tipe:'teks', ph:'023509',        req:false},
         {field:'brand',        tipe:'teks', ph:'Masukkan brand / merk', req:true},
-        {field:'normal_price', tipe:'rp',   ph:'Contoh: 23.500',        req:false},
-        {field:'promo',        tipe:'teks', ph:'Contoh: Set 10%',       req:false}
+        {field:'normal_price', tipe:'rp',   ph:'23.500',        req:false},
+        {field:'promo',        tipe:'teks', ph:'Set 10%',       req:false}
     ];
 
     const cells = tr => [...tr.querySelectorAll('.cell')];
