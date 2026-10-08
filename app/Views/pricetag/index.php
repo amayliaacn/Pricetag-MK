@@ -374,7 +374,7 @@
                     <div class="modal-body">
                         <div class="alert alert-info py-2 mb-3">Produk Tanggung dapat dipilih menggunakan template All Varian secara terpisah.</div>
 
-                        <div class="row align-items-center mb-3">
+                        <div class="row align-items-center mb-3 d-none" id="engineCetakRow">
                             <label for="engineCetak" class="col-sm-3 col-form-label fw-semibold">Mesin cetak</label>
                             <div class="col-sm-5">
                                 <select name="engine" id="engineCetak" class="form-select">
@@ -618,8 +618,10 @@
                 `;
                 tabelBody.appendChild(row);
             });
-            const sizes = getChecked().map(cb => cb.dataset.size);
+            const sizes = [...getChecked()].map(cb => cb.dataset.size);
+            const hasLegacySize = sizes.some(size => ['kcl', 'tgg'].includes(size));
             const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
+            document.getElementById('engineCetakRow').classList.toggle('d-none', !hasLegacySize);
             document.getElementById('formCetak').action = hasMpdf
                 ? '<?= base_url('print-mpdf') ?>'
                 : '<?= base_url('print-pdf') ?>';

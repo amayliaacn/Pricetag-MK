@@ -75,18 +75,52 @@ class PrintMpdf extends BaseController
         }
 
         try {
-            $pdf = $this->writeTemporaryPdf((new PopA4Pdf())->renderMixed($groups));
+            $contents = (new PopA4Pdf())->renderMixed($groups);
+            $token = bin2hex(random_bytes(16));
+            $dir = WRITEPATH . 'pricetag_downloads/';
+            if (! is_dir($dir) && ! mkdir($dir, 0775, true) && ! is_dir($dir)) {
+                throw new \RuntimeException('Folder penyimpanan PDF tidak dapat dibuat.');
+            }
+            if (file_put_contents($dir . $token . '.pdf', $contents, LOCK_EX) === false
+                || file_put_contents($dir . $token . '.json', json_encode([
+                    'user_id' => (int) session()->get('id'),
+                    'expires_at' => time() + 3600,
+                ]), LOCK_EX) === false) {
+                throw new \RuntimeException('PDF hasil cetak tidak dapat disimpan.');
+            }
 
-            return $this->response
-                ->setHeader('Content-Type', 'application/pdf')
-                ->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-                ->setHeader('Pragma', 'no-cache')
-                ->setHeader('Content-Disposition', 'inline; filename="price-tag-mpdf-a4.pdf"')
-                ->setBody((string) file_get_contents($pdf));
+            return redirect()->to(site_url('print-mpdf/' . $token));
         } catch (\Throwable $e) {
             log_message('error', 'Cetak mPDF gagal: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
+    }
+
+    public function download(string $token)
+    {
+        if (! preg_match('/^[a-f0-9]{32}$/', $token)) {
+            return $this->response->setStatusCode(404);
+        }
+
+        $dir = WRITEPATH . 'pricetag_downloads/';
+        $metadataPath = $dir . $token . '.json';
+        $pdfPath = $dir . $token . '.pdf';
+        $metadata = is_file($metadataPath)
+            ? json_decode((string) file_get_contents($metadataPath), true)
+            : null;
+
+        if (! is_array($metadata)
+            || (int) ($metadata['expires_at'] ?? 0) < time()
+            || (int) ($metadata['user_id'] ?? 0) !== (int) session()->get('id')
+            || ! is_file($pdfPath)) {
+            return $this->response->setStatusCode(404);
+        }
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="price-tag-mpdf-a4.pdf"')
+            ->setHeader('Cache-Control', 'private, no-store')
+            ->setBody((string) file_get_contents($pdfPath));
     }
 
     private function showDiscount(array $tag, string $mode): bool
