@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="<?= base_url('assets/vendor/bootstrap/css/bootstrap.min.css') ?>" rel="stylesheet">
+    <link href="<?= base_url('assets/vendor/bootstrap-icons/bootstrap-icons.min.css') ?>" rel="stylesheet">
     <link href="<?= base_url('assets/css/admin-theme.css') ?>" rel="stylesheet">
     <style>
         /* Tabel detail tidak boleh memaksa 13 kolom masuk ke layar sempit.
@@ -363,7 +363,7 @@
     <div class="modal fade" id="modalCetak" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
-                <form action="<?= base_url('print-pdf') ?>" method="post" target="_blank" id="formCetak">
+                <form action="<?= base_url('print-pdf') ?>" method="post" id="formCetak">
                     <?php if (!empty($history['id'])): ?>
                         <input type="hidden" name="import_id" value="<?= (int) $history['id'] ?>">
                     <?php endif; ?>
@@ -397,7 +397,7 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="<?= base_url('assets/vendor/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
     <script>
         const checkAll       = document.getElementById('checkAll');
         const productChecks  = document.querySelectorAll('.product-check');
@@ -614,9 +614,29 @@
                 : '<?= base_url('print-pdf') ?>';
         });
 
-        // Pastikan form memakai controller sesuai ukuran template.
-        document.getElementById('formCetak').addEventListener('submit', function () {
+        function tampilkanErrorCetak(message) {
+            templateToast.className = 'alert alert-danger shadow-sm py-2 px-3 mb-0';
+            templateToast.textContent = message;
+            templateToast.style.display = 'block';
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                templateToast.style.display = 'none';
+                templateToast.className = 'alert alert-success shadow-sm py-2 px-3 mb-0';
+            }, 4000);
+        }
+
+        // Validasi di halaman ini agar error tidak ikut terbuka di target _blank.
+        // Target tersebut tetap dipakai untuk hasil PDF yang berhasil dibuat.
+        document.getElementById('formCetak').addEventListener('submit', function (event) {
             const sizes = [...this.querySelectorAll('input[name^="size["]')].map(input => input.value);
+            const uniqueSizes = [...new Set(sizes.filter(Boolean))];
+            if (uniqueSizes.length > 1) {
+                event.preventDefault();
+                this.removeAttribute('target');
+                tampilkanErrorCetak('Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');
+                return;
+            }
+
             const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
             this.action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
         });
