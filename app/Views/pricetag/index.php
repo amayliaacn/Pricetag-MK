@@ -627,18 +627,37 @@
 
         // Validasi di halaman ini agar error tidak ikut terbuka di target _blank.
         // Target tersebut tetap dipakai untuk hasil PDF yang berhasil dibuat.
-        document.getElementById('formCetak').addEventListener('submit', function (event) {
+        document.getElementById('formCetak').addEventListener('submit', async function (event) {
+            event.preventDefault();
             const sizes = [...this.querySelectorAll('input[name^="size["]')].map(input => input.value);
             const uniqueSizes = [...new Set(sizes.filter(Boolean))];
             if (uniqueSizes.length > 1) {
-                event.preventDefault();
-                this.removeAttribute('target');
                 tampilkanErrorCetak('Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');
                 return;
             }
 
             const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
             this.action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
+
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const isPdfResult = /\/print-(pdf|mpdf)\/[a-f0-9]{32}(?:$|\?)/i.test(response.url);
+                if (response.ok && isPdfResult) {
+                    window.open(response.url, '_blank');
+                } else {
+                    tampilkanErrorCetak('Gagal membuat PDF. Silakan periksa pilihan template dan coba lagi.');
+                }
+            } catch (error) {
+                tampilkanErrorCetak('Gagal menghubungi server untuk mencetak PDF.');
+            } finally {
+                submitButton.disabled = false;
+            }
         });
     </script>
     <?= view('partials/app_footer') ?>
