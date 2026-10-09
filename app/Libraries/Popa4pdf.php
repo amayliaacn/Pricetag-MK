@@ -8,7 +8,7 @@ use Mpdf\Mpdf;
 
 /**
  * Cetak POP Price Tag A4 langsung dari HTML (mPDF), tanpa Word/LibreOffice.
- * Satu file ini menangani SEMBILAN desain kartu:
+ * Satu file ini menangani SEPULUH desain kartu:
  *   - 'a4'       -> kartu "MINYAK GORENG" (Picture1.jpg)
  *   - 'segitiga' -> kartu "Segitiga Turun Harga" / TESSA-TP.06 (Picture3.png)
  *   - 'special'  -> kartu "Segitiga Special Price" (Picture3.png / gambar sendiri)
@@ -16,14 +16,15 @@ use Mpdf\Mpdf;
  *   - 'a5'       -> kartu A5, ukuran cetak fisik 19,5 x 13,5 cm (mis. LE MINERALE GALON 15 LT)
  *   - 'disc'     -> kartu landscape "KAOS WANITA / ARTIKEL TERTENTU / DISC 50%", view: discount-a5.php
  *   - 'disc2'    -> kartu landscape DISC 50% + harga normal dicoret + harga setelah diskon, view: discount2-a5.php
+ *   - 'pricetag' -> label rak kecil 8 x 3,5 cm (nama, PLU, harga; hitam-putih), banyak per halaman A4, view: price-tag.php
  *   - 'fresh'    -> 6 kartu per halaman A4 (2 x 3) "Manna Kampus FRESH" /100gr, view: butcher.php
  *   - 'curah'    -> 6 kartu per halaman A4 (2 x 3) "BAWANG KATING CURAH" + harga coret, view: curah-6up.php
- * Tiap desain punya konstanta sendiri (A4_*, SEG_*, SPC_*, DSK_*, A5_*, DSC_*, DS2_*, FRS_*, CRH_*) supaya tidak saling bentrok.
+ * Tiap desain punya konstanta sendiri (A4_*, SEG_*, SPC_*, DSK_*, A5_*, DSC_*, DS2_*, PTG_*, FRS_*, CRH_*) supaya tidak saling bentrok.
  *
  * Pemakaian (controller):
  *   $pdf = (new \App\Libraries\PopA4Pdf())->render([
  *       ['row' => $rowDb, 'qty' => 3],
- *   ], 'diskon');   // 'a4' (default) | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'fresh' | 'curah'
+ *   ], 'diskon');   // 'a4' (default) | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'pricetag' | 'fresh' | 'curah'
  *   return $this->response->setContentType('application/pdf')->setBody($pdf);
  */
 class PopA4Pdf
@@ -289,6 +290,49 @@ class PopA4Pdf
     private const DS2_STRIKE = ['x1' => 2.93, 'y1' => 11.15, 'over' => 0.80, 'slope' => 0.26, 'thick' => 0.15];
 
     /* ============================================================================
+     * DESAIN 6c: "pricetag" — label rak kecil 8 x 3,5 cm, hitam-putih
+     * Isi: nama produk (digarisbawahi), PLU, "Rp." dan harga. Banyak label per halaman A4.
+     * Contoh: MK GULA PASIR MK 1KG, PLU 030040, Rp. 17.475. View: price-tag.php
+     * Satu item = satu label; qty = jumlah label. Diisi kiri-kanan, atas-bawah.
+     * ==========================================================================*/
+
+    // Ukuran satu label (cm)
+    private const PTG_W = 8.00;
+    private const PTG_H = 3.50;
+
+    // Susunan di halaman A4: kolom x baris, dan jarak antar label (cm).
+    // Mau 1 label per halaman? Set PTG_COLS = 1 dan PTG_ROWS = 1.
+    private const PTG_COLS  = 2;
+    private const PTG_ROWS  = 7;
+    private const PTG_GAP_X = 0.40;
+    private const PTG_GAP_Y = 0.20;
+    // Pojok kiri-atas label pertama: kiri-kanan di tengah halaman, atas = 1 cm.
+    private const PTG_GRID_X = (21.00 - (self::PTG_COLS * self::PTG_W + (self::PTG_COLS - 1) * self::PTG_GAP_X)) / 2;
+    private const PTG_GRID_Y = 1.00;
+    private const PTG_PER_PAGE = self::PTG_COLS * self::PTG_ROWS;
+
+    // Arial Narrow Bold (file ARIALNB.TTF, sudah dipakai di desain lain)
+    private const PTG_FONTS = [
+        'arialnarrowb' => ['R' => 'ARIALNB.TTF'],
+    ];
+
+    // Garis & bingkai (mm, relatif ke pojok kiri-atas label)
+    private const PTG_BORDER_MM    = 0.8;   // tebal bingkai hitam
+    private const PTG_ULINE_MM     = 0.5;   // tebal garis bawah nama
+    private const PTG_ULINE_Y      = 1.12;  // posisi garis bawah nama (cm dari atas)
+    private const PTG_PLU_ULINE_MM = 0.4;   // garis bawah tulisan "PLU :"
+
+    // x/base relatif ke pojok kiri-atas label (cm).
+    // teks        family          w      h      x      base   align    warna      outline  maxRatio
+    private const PTG_EL = [
+        'nama'    => ['arialnarrowb', 7.40, 0.52, 0.21, 0.99, 'left',  '#000000', null, 0.95],
+        'plu_lbl' => ['arialnarrowb', 0.96, 0.31, 0.23, 2.34, 'left',  '#000000', null, 1.0],
+        'plu_val' => ['arialnarrowb', 1.22, 0.34, 0.21, 2.89, 'left',  '#000000', null, 1.0],
+        'rp'      => ['arialnarrowb', 1.20, 0.68, 2.37, 2.92, 'left',  '#000000', null, 1.0],
+        'harga'   => ['arialnarrowb', 4.50, 0.81, 7.81, 2.92, 'right', '#000000', null, 0.91],
+    ];
+
+    /* ============================================================================
      * DESAIN 7: "fresh" — 6 kartu per halaman A4 (2 kolom x 3 baris)
      * Contoh: Manna Kampus FRESH, harga per 100gr. Latar = Picture5.jpg (SATU kartu, tanpa teks).
      * View: butcher.php. Satu item = satu kartu; qty = jumlah kartu yang dicetak.
@@ -366,7 +410,7 @@ class PopA4Pdf
         $fd = (new FontVariables())->getDefaults();
 
         // Font semua desain digabung di sini supaya bisa dipakai mPDF.
-        $fontdata = self::A4_FONTS + self::SEG_FONTS + self::A5_FONTS;
+        $fontdata = self::A4_FONTS + self::SEG_FONTS + self::A5_FONTS + self::PTG_FONTS;
 
         // Calibri Bold (desain 'curah'). Kalau file tidak ditemukan, otomatis pakai Arial Bold.
         $calibri = 'arialbd.ttf';
@@ -401,7 +445,7 @@ class PopA4Pdf
 
     /**
      * @param array<int,array{row:array,qty?:int}> $items
-     * @param string $template 'a4' (default) | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'fresh' | 'curah'
+     * @param string $template 'a4' (default) | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'pricetag' | 'fresh' | 'curah'
      */
     public function render(array $items, string $template = 'a4'): string
     {
@@ -411,6 +455,9 @@ class PopA4Pdf
         }
         if ($template === 'curah') {
             return $this->renderCurah($items);
+        }
+        if ($template === 'pricetag') {
+            return $this->renderPriceTag($items);
         }
 
         $first = true;
@@ -445,6 +492,20 @@ class PopA4Pdf
     {
         $first = true;
         foreach ($groups as $template => $items) {
+            // Label kecil 'pricetag': semua item grup ini digabung supaya mengisi halaman penuh.
+            if ($template === 'pricetag') {
+                $rows = [];
+                foreach ($items as $it) {
+                    $qty = max(1, (int) ($it['qty'] ?? 1));
+                    for ($i = 0; $i < $qty; $i++) $rows[] = $it['row'];
+                }
+                foreach (array_chunk($rows, self::PTG_PER_PAGE) as $chunk) {
+                    if (! $first) $this->mpdf->AddPage();
+                    $this->mpdf->WriteHTML($this->pageHtmlPriceTag($chunk));
+                    $first = false;
+                }
+                continue;
+            }
             foreach ($items as $it) {
                 if ($template === 'fresh' || $template === 'curah') {
                     $rows = [];
@@ -936,6 +997,79 @@ $S = [
         $frame = self::DSC_FRAME;
 
         return view('pricetag/templates/discount2-a5', compact('S', 'L', 'box', 'img', 'frame'));
+    }
+
+    /* ====================== DESAIN 6c: "pricetag" (banyak label per halaman) ====================== */
+
+    /** Kumpulkan semua label (qty dijabarkan), bagi per halaman, satu halaman A4 tiap PTG_PER_PAGE label. */
+    private function renderPriceTag(array $items): string
+    {
+        $rows = [];
+        foreach ($items as $it) {
+            $qty = max(1, (int) ($it['qty'] ?? 1));
+            for ($i = 0; $i < $qty; $i++) {
+                $rows[] = $it['row'];
+            }
+        }
+
+        $first = true;
+        foreach (array_chunk($rows, self::PTG_PER_PAGE) as $chunk) {
+            if (! $first) {
+                $this->mpdf->AddPage();
+            }
+            $this->mpdf->WriteHTML($this->pageHtmlPriceTag($chunk));
+            $first = false;
+        }
+        return $this->mpdf->Output('', 'S');
+    }
+
+    /** @param array<int,array> $rows maksimal PTG_PER_PAGE baris data */
+    private function pageHtmlPriceTag(array $rows): string
+    {
+        $size = ['w' => self::PTG_W, 'h' => self::PTG_H, 'border' => self::PTG_BORDER_MM];
+        $tags = [];
+
+        foreach (array_values($rows) as $i => $row) {
+            $harga = (int) round((float) (($row['promo_price'] ?? 0) > 0 ? $row['promo_price'] : ($row['normal_price'] ?? 0)));
+            $nama  = mb_strtoupper(trim(trim((string) ($row['name'] ?? '')) . ' ' . trim((string) ($row['variant'] ?? ''))));
+
+            $text = [
+                'nama'    => $nama,
+                'plu_lbl' => 'PLU :',
+                'plu_val' => (string) ($row['sku_plu'] ?? ''),
+                'rp'      => 'Rp.',
+                'harga'   => number_format($harga, 0, ',', '.'),
+            ];
+
+            $S = ['w' => self::PTG_W * 10, 'h' => self::PTG_H * 10, 'el' => []];
+            foreach (self::PTG_EL as $key => $def) {
+                [$fam, $w, $h, $x, $base, $align, $color, $outline, $maxRatio] = $def;
+                $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $maxRatio) + [
+                    'color' => $color, 'outline' => $outline,
+                ];
+            }
+
+            // Garis (mm): garis bawah nama selebar bagian dalam label + garis bawah "PLU :"
+            $lines = [[
+                'x1' => 2.1, 'y1' => self::PTG_ULINE_Y * 10,
+                'x2' => self::PTG_W * 10 - 2.1, 'y2' => self::PTG_ULINE_Y * 10,
+                'w'  => self::PTG_ULINE_MM,
+            ]];
+            $lbl = $S['el']['plu_lbl'];
+            if ($lbl['text'] !== '') {
+                $uy = self::PTG_EL['plu_lbl'][4] * 10 + 0.9;
+                $lines[] = ['x1' => $lbl['x'], 'y1' => $uy, 'x2' => $lbl['x'] + $lbl['sx'] * $lbl['w0'], 'y2' => $uy, 'w' => self::PTG_PLU_ULINE_MM];
+            }
+
+            $tags[] = [
+                'x' => round(self::PTG_GRID_X + ($i % self::PTG_COLS) * (self::PTG_W + self::PTG_GAP_X), 3),
+                'y' => round(self::PTG_GRID_Y + intdiv($i, self::PTG_COLS) * (self::PTG_H + self::PTG_GAP_Y), 3),
+                'S' => $S,
+                'lines' => $lines,
+            ];
+        }
+
+        return view('pricetag/templates/pricetag', compact('tags', 'size'));
     }
 
     /* ====================== DESAIN 7: "fresh" (6 kartu per halaman) ====================== */

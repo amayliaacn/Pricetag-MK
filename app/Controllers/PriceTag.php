@@ -257,7 +257,7 @@ class PriceTag extends BaseController
     public function updateTemplate(int $id)
     {
         $size = (string) $this->request->getPost('template_size');
-        if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf', 'a5', 'fresh', 'curah', 'segitiga'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
+        if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
         if ($id === 0 && (int) $this->request->getGet('import_id') > 0) {
             $historyTable = db_connect()->table('import_history');
             $history = $historyTable->where('id', (int) $this->request->getGet('import_id'))->get()->getRowArray();
