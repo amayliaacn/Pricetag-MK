@@ -32,7 +32,6 @@ class PrintMixed extends BaseController
         $model = new PriceTagModel();
         $mpdfItems = [];
         $libreGroups = [];
-        $mpdfLibreGroups = [];
         $mergers = [];
         try {
             foreach ($ids as $id) {
@@ -80,13 +79,8 @@ class PrintMixed extends BaseController
                     : $program . '-kcl' . ($allocation ? '-allocation' : '');
                 $tpl = PriceTagTemplates::find($key);
                 if ($tpl) {
-                    // Default tetap Libre. Kirim engine=mpdf untuk memakai jalur baru.
-                    $engine = (string) $this->request->getPost('engine');
-                    if ($engine === 'mpdf') {
-                        $mpdfLibreGroups[$key][] = ['row' => $row, 'qty' => $count];
-                    } else {
-                        $libreGroups[$key][] = ['sku' => (string) $row['sku_plu'], 'qty' => $count, 'field_values' => DocxLabelMerger::buildFieldValues($row, $tpl['fields'])];
-                    }
+                    // Kecil dan tanggung selalu dicetak melalui LibreOffice.
+                    $libreGroups[$key][] = ['sku' => (string) $row['sku_plu'], 'qty' => $count, 'field_values' => DocxLabelMerger::buildFieldValues($row, $tpl['fields'])];
                 }
             }
 
@@ -95,9 +89,6 @@ class PrintMixed extends BaseController
                 $pdfs[] = $this->writeMpdfMixed($mpdfItems);
             }
             foreach ($libreGroups as $key => $items) { $mergers[$key] = new DocxLabelMerger(PriceTagTemplates::find($key)['docx']); $pdfs[] = $mergers[$key]->generate($items); }
-            if ($mpdfLibreGroups !== []) {
-                $pdfs[] = $this->writeMpdfLibre($mpdfLibreGroups);
-            }
             if ($pdfs === []) return redirect()->back()->with('error', 'Produk yang dipilih tidak ditemukan.');
             $path = $this->combine($pdfs);
             $dir = WRITEPATH . 'pricetag_downloads/'; if (!is_dir($dir)) mkdir($dir, 0775, true);
