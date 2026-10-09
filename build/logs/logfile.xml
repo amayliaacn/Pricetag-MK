@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="C:\xampp\htdocs\price-tag\phpunit.dist.xml" tests="5" assertions="4" errors="2" failures="0" skipped="0" time="0.009012">
+    <testsuite name="App" tests="5" assertions="4" errors="2" failures="0" skipped="0" time="0.009012">
+      <testsuite name="ExampleDatabaseTest" file="C:\xampp\htdocs\price-tag\tests\database\ExampleDatabaseTest.php" tests="2" assertions="0" errors="2" failures="0" skipped="0" time="0.000000">
+        <testcase name="testModelFindAll" file="C:\xampp\htdocs\price-tag\tests\database\ExampleDatabaseTest.php" line="17" class="ExampleDatabaseTest" classname="ExampleDatabaseTest" assertions="0" time="0.000000">
+          <error type="CodeIgniter\Exceptions\CriticalError">ExampleDatabaseTest::testModelFindAll&#13;
+CodeIgniter\Exceptions\CriticalError: The required PHP extension "sqlite3" is not loaded. Install and enable it to use "SQLite3" driver.
+&#13;
+C:\xampp\htdocs\price-tag\system\Database\Database.php:186
+C:\xampp\htdocs\price-tag\system\Database\Database.php:59
+C:\xampp\htdocs\price-tag\system\Database\Config.php:82
+C:\xampp\htdocs\price-tag\system\Test\DatabaseTestTrait.php:90
+C:\xampp\htdocs\price-tag\system\Test\DatabaseTestTrait.php:67
+C:\xampp\htdocs\price-tag\system\Test\CIUnitTestCase.php:254</error>
+        </testcase>
+        <testcase name="testSoftDeleteLeavesRow" file="C:\xampp\htdocs\price-tag\tests\database\ExampleDatabaseTest.php" line="28" class="ExampleDatabaseTest" classname="ExampleDatabaseTest" assertions="0" time="0.000000">
+          <error type="CodeIgniter\Exceptions\CriticalError">ExampleDatabaseTest::testSoftDeleteLeavesRow&#13;
+CodeIgniter\Exceptions\CriticalError: The required PHP extension "sqlite3" is not loaded. Install and enable it to use "SQLite3" driver.
+&#13;
+C:\xampp\htdocs\price-tag\system\Database\Database.php:186
+C:\xampp\htdocs\price-tag\system\Database\Database.php:59
+C:\xampp\htdocs\price-tag\system\Database\Config.php:82
+C:\xampp\htdocs\price-tag\system\Test\DatabaseTestTrait.php:90
+C:\xampp\htdocs\price-tag\system\Test\DatabaseTestTrait.php:67
+C:\xampp\htdocs\price-tag\system\Test\CIUnitTestCase.php:254</error>
+        </testcase>
+      </testsuite>
+      <testsuite name="ExampleSessionTest" file="C:\xampp\htdocs\price-tag\tests\session\ExampleSessionTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.001748">
+        <testcase name="testSessionSimple" file="C:\xampp\htdocs\price-tag\tests\session\ExampleSessionTest.php" line="10" class="ExampleSessionTest" classname="ExampleSessionTest" assertions="1" time="0.001748"/>
+      </testsuite>
+      <testsuite name="HealthTest" file="C:\xampp\htdocs\price-tag\tests\unit\HealthTest.php" tests="2" assertions="3" errors="0" failures="0" skipped="0" time="0.007263">
+        <testcase name="testIsDefinedAppPath" file="C:\xampp\htdocs\price-tag\tests\unit\HealthTest.php" line="12" class="HealthTest" classname="HealthTest" assertions="1" time="0.000787"/>
+        <testcase name="testBaseUrlHasBeenSet" file="C:\xampp\htdocs\price-tag\tests\unit\HealthTest.php" line="17" class="HealthTest" classname="HealthTest" assertions="2" time="0.006476"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>
