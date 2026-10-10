@@ -146,7 +146,7 @@
         <div class="control-divider d-none d-lg-block"></div>
         <div class="size-group">
             <label for="filterUkuran" class="control-label">Filter Template POP</label>
-            <select id="filterUkuran" class="form-select"><option value="all">Semua Ukuran</option><option value="kcl">Kecil</option><option value="tgg">Tanggung</option><option value="mpdf">A4</option><option value="pricetag">Price Tag</option><option value="a5">A5</option><option value="segitiga">Segitiga</option><option value="fresh">Butcher</option><option value="curah">Vegetable</option></select>
+            <select id="filterUkuran" class="form-select"><option value="all" <?= ($templateFilter ?? 'all') === 'all' ? 'selected' : '' ?>>Semua Ukuran</option><option value="kcl" <?= ($templateFilter ?? '') === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="tgg" <?= ($templateFilter ?? '') === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="mpdf" <?= ($templateFilter ?? '') === 'mpdf' ? 'selected' : '' ?>>A4</option><option value="pricetag" <?= ($templateFilter ?? '') === 'pricetag' ? 'selected' : '' ?>>Price Tag</option><option value="a5" <?= ($templateFilter ?? '') === 'a5' ? 'selected' : '' ?>>A5</option><option value="segitiga" <?= ($templateFilter ?? '') === 'segitiga' ? 'selected' : '' ?>>Segitiga</option><option value="fresh" <?= ($templateFilter ?? '') === 'fresh' ? 'selected' : '' ?>>Butcher</option><option value="curah" <?= ($templateFilter ?? '') === 'curah' ? 'selected' : '' ?>>Vegetable</option></select>
         </div>
 
         <button type="button" id="btnCetak" class="btn btn-danger" disabled data-bs-toggle="modal" data-bs-target="#modalCetak">
@@ -300,7 +300,7 @@
                     </tbody>
                 </table>
                 </div>
-                <?= view('partials/pagination', ['total' => $totalTags, 'page' => $page, 'perPage' => $perPage, 'totalPages' => $totalPages, 'baseUrl' => 'pricetag', 'params' => ['import' => (int) $history['id']], 'anchor' => 'product-table-header']) ?>
+                <?= view('partials/pagination', ['total' => $totalTags, 'page' => $page, 'perPage' => $perPage, 'totalPages' => $totalPages, 'baseUrl' => 'pricetag', 'params' => ['import' => (int) $history['id'], 'template' => $templateFilter ?? 'all'], 'anchor' => 'product-table-header']) ?>
             </div>
         </div>
     </div>
@@ -567,7 +567,12 @@
         }
 
         searchProduk.addEventListener('input', filterRows);
-        filterUkuran.addEventListener('change', filterRows);
+        filterUkuran.addEventListener('change', function () {
+            const url = new URL(window.location.href);
+            url.searchParams.set('template', filterUkuran.value);
+            url.searchParams.set('page', '1');
+            window.location.href = url.toString();
+        });
         filterRows();
 
         // Bangun isi modal setiap kali tombol Cetak ditekan

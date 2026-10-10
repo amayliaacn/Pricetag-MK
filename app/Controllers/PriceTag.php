@@ -16,6 +16,11 @@ class PriceTag extends BaseController
         $requestedPerPage = (int) ($this->request->getGet('per_page') ?? 10);
         $perPage = in_array($requestedPerPage, [10, 30, 50, 100], true) ? $requestedPerPage : 30;
         $page = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $templateFilter = (string) ($this->request->getGet('template') ?? 'all');
+        $allowedTemplateFilters = ['all', 'kcl', 'tgg', 'mpdf', 'pricetag', 'a5', 'segitiga', 'fresh', 'curah'];
+        if (! in_array($templateFilter, $allowedTemplateFilters, true)) {
+            $templateFilter = 'all';
+        }
         $model  = new PriceTagModel();
         $userId = (int) session()->get('id');
         $importId = $this->request->getGet('import');
@@ -84,6 +89,13 @@ class PriceTag extends BaseController
             $tags = $model->forUserAndDate($userId, date('Y-m-d'));
         }
 
+        // Filter template harus diterapkan ke seluruh isi history sebelum pagination.
+        if ($templateFilter !== 'all') {
+            $tags = array_values(array_filter($tags, static function (array $tag) use ($templateFilter): bool {
+                return (string) ($tag['template_size'] ?? '') === $templateFilter;
+            }));
+        }
+
         $totalTags = count($tags);
         $totalPages = max(1, (int) ceil($totalTags / $perPage));
         $page = min($page, $totalPages);
@@ -98,6 +110,7 @@ class PriceTag extends BaseController
             'totalPages' => $totalPages,
             'totalTags' => $totalTags,
             'perPage' => $perPage,
+            'templateFilter' => $templateFilter,
         ];
 
         return view('pricetag/index', $data);
