@@ -251,7 +251,7 @@
                                             data-discount="<?= (float) ($tag['discount_percent'] ?? 0) ?>"
                                         >
                                     </td>
-                                    <td><?= (($page - 1) * $perPage) + $tagIndex + 1 ?></td>
+                                    <td><?= $tagIndex + 1 ?></td>
                                     <td><?= esc($formatPeriod($tag['start_period'] ?? null)) ?></td>
                                     <td><?= esc($formatPeriod($tag['end_period'] ?? null)) ?></td>
                                     <td><?= str_starts_with((string) ($tag['sku_plu'] ?? ''), 'AUTO-') ? '<span class="text-muted">Tanpa PLU</span>' : esc($tag['sku_plu']) ?></td>
@@ -300,7 +300,6 @@
                     </tbody>
                 </table>
                 </div>
-                <?= view('partials/pagination', ['total' => $totalTags, 'page' => $page, 'perPage' => $perPage, 'totalPages' => $totalPages, 'baseUrl' => 'pricetag', 'params' => ['import' => (int) $history['id'], 'template' => $templateFilter ?? 'all'], 'anchor' => 'product-table-header']) ?>
             </div>
         </div>
     </div>
@@ -570,7 +569,8 @@
         filterUkuran.addEventListener('change', function () {
             const url = new URL(window.location.href);
             url.searchParams.set('template', filterUkuran.value);
-            url.searchParams.set('page', '1');
+            url.searchParams.delete('page');
+            url.searchParams.delete('per_page');
             window.location.href = url.toString();
         });
         filterRows();
