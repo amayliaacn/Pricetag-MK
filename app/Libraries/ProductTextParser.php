@@ -9,17 +9,21 @@ class ProductTextParser
         $text = trim($text);
         $result = ['name' => $text, 'variant' => null, 'allocation_pcs' => null];
 
-        // Untuk format alokasi berantai, gunakan angka setelah tanda '=' terakhir.
-        // Contoh: "Alok 100Q= 2000pc+1320pc= 3320pc" -> 3320.
+        // Gunakan angka setelah tanda '=' terakhir. Satuan pc/pcs bersifat opsional.
+        // Kata penanda yang diterima: Al, Alok, Alokasi, serta awalan Sisa.
+        // Contoh: "Alok 100Q= 2000pc+1320pc= 3320" -> 3320.
         $posisiSamaDengan = strrpos($text, '=');
         if ($posisiSamaDengan !== false) {
+            $sebelumSamaDengan = substr($text, 0, $posisiSamaDengan);
             $bagianAlokasi = substr($text, $posisiSamaDengan + 1);
-            if (preg_match('/(\d+)\s*pc\b/i', $bagianAlokasi, $match)) {
+            $penandaAlokasi = '/(?:^|\s)(?:sisa\s+)?al(?:ok(?:asi)?)?\b/iu';
+            if (preg_match($penandaAlokasi, $sebelumSamaDengan) === 1
+                && preg_match('/^\s*(\d+)\s*(?:pcs?)?\s*$/i', $bagianAlokasi, $match) === 1) {
                 $result['allocation_pcs'] = (int) $match[1];
 
                 // Hilangkan keterangan alokasi dari nama/varian sebelum dipisahkan.
                 $text = preg_replace(
-                    '/\s+(?:sisa\s+)?alok(?:asi)?\b.*$/iu',
+                    '/\s+(?:sisa\s+)?al(?:ok(?:asi)?)?\b.*$/iu',
                     '',
                     $text
                 ) ?? $text;
@@ -32,13 +36,6 @@ class ProductTextParser
         if (str_contains($text, '#')) {
             [$name, $variant] = explode('#', $text, 2);
             $variant = trim($variant);
-        }
-
-        $allocationText = $variant !== '' ? $variant : $name;
-        if ($result['allocation_pcs'] === null && preg_match('/\b(?:sisa\s+)?alok(?:asi)?(?:\s+[^=]+)?\s*=\s*(\d+)\s*pcs?\b/iu', $allocationText, $match)) {
-            $result['allocation_pcs'] = (int) $match[1];
-            $allocationText = preg_replace('/\b(?:sisa\s+)?alok(?:asi)?(?:\s+[^=]+)?\s*=\s*\d+\s*pcs?\b/iu', '', $allocationText) ?? $allocationText;
-            if ($variant !== '') $variant = $allocationText; else $name = $allocationText;
         }
 
         $result['name'] = trim($name);

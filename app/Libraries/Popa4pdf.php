@@ -683,7 +683,9 @@ $S = [
 
         $text = [
             'periode' => 'Akhir Periode : ' . $this->tanggal($row['end_period'] ?? ''),
-            'alokasi' => 'Alokasi : ' . number_format((float) ($row['allocation_pcs'] ?? 0), 0, ',', '.') . ' Pcs',
+            'alokasi' => (float) ($row['allocation_pcs'] ?? 0) > 0
+                ? 'Alokasi : ' . number_format((float) $row['allocation_pcs'], 0, ',', '.') . ' Pcs'
+                : '',
             'nama_produk'   => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
             'variant'  => mb_strtoupper(trim((string) ($row['variant'] ?? ''))),
             'rp_lama' => 'Rp',
@@ -775,7 +777,9 @@ $S = [
 
         $text = [
             'periode'     => 'Akhir Periode : ' . mb_strtoupper($this->tanggal($row['end_period'] ?? '')),
-            'alokasi'     => 'Alokasi : ' . number_format((float) ($row['allocation_pcs'] ?? 0), 0, ',', '.') . ' Pcs',
+            'alokasi'     => (float) ($row['allocation_pcs'] ?? 0) > 0
+                ? 'Alokasi : ' . number_format((float) $row['allocation_pcs'], 0, ',', '.') . ' Pcs'
+                : '',
             'nama_produk' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
             'variant'     => mb_strtoupper(trim((string) ($row['variant'] ?? ''))),
             'label'       => 'DISKON',
