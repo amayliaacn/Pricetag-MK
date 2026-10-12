@@ -608,7 +608,8 @@ class PopA4Pdf
                          'top' => $top('bookantiqua', '', self::A4_PT_NORMAL, $P['normal']['base'])];
         $L['big']     = ['left' => round($ox + $P['big']['left'], 3),
                          'top' => $top('bookantiqua', '', $F['big']['pt'], $P['big']['base'])];
-        $L['small']   = ['left' => round($ox + $P['small']['right'] - 12.0, 3), 'w' => 12.0,
+        $smallRight = $promo >= 1000 ? $P['small']['right'] : ($P['small']['right'] - 1.2);
+        $L['small']   = ['left' => round($ox + $smallRight - 12.0, 3), 'w' => 12.0,
                          'top' => $top('bookantiqua', '', self::A4_PT_SMALL, $P['small']['base'])];
 
         $wNormal = $this->textWidthCm('bookantiqua', '', self::A4_PT_NORMAL, $T['normal']);
@@ -853,6 +854,9 @@ $S = [
         $S = ['w' => self::A5_BOX_W * 10, 'h' => self::A5_BOX_H * 10, 'el' => []];
         foreach (self::A5_EL as $key => $def) {
             [$fam, $w, $h, $x, $base, $align, $color, $outline, $maxSkew] = $def;
+            if ($key === 'small' && $promo < 1000) {
+                $x = 12.75;
+            }
             $element = in_array($key, ['big', 'small'], true)
                 ? $this->stretchBox($fam, $text[$key], ['x' => $x, 'w' => $w, 'h' => $h, 'base' => $base, 'max' => 1.0], $align)
                 : $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, 0, (float) $maxSkew);

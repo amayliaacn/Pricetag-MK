@@ -75,6 +75,10 @@ class DocxLabelMerger
             // bagian kecil dengan titik dari template.
             if ($placeholder === 'Ratusan' && !str_starts_with((string) $value, '.')) {
                 $xml = str_replace('.' . $escapedNeedle, $escapedNeedle, $xml);
+                // Penyesuaian posisi untuk nominal ratusan pada template
+                // tanggung tanpa alokasi.
+                $xml = str_replace('margin-left:292pt', 'margin-left:276pt', $xml);
+                $xml = str_replace('margin-left:135pt', 'margin-left:130pt', $xml);
             }
 
             $xml = str_replace($escapedNeedle, $safeValue, $xml);
