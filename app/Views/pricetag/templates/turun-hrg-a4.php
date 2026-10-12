@@ -59,7 +59,7 @@ $box = $L['box'];
 <?php if ($T['small'] !== ''): ?>
 <div class="abs red outline-red r" style="left: <?= $L['small']['left'] ?>cm; top: <?= $L['small']['top'] ?>cm; width: <?= $L['small']['w'] ?>cm;
      font-family: <?= $F['small']['family'] ?>; font-weight: bold; font-size: <?= $F['small']['pt'] ?>pt; line-height: <?= $F['small']['pt'] ?>pt;">
-    .<?= $e($T['small']) ?>
+    <?= $e($T['small_prefix']) ?><?= $e($T['small']) ?>
 </div>
 <?php endif; ?>
 

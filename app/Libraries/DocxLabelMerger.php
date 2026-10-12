@@ -69,6 +69,14 @@ class DocxLabelMerger
             $escapedNeedle = htmlspecialchars($needle, ENT_XML1);
             $safeValue     = htmlspecialchars((string) $value, ENT_XML1);
 
+            // Template tanggung lama memiliki titik literal sebelum
+            // placeholder Ratusan. Untuk harga < 1.000 titik tersebut harus
+            // dihapus; untuk harga >= 1.000 formatter memang mengembalikan
+            // bagian kecil dengan titik dari template.
+            if ($placeholder === 'Ratusan' && !str_starts_with((string) $value, '.')) {
+                $xml = str_replace('.' . $escapedNeedle, $escapedNeedle, $xml);
+            }
+
             $xml = str_replace($escapedNeedle, $safeValue, $xml);
             $xml = str_replace($needle, $safeValue, $xml);
         }
@@ -237,7 +245,10 @@ class DocxLabelMerger
 
             case 'thousands_id':
                 $amount = (int) $value;
-                return number_format($amount >= 1000 ? intdiv($amount, 1000) : intdiv($amount, 100), 0, ',', '.');
+                // Bagian harga besar bukan nominal utuh yang perlu separator
+                // ribuan. Separator hanya dipakai pada bagian kecil untuk
+                // harga >= 1.000 (contoh: 14 + .360).
+                return (string) ($amount >= 1000 ? intdiv($amount, 1000) : intdiv($amount, 100));
 
             case 'hundreds_id':
                 $amount = (int) $value;

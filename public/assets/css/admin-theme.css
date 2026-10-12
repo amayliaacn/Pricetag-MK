@@ -24,7 +24,6 @@ body.mk-body {
         linear-gradient(135deg, #fffaf5 0%, #f6f7fb 48%, #fff 100%);
     color: var(--mk-ink);
 }
-.manual-detail-page #tabelProdukDetail tbody tr:not(#emptySourceState):not(#emptyFilterState) > td:last-child { display: none; }
 
 .mk-topbar {
     margin-top: 0 !important;

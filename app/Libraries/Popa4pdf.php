@@ -559,13 +559,14 @@ class PopA4Pdf
             'small'   => $promo >= 1000
                 ? str_pad((string) ($promo % 1000), 3, '0', STR_PAD_LEFT)
                 : ($promo >= 100 ? str_pad((string) ($promo % 100), 2, '0', STR_PAD_LEFT) : (string) $promo),
+            'small_prefix' => $promo >= 1000 ? '.' : '',
         ];
 
         // Lebar maksimal angka besar: sisakan ruang untuk angka kecil (".900") di kanannya
         // supaya keduanya tidak saling menimpa. Angka kecil rata kanan di A4_POS['small']['right'].
         $bigMaxW = self::A4_W_BIG;
         if ($T['small'] !== '') {
-            $wSmall  = $this->textWidthCm('bookantiqua', '', self::A4_PT_SMALL, '.' . $T['small']);
+            $wSmall  = $this->textWidthCm('bookantiqua', '', self::A4_PT_SMALL, $T['small_prefix'] . $T['small']);
             $smallL  = self::A4_POS['small']['right'] - $wSmall;
             $bigMaxW = max(3.0, min(self::A4_W_BIG, $smallL - self::A4_POS['big']['left'] - self::A4_GAP_BIG_SMALL));
         }
@@ -844,7 +845,7 @@ $S = [
             'big'      => $promo >= 1000 ? (string) intdiv($promo, 1000) : (string) intdiv($promo, 100),
             'small'    => $promo >= 1000
                 ? '.' . str_pad((string) ($promo % 1000), 3, '0', STR_PAD_LEFT)
-                : ($promo >= 100 ? '.' . str_pad((string) ($promo % 100), 2, '0', STR_PAD_LEFT) : (string) $promo),
+                : str_pad((string) ($promo % 100), 2, '0', STR_PAD_LEFT),
             'periode1' => 'Akhir Periode :',
             'periode2' => $this->tanggal($row['end_period'] ?? ''),
         ];

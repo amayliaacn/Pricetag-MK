@@ -125,7 +125,7 @@
             <div class="table-responsive">
                 <table class="table align-middle manual-entry-table">
                     <thead class="table-dark">
-                        <tr>
+                        <tr data-price-tag-id="<?= (int) ($row['price_tag_id'] ?? 0) ?>">
                             <th>No</th>
                             <th>Awal Periode</th>
                             <th>Akhir Periode</th>
@@ -307,6 +307,7 @@
     form.addEventListener('submit', e => {
         form.querySelectorAll('input.gen').forEach(x => x.remove());
         const data = [];
+        const rowIds = [];
         let salah = 0;
 
         [...tb.rows].forEach(tr => {
@@ -318,6 +319,7 @@
                 if (c.classList.contains('err')) salah++;
             });
             data.push(v);
+            rowIds.push(parseInt(tr.dataset.priceTagId || '0', 10));
         });
 
         if (!data.length) { e.preventDefault(); alert('Belum ada data yang diisi.'); return; }
@@ -333,6 +335,13 @@
                 inp.name = 'rows[' + i + '][' + c.field + ']'; inp.value = val;
                 form.appendChild(inp);
             });
+            const priceTagId = rowIds[i] || 0;
+            if (priceTagId > 0) {
+                const inp = document.createElement('input');
+                inp.type = 'hidden'; inp.className = 'gen';
+                inp.name = 'rows[' + i + '][price_tag_id]'; inp.value = priceTagId;
+                form.appendChild(inp);
+            }
         });
     });
 })();
