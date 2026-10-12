@@ -142,6 +142,7 @@ class ImportHistory extends BaseController
             $brandText = trim((string) ($row['brand'] ?? ''));
             $parsedProduct = $parser->parse($brandText);
             $clean = [
+                'price_tag_id'  => (int) ($row['price_tag_id'] ?? 0),
                 'start_period' => $this->normalizeManualDate($row['start_period'] ?? ''),
                 'end_period'   => $this->normalizeManualDate($row['end_period'] ?? ''),
                 'sku_plu'      => trim((string) ($row['sku_plu'] ?? '')),
@@ -157,23 +158,29 @@ class ImportHistory extends BaseController
             }
         }
 
-        (new ImportHistoryModel())->update($id, [
-            'snapshot' => json_encode($cleanRows, JSON_UNESCAPED_UNICODE),
-        ]);
-
         // Sinkronkan produk manual ke price_tags agar setiap produk memiliki
         // ID valid dan dapat dipilih untuk dicetak seperti produk Excel.
         $priceTagModel = new PriceTagModel();
         $existingTags = $priceTagModel->where('import_id', $id)->findAll();
-        $templateBySku = [];
+        $existingById = [];
         foreach ($existingTags as $existingTag) {
-            if (! empty($existingTag['sku_plu']) && ! empty($existingTag['template_size'])) {
-                $templateBySku[(string) $existingTag['sku_plu']] = $existingTag['template_size'];
-            }
+            $existingById[(int) $existingTag['id']] = $existingTag;
         }
-        $priceTagModel->where('import_id', $id)->delete();
+        $usedIds = [];
+        $savedRows = [];
         foreach ($cleanRows as $row) {
-            $sku = $row['sku_plu'] !== '' ? $row['sku_plu'] : 'AUTO-MANUAL-' . date('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
+            $sku = $row['sku_plu'];
+            // Setiap baris manual adalah record tersendiri. SKU/PLU boleh sama,
+            // sehingga identitas saat edit harus menggunakan price_tag_id.
+            $existing = ! empty($row['price_tag_id'])
+                ? ($existingById[(int) $row['price_tag_id']] ?? null)
+                : null;
+            if ($sku === '' && $existing) {
+                $sku = (string) $existing['sku_plu'];
+            }
+            if ($sku === '') {
+                $sku = 'AUTO-MANUAL-' . date('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
+            }
             $promo = trim((string) ($row['promo'] ?? ''));
             $discount = null;
             if (preg_match('/(\d+(?:[.,]\d+)?)\s*%/', $promo, $promoMatch)) {
@@ -186,7 +193,7 @@ class ImportHistory extends BaseController
                 $promoDigits = preg_replace('/[^0-9]/', '', $promo);
                 $promoPrice = $promoDigits !== '' ? (int) $promoDigits : null;
             }
-            $priceTagModel->insert([
+            $data = [
                 'sku_plu'          => $sku,
                 'name'             => $row['name'],
                 'variant'          => $row['variant'],
@@ -199,10 +206,30 @@ class ImportHistory extends BaseController
                 'uploaded_by'      => (int) session()->get('id'),
                 'import_date'      => date('Y-m-d'),
                 'import_id'        => $id,
-                'template_size'    => $templateBySku[(string) $sku] ?? null,
+                'template_size'    => $existing['template_size'] ?? null,
                 'is_printed'       => 0,
-            ]);
+            ];
+            if ($existing) {
+                $tagId = (int) $existing['id'];
+                $priceTagModel->update($tagId, $data);
+            } else {
+                $tagId = (int) $priceTagModel->insert($data, true);
+            }
+            $usedIds[] = $tagId;
+            $row['sku_plu'] = $sku;
+            $row['price_tag_id'] = $tagId;
+            $savedRows[] = $row;
         }
+
+        foreach ($existingTags as $existingTag) {
+            if (! in_array((int) $existingTag['id'], $usedIds, true)) {
+                $priceTagModel->delete((int) $existingTag['id']);
+            }
+        }
+
+        (new ImportHistoryModel())->update($id, [
+            'snapshot' => json_encode($savedRows, JSON_UNESCAPED_UNICODE),
+        ]);
 
         return redirect()->to(base_url('import-history/manual/' . $id))->with('success', 'Data manual berhasil disimpan.');
     }

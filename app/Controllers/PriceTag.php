@@ -47,7 +47,7 @@ class PriceTag extends BaseController
                 if (empty($tags)) {
                     $tags = array_map(static function (array $row): array {
                         return [
-                            'id' => 0,
+                        'id' => (int) ($row['price_tag_id'] ?? $row['id'] ?? 0),
                         'sku_plu' => $row['sku_plu'] ?? '',
                         'name' => $row['name'] ?? ($row['brand'] ?? ''),
                         'variant' => $row['variant'] ?? null,
@@ -94,7 +94,9 @@ class PriceTag extends BaseController
         }
 
         $data = [
-            'title'     => $history ? 'Detail Import - ' . $history['file_name'] : 'Data Price Tag',
+            'title'     => $history
+                ? (($isManualDetail = (int) ($history['source_type'] ?? 0) === 1) ? 'Detail Input - ' : 'Detail Import - ') . $history['file_name']
+                : 'Data Price Tag',
             'tags'      => $tags,
             'history'   => $history,
             'templates' => PriceTagTemplates::all(),
@@ -346,6 +348,34 @@ class PriceTag extends BaseController
             return redirect()->back()->with('error', 'PLU, nama produk, dan Harga Normal wajib diisi.');
         }
         $model->update($id, $data);
+
+        // Data manual memiliki sumber snapshot. Sinkronkan juga agar halaman
+        // input manual tidak menampilkan nilai lama setelah edit dari detail.
+        if (! empty($tag['import_id'])) {
+            $historyModel = new ImportHistoryModel();
+            $history = $historyModel->find((int) $tag['import_id']);
+            if ($history && (int) ($history['source_type'] ?? 0) === 1) {
+                $snapshot = json_decode($history['snapshot'] ?? '[]', true) ?: [];
+                foreach ($snapshot as &$row) {
+                    if ((int) ($row['price_tag_id'] ?? 0) !== $id) continue;
+                    $row['sku_plu'] = $data['sku_plu'];
+                    $row['brand'] = $data['name'];
+                    $row['name'] = $data['name'];
+                    $row['variant'] = $data['variant'];
+                    $row['normal_price'] = $data['normal_price'];
+                    $row['start_period'] = $data['start_period'];
+                    $row['end_period'] = $data['end_period'];
+                    $row['promo'] = $data['discount_percent'] !== null
+                        ? rtrim(rtrim((string) $data['discount_percent'], '0'), '.') . '%'
+                        : ($data['promo_price'] !== null ? (string) $data['promo_price'] : '');
+                    break;
+                }
+                unset($row);
+                $historyModel->update((int) $tag['import_id'], [
+                    'snapshot' => json_encode($snapshot, JSON_UNESCAPED_UNICODE),
+                ]);
+            }
+        }
         return redirect()->back()->with('success', 'Data produk berhasil diperbarui.');
     }
 
@@ -385,7 +415,33 @@ class PriceTag extends BaseController
             'template_size' => null,
             'is_printed' => 0,
         ];
-        (new PriceTagModel())->insert($data);
+        $priceTagModel = new PriceTagModel();
+        $tagId = (int) $priceTagModel->insert($data, true);
+        if ($importId > 0) {
+            $historyModel = new ImportHistoryModel();
+            $history = $historyModel->find($importId);
+            if ($history && (int) ($history['source_type'] ?? 0) === 1) {
+                $snapshot = json_decode($history['snapshot'] ?? '[]', true) ?: [];
+                $promo = $data['discount_percent'] !== null
+                    ? rtrim(rtrim((string) $data['discount_percent'], '0'), '.') . '%'
+                    : ($data['promo_price'] !== null ? (string) $data['promo_price'] : '');
+                $snapshot[] = [
+                    'price_tag_id' => $tagId,
+                    'start_period' => $data['start_period'],
+                    'end_period' => $data['end_period'],
+                    'sku_plu' => $data['sku_plu'],
+                    'brand' => $data['name'],
+                    'name' => $data['name'],
+                    'variant' => $data['variant'],
+                    'allocation_pcs' => $data['allocation_pcs'],
+                    'normal_price' => $data['normal_price'],
+                    'promo' => $promo,
+                ];
+                $historyModel->update($importId, [
+                    'snapshot' => json_encode($snapshot, JSON_UNESCAPED_UNICODE),
+                ]);
+            }
+        }
         return redirect()->back()->with('success', 'Produk berhasil ditambahkan.');
     }
 

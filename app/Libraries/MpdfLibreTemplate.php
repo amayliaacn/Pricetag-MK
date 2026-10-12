@@ -156,13 +156,19 @@ class MpdfLibreTemplate
     private function prepareTag(array $row): array
     {
         $promo = (int) round((float) ($row['promo_price'] ?? 0));
-        $formatted = str_pad((string) $promo, 4, '0', STR_PAD_LEFT);
+        $hasThousands = $promo >= 1000;
 
         return $row + [
             'display_name' => trim(($row['name'] ?? '') . ' ' . ($row['variant'] ?? '')),
             'periode_display' => (string) ($row['end_period'] ?? ''),
-            'promo_thousands' => substr($formatted, 0, -3) ?: '0',
-            'promo_hundreds' => '.' . substr($formatted, -3),
+            // Untuk harga di bawah 1.000, digit ratusan pertama menjadi
+            // harga besar dan dua digit sisanya menjadi harga kecil tanpa titik
+            // (contoh 990 => 9 dan 90). Harga >= 1.000 tetap memakai titik
+            // sebelum tiga digit terakhir (contoh 14.360 => 14 dan .360).
+            'promo_thousands' => $hasThousands ? (string) intdiv($promo, 1000) : (string) intdiv($promo, 100),
+            'promo_hundreds' => $hasThousands
+                ? '.' . str_pad((string) ($promo % 1000), 3, '0', STR_PAD_LEFT)
+                : str_pad((string) ($promo % 100), 2, '0', STR_PAD_LEFT),
         ];
     }
 
