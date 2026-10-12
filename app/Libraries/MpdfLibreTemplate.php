@@ -199,7 +199,12 @@ class MpdfLibreTemplate
         // Ribuan + ratusan (".991"); sudah disiapkan prepareTag()
         $S['el']['big']   = $this->stretchBox('bookantiqua', (string) $tag['promo_thousands'], self::TGG_BIG)
             + ['color' => '#FF0000', 'outline' => '#FF0000 0.45pt'];
-        $S['el']['small'] = $this->stretchBox('bookantiqua', (string) $tag['promo_hundreds'], self::TGG_SMALL)
+        $smallBox = self::TGG_SMALL;
+        // Harga ratusan tidak memakai separator dan harus menempel ke angka besar.
+        if ((int) ($tag['promo_price'] ?? 0) < 1000) {
+            $smallBox['x'] = 12.65;
+        }
+        $S['el']['small'] = $this->stretchBox('bookantiqua', (string) $tag['promo_hundreds'], $smallBox)
             + ['color' => '#FF0000', 'outline' => '#FF0000 0.45pt'];
 
         // Baris kedua "Akhir Periode": skala sama dengan baris pertama, rata kiri
