@@ -58,7 +58,7 @@ class PopA4Pdf
     private const A4_PT_VARIANT_MAX = 60;
     private const A4_PT_NORMAL      = 68;
     private const A4_PT_BIG_MAX     = 420;
-    private const A4_PT_SMALL       = 99;
+    private const A4_PT_SMALL       = 108;
     private const A4_PT_RP_SMALL    = 16;
     private const A4_PT_RP_BIG      = 35;
 
@@ -634,25 +634,39 @@ class PopA4Pdf
             $bigBox['w'] = 9.25;
         }
 
-// Lebar angka besar dibuat dinamis.
-// Jika ada angka kecil (.900, .500, dst), sisakan ruang agar tidak bertabrakan.
-if ($T['small'] !== '') {
-    $wSmall = $this->textWidthCm(
-        'bookantiqua',
-        '',
-        self::A4_PT_SMALL,
-        '.' . $T['small']
-    );
+        // Lebar angka besar dibuat berdasarkan jumlah digitnya. Angka 1 digit
+        // tidak boleh melebar terlalu jauh, sedangkan angka 3 digit perlu
+        // dipersempit agar tetap memiliki jarak aman dari titik/angka kecil.
+        $bigDigitCount = strlen($T['big']);
+        $bigBox['max'] = match (true) {
+            // Tahap 1: satu digit dikembalikan ke ukuran awal, lalu digeser
+            // mendekati titik/angka kecil tanpa memindahkan angka kecil.
+            $bigDigitCount <= 1 => 0.85,
+            $bigDigitCount === 2 => 0.78,
+            default => 1.0,
+        };
 
-    $smallLeft = self::A4_POS['small']['right'] - $wSmall;
+        if ($bigDigitCount <= 1) {
+            $bigBox['x'] = 3.50;
+            $bigBox['w'] = self::A4_W_BIG;
+        }
 
-    $bigBox['w'] = max(
-        3.0,
-        $smallLeft
-            - self::A4_POS['big']['left']
-            - self::A4_GAP_BIG_SMALL
-    );
-}
+        if ($T['small'] !== '' && $bigDigitCount > 1) {
+            $smallRight = $promo >= 1000 ? self::A4_POS['small']['right'] : (self::A4_POS['small']['right'] - 1.2);
+            $wSmall = $this->textWidthCm(
+                'bookantiqua',
+                '',
+                self::A4_PT_SMALL,
+                $T['small_prefix'] . $T['small']
+            );
+            $smallLeft = $smallRight - $wSmall;
+
+            $bigBox['w'] = max(
+                3.0,
+                $smallLeft - $bigBox['x'] - self::A4_GAP_BIG_SMALL
+            );
+        }
+
 
 $S = [
     'w'       => self::A4_BOX_W * 10,
@@ -671,6 +685,47 @@ $S = [
         'left'
     ),
 ];
+
+// Untuk satu digit, seimbangkan ruang kiri dan kanan angka besar:
+// ujung "Rp" -> angka besar = angka besar -> titik/angka kecil.
+if ($T['small'] !== '' && strlen($T['big']) <= 1) {
+    $smallRight = $promo >= 1000 ? self::A4_POS['small']['right'] : (self::A4_POS['small']['right'] - 1.2);
+    $smallWidth = $this->textWidthCm(
+        'bookantiqua',
+        '',
+        self::A4_PT_SMALL,
+        $T['small_prefix'] . $T['small']
+    );
+    $smallLeft = $smallRight - $smallWidth;
+    $rpWidth = $this->textWidthCm('arial', 'BI', self::A4_PT_RP_BIG, 'Rp');
+    $rpRight = self::A4_POS['rp_big']['left'] + $rpWidth;
+    $bigWidth = ($S['big']['w0'] * $S['big']['sx']) / 10;
+    $opticalOffset = match ($T['big']) {
+        '9' => 0.35,
+        '7' => 0.15,
+        default => 0.0,
+    };
+    $S['big']['x'] = round((($rpRight + $smallLeft - $bigWidth) / 2 + $opticalOffset) * 10, 2);
+}
+
+// Letakkan angka kecil mengikuti ujung aktual angka besar. Dengan begitu,
+// jarak tidak melebar saat angka besar hanya 1 digit, dan tetap aman saat
+// angka besar terdiri dari 2 atau 3 digit.
+if ($T['small'] !== '' && strlen($T['big']) > 1) {
+    $smallRightLimit = $promo >= 1000 ? self::A4_POS['small']['right'] : (self::A4_POS['small']['right'] - 1.2);
+    $smallWidth = $this->textWidthCm(
+        'bookantiqua',
+        '',
+        self::A4_PT_SMALL,
+        $T['small_prefix'] . $T['small']
+    );
+    $bigRight = ($S['big']['x'] + ($S['big']['w0'] * $S['big']['sx'])) / 10;
+    $smallRight = min(
+        $smallRightLimit,
+        $bigRight + self::A4_GAP_BIG_SMALL + $smallWidth
+    );
+    $L['small']['left'] = round($ox + $smallRight - 12.0, 3);
+}
 
         $img = FCPATH . self::A4_IMG_FILE;
         return view('pricetag/templates/turun-hrg-a4', compact('T', 'L', 'F', 'S', 'img'));
@@ -1283,7 +1338,7 @@ $S = [
         $x = $align === 'center' ? $box['cx'] * 10 - $drawn / 2 : $box['x'] * 10;
 
         return ['family' => $fam, 'fs' => $base, 'x' => round($x, 2), 'y' => round($box['base'] * 10, 2),
-                'sx' => round($sx, 4), 'sy' => round($sy, 4), 'text' => $text];
+                'sx' => round($sx, 4), 'sy' => round($sy, 4), 'w0' => round($w0, 3), 'text' => $text];
     }
 
     /**

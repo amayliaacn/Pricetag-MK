@@ -238,7 +238,7 @@ class MpdfLibreTemplate
         return compact('S', 'L', 'box');
     }
 
-    /** "2026-09-15" -> "15 SEP '26" (kalau bukan tanggal valid, dipakai apa adanya) */
+    /** "2026-09-15" -> "15 SEP 2026" (kalau bukan tanggal valid, dipakai apa adanya) */
     private function tanggalPendek(string $ymd): string
     {
         $ts = strtotime($ymd);
@@ -246,7 +246,7 @@ class MpdfLibreTemplate
             return mb_strtoupper(trim($ymd));
         }
         $b = [1 => 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
-        return date('j', $ts) . ' ' . $b[(int) date('n', $ts)] . " '" . date('y', $ts);
+        return date('j', $ts) . ' ' . $b[(int) date('n', $ts)] . ' ' . date('Y', $ts);
     }
 
     /* ---------- util regang teks (sama dengan PopA4Pdf::stretchEl / stretchBox) ---------- */
