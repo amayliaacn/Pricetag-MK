@@ -12,13 +12,14 @@
     <style>
         .manual-entry-table td { padding: 6px 8px; }
         .manual-entry-table { width: 100%; table-layout: fixed; }
-        .manual-entry-table th:nth-child(1), .manual-entry-table td:nth-child(1) { width: 42px; }
-        .manual-entry-table th:nth-child(2), .manual-entry-table td:nth-child(2),
-        .manual-entry-table th:nth-child(3), .manual-entry-table td:nth-child(3) { width: 120px; }
-        .manual-entry-table th:nth-child(4), .manual-entry-table td:nth-child(4) { width: 95px; }
-        .manual-entry-table th:nth-child(5), .manual-entry-table td:nth-child(5) { width: auto; }
-        .manual-entry-table th:nth-child(6), .manual-entry-table td:nth-child(6) { width: 130px; }
-        .manual-entry-table th:nth-child(7), .manual-entry-table td:nth-child(7) { width: 120px; }
+        .manual-entry-table th:nth-child(1), .manual-entry-table td:nth-child(1) { width: 70px; text-align: center; }
+        .manual-entry-table th:nth-child(2), .manual-entry-table td:nth-child(2) { width: 42px; text-align: center; }
+        .manual-entry-table th:nth-child(3), .manual-entry-table td:nth-child(3),
+        .manual-entry-table th:nth-child(4), .manual-entry-table td:nth-child(4) { width: 120px; }
+        .manual-entry-table th:nth-child(5), .manual-entry-table td:nth-child(5) { width: 95px; }
+        .manual-entry-table th:nth-child(6), .manual-entry-table td:nth-child(6) { width: auto; }
+        .manual-entry-table th:nth-child(7), .manual-entry-table td:nth-child(7) { width: 130px; }
+        .manual-entry-table th:nth-child(8), .manual-entry-table td:nth-child(8) { width: 120px; }
         .manual-entry-table td.row-number { width: 42px; text-align: center; }
         .manual-entry-table td.col-aksi, .manual-entry-table th.col-aksi { width: 70px; text-align: center; }
         .manual-entry-table .cell {
@@ -126,6 +127,12 @@
                 <table class="table align-middle manual-entry-table">
                     <thead class="table-dark">
                         <tr data-price-tag-id="<?= (int) ($row['price_tag_id'] ?? 0) ?>">
+                            <th style="width:70px;">
+                                <div class="d-flex align-items-center justify-content-center gap-1">
+                                    <input type="checkbox" id="manualCheckAll" class="form-check-input mt-0">
+                                    <label for="manualCheckAll" class="mb-0 text-white user-select-none" style="cursor:pointer;">All</label>
+                                </div>
+                            </th>
                             <th>No</th>
                             <th>Awal Periode</th>
                             <th>Akhir Periode</th>
@@ -148,6 +155,7 @@
                             $harga = (float) ($row['normal_price'] ?? 0);
                         ?>
                         <tr>
+                            <td><input type="checkbox" class="form-check-input manual-row-check"></td>
                             <td class="row-number"><?= $i + 1 ?></td>
                             <td><div class="cell" contenteditable="true" data-field="start_period" data-tipe="tgl" data-ph="12-Jul-2026"><?= esc($tgl($row['start_period'] ?? '')) ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="end_period" data-tipe="tgl" data-ph="30-Jul-2026"><?= esc($tgl($row['end_period'] ?? '')) ?></div></td>
@@ -202,11 +210,26 @@
 
     function buatBaris() {
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td class="row-number"></td>' +
+        tr.innerHTML = '<td><input type="checkbox" class="form-check-input manual-row-check"></td>' +
+            '<td class="row-number"></td>' +
             COLS.map(c => `<td><div class="cell ${c.tipe === 'rp' ? 'num' : ''}" contenteditable="true" data-field="${c.field}" data-tipe="${c.tipe}" data-ph="${c.ph}"></div></td>`).join('') +
             '<td class="col-aksi"><button type="button" class="btn btn-danger btn-sm remove-row"><i class="bi bi-trash"></i></button></td>';
         return tr;
     }
+
+    const checkAll = document.getElementById('manualCheckAll');
+    const syncCheckAll = () => {
+        const checks = [...tb.querySelectorAll('.manual-row-check')];
+        checkAll.checked = checks.length > 0 && checks.every(check => check.checked);
+        checkAll.indeterminate = checks.some(check => check.checked) && !checkAll.checked;
+    };
+    checkAll.addEventListener('change', () => {
+        tb.querySelectorAll('.manual-row-check').forEach(check => check.checked = checkAll.checked);
+        checkAll.indeterminate = false;
+    });
+    tb.addEventListener('change', event => {
+        if (event.target.classList.contains('manual-row-check')) syncCheckAll();
+    });
 
     // ---------- format & validasi ----------
     function fmt(el) {

@@ -85,6 +85,39 @@ class ImportHistory extends BaseController
         return redirect()->to(base_url('import-history'))->with('success', 'Data file import dan produk terkait berhasil dihapus.');
     }
 
+    public function deleteSelected()
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $this->request->getPost('history_ids')))));
+        if ($ids === []) {
+            return redirect()->back()->with('error', 'Pilih minimal satu data untuk dihapus.');
+        }
+
+        $role = (string) session()->get('role');
+        $outletId = session()->get('outlet_id');
+        $historyModel = new ImportHistoryModel();
+        $visibleIds = [];
+        foreach ($ids as $id) {
+            if ($historyModel->findVisibleImport($id, $role, $outletId === null ? null : (int) $outletId)) {
+                $visibleIds[] = $id;
+            }
+        }
+
+        if ($visibleIds === []) {
+            return redirect()->back()->with('error', 'Data yang dipilih tidak ditemukan atau tidak dapat dihapus.');
+        }
+
+        $db = db_connect();
+        $db->transStart();
+        $db->table('price_tags')->whereIn('import_id', $visibleIds)->delete();
+        $historyModel->whereIn('id', $visibleIds)->delete();
+        $db->transComplete();
+
+        return redirect()->back()->with(
+            $db->transStatus() ? 'success' : 'error',
+            $db->transStatus() ? count($visibleIds) . ' data history berhasil dihapus.' : 'Data history gagal dihapus.'
+        );
+    }
+
     public function createManual()
     {
         $role = (string) session()->get('role');
