@@ -940,6 +940,17 @@ if ($T['small'] !== '' && strlen($T['big']) > 1) {
         $S = ['w' => self::A5_BOX_W * 10, 'h' => self::A5_BOX_H * 10, 'el' => []];
         foreach (self::A5_EL as $key => $def) {
             [$fam, $w, $h, $x, $base, $align, $color, $outline, $maxSkew] = $def;
+            // Harga 1 digit masih terlalu jauh dari titik dan harga kecil.
+            // Geser hanya angka besarnya; posisi harga 2 dan 3 digit tetap.
+            if ($key === 'big' && $promo >= 1000 && $promo < 10000) {
+                $x = 7.95;
+            }
+            if ($key === 'big' && $promo >= 10000 && $promo < 100000) {
+                $x = 6.25;
+            }
+            if ($key === 'big' && $promo >= 100000) {
+                $x = 6.85;
+            }
             if ($key === 'small' && $promo < 1000) {
                 $x = 12.75;
             }
