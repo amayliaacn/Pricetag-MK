@@ -123,17 +123,17 @@
     <section id="history-table-header" class="mk-card p-3">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="mk-history-title mb-0"><i class="bi bi-clock-history"></i><?= $mode === 'manual' ? 'History Input Manual' : 'History Import File Excel' ?></h5>
-            <span class="mk-data-total"><i class="bi bi-info-circle"></i>Total Data: <?= (int) $historyTotal ?></span>
+            <div class="d-flex align-items-center gap-2"><button type="button" id="deleteSelectedHistory" class="btn btn-danger btn-sm" disabled><i class="bi bi-trash me-1"></i>Hapus</button><span class="mk-data-total"><i class="bi bi-info-circle"></i>Total Data: <?= (int) $historyTotal ?></span></div>
         </div>
-        <div class="table-responsive"><table class="table table-hover align-middle mb-0">
-            <thead class="table-dark"><tr><th>No</th><th>Nama File</th><?php if (session()->get('role') === 'super_admin'): ?><th>Outlet</th><?php endif; ?><th>Tanggal</th><th>Waktu</th><th><?= $mode === 'manual' ? 'Dibuat Oleh' : 'Diimpor Oleh' ?></th><?php if ($mode === 'excel'): ?><th>Status</th><?php endif; ?><th>Aksi</th></tr></thead>
+        <div class="table-responsive"><table id="historyTable" class="table table-hover align-middle mb-0">
+            <thead class="table-dark"><tr><th style="width:70px;"><div class="d-flex align-items-center gap-1"><input type="checkbox" id="historyCheckAll" class="form-check-input mt-0"><label for="historyCheckAll" class="mb-0 text-white user-select-none" style="cursor:pointer;">All</label></div></th><th>No</th><th>Nama File</th><?php if (session()->get('role') === 'super_admin'): ?><th>Outlet</th><?php endif; ?><th>Tanggal</th><th>Waktu</th><th><?= $mode === 'manual' ? 'Dibuat Oleh' : 'Diimpor Oleh' ?></th><?php if ($mode === 'excel'): ?><th>Status</th><?php endif; ?><th>Aksi</th></tr></thead>
             <tbody>
-            <?php if (empty($history)): ?><tr><td colspan="<?= (session()->get('role') === 'super_admin' ? 7 : 6) + ($mode === 'excel' ? 1 : 0) ?>" class="text-center text-muted py-4">Belum ada riwayat <?= $mode === 'manual' ? 'input manual' : 'import file' ?>.</td></tr>
+            <?php if (empty($history)): ?><tr><td colspan="<?= (session()->get('role') === 'super_admin' ? 8 : 7) + ($mode === 'excel' ? 1 : 0) ?>" class="text-center text-muted py-4">Belum ada riwayat <?= $mode === 'manual' ? 'input manual' : 'import file' ?>.</td></tr>
             <?php else: foreach ($history as $index => $item):
                 $importedAt = new DateTimeImmutable($item['imported_at'], new DateTimeZone('UTC'));
                 $importedAt = $importedAt->setTimezone(new DateTimeZone('Asia/Jakarta'));
             ?>
-                <tr><td><?= (($page - 1) * $perPage) + $index + 1 ?></td><td><?= esc($item['file_name']) ?></td><?php if (session()->get('role') === 'super_admin'): ?><td><span class="badge text-bg-light border"><?= esc($item['outlet_code']) ?></span></td><?php endif; ?><td><?= $importedAt->format('d M Y') ?></td><td><?= $importedAt->format('H:i:s') ?></td><td><?= esc($item['username']) ?></td><?php if ($mode === 'excel'): ?><td><span class="mk-import-status"><i class="bi bi-check-circle-fill"></i>Berhasil</span></td><?php endif; ?><td class="d-flex gap-1"><?php if ($mode === 'manual'): ?><a class="btn mk-btn-primary btn-sm text-nowrap" title="Isi data manual" href="<?= base_url('import-history/manual/' . (int) $item['id']) ?>"><i class="bi bi-pencil me-1"></i>Isi Data</a><?php endif; ?><a class="btn btn-primary btn-sm" title="Lihat data" href="<?= base_url('pricetag?import=' . (int) $item['id']) ?>"><i class="bi bi-eye"></i></a><form method="post" action="<?= base_url('import-history/delete/' . (int) $item['id']) ?>" onsubmit="return confirm('Hapus data ini beserta seluruh produk di dalamnya?');"><button type="submit" class="btn btn-danger btn-sm" title="Hapus data"><i class="bi bi-trash"></i></button></form></td></tr>
+                <tr><td><input type="checkbox" class="form-check-input history-row-check" value="<?= (int) $item['id'] ?>"></td><td><?= (($page - 1) * $perPage) + $index + 1 ?></td><td><?= esc($item['file_name']) ?></td><?php if (session()->get('role') === 'super_admin'): ?><td><span class="badge text-bg-light border"><?= esc($item['outlet_code']) ?></span></td><?php endif; ?><td><?= $importedAt->format('d M Y') ?></td><td><?= $importedAt->format('H:i:s') ?></td><td><?= esc($item['username']) ?></td><?php if ($mode === 'excel'): ?><td><span class="mk-import-status"><i class="bi bi-check-circle-fill"></i>Berhasil</span></td><?php endif; ?><td class="d-flex gap-1"><?php if ($mode === 'manual'): ?><a class="btn mk-btn-primary btn-sm text-nowrap" title="Isi data manual" href="<?= base_url('import-history/manual/' . (int) $item['id']) ?>"><i class="bi bi-pencil me-1"></i>Isi Data</a><?php endif; ?><a class="btn btn-primary btn-sm" title="Lihat data" href="<?= base_url('pricetag?import=' . (int) $item['id']) ?>"><i class="bi bi-eye"></i></a><form method="post" action="<?= base_url('import-history/delete/' . (int) $item['id']) ?>" onsubmit="return confirm('Hapus data ini beserta seluruh produk di dalamnya?');"><button type="submit" class="btn btn-danger btn-sm" title="Hapus data"><i class="bi bi-trash"></i></button></form></td></tr>
             <?php endforeach; endif; ?>
             </tbody>
         </table></div>
@@ -141,6 +141,35 @@
     </section>
 </main>
 <script src="<?= base_url('assets/vendor/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
+<script>
+    const historyCheckAll = document.getElementById('historyCheckAll');
+    const historyChecks = () => [...document.querySelectorAll('.history-row-check')];
+    historyCheckAll?.addEventListener('change', () => historyChecks().forEach(check => check.checked = historyCheckAll.checked));
+    document.getElementById('historyTable')?.addEventListener('change', event => {
+        if (!event.target.classList.contains('history-row-check')) return;
+        const checks = historyChecks();
+        historyCheckAll.checked = checks.length > 0 && checks.every(check => check.checked);
+        historyCheckAll.indeterminate = checks.some(check => check.checked) && !historyCheckAll.checked;
+        document.getElementById('deleteSelectedHistory').disabled = !checks.some(check => check.checked);
+    });
+    historyCheckAll?.addEventListener('change', () => {
+        document.getElementById('deleteSelectedHistory').disabled = !historyChecks().some(check => check.checked);
+    });
+    document.getElementById('deleteSelectedHistory')?.addEventListener('click', () => {
+        const selected = historyChecks().filter(check => check.checked);
+        if (!selected.length || !confirm('Hapus data history yang dipilih beserta produk terkait?')) return;
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = '<?= base_url('import-history/delete-selected') ?>';
+        selected.forEach(check => {
+            const input = document.createElement('input');
+            input.type = 'hidden'; input.name = 'history_ids[]'; input.value = check.value;
+            form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+    });
+</script>
     <?= view('partials/app_footer') ?>
 </body>
 </html>
