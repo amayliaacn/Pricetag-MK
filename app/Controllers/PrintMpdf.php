@@ -52,12 +52,13 @@ class PrintMpdf extends BaseController
             }
             // Saat memakai mode Turun Harga, pastikan template menerima harga
             // hasil perhitungan meskipun promo_price belum tersimpan di database.
-            // A4 tidak memiliki template diskon; selalu gunakan Turun Harga.
-            $mode = $size === 'mpdf' ? 'auto' : (string) ($discountMode[$tagId] ?? 'auto');
+            // Untuk A4, nilai diskon persen memakai template disc-a4 secara
+            // otomatis; hanya harga promo nominal yang memakai Turun Harga.
+            $mode = (string) ($discountMode[$tagId] ?? 'auto');
             $showDiscount = $this->showDiscount($tag, $mode);
             // Harga turun hanya memakai hasil hitung untuk diskon < 10%.
             // Mode tampil diskon dan diskon >= 10% tetap memakai data lama.
-            if (in_array($size, ['mpdf', 'a5', 'segitiga'], true) && ! $showDiscount && (float) ($tag['discount_percent'] ?? 0) > 0) {
+            if ($size !== 'mpdf' && in_array($size, ['a5', 'segitiga'], true) && ! $showDiscount && (float) ($tag['discount_percent'] ?? 0) > 0) {
                 $tag['promo_price'] = $this->calculatePromoPrice($tag);
             }
             $template = match ($size) {
@@ -70,9 +71,9 @@ class PrintMpdf extends BaseController
                 'curah' => 'curah',
                 // A4 memakai desain allocation hanya jika nilai alokasi
                 // benar-benar lebih besar dari nol.
-                default => (int) ($tag['allocation_pcs'] ?? 0) > 0
-                    ? 'a4-allocation'
-                    : 'a4',
+                default => (float) ($tag['discount_percent'] ?? 0) > 0
+                    ? ((int) ($tag['allocation_pcs'] ?? 0) > 0 ? 'disc-a4-allocation' : 'disc-a4')
+                    : ((int) ($tag['allocation_pcs'] ?? 0) > 0 ? 'a4-allocation' : 'a4'),
             };
             $groups[$template][] = [
                 'row' => $tag,
