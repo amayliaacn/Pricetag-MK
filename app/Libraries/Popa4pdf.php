@@ -8,8 +8,9 @@ use Mpdf\Mpdf;
 
 /**
  * Cetak POP Price Tag A4 langsung dari HTML (mPDF), tanpa Word/LibreOffice.
- * Satu file ini menangani SEPULUH desain kartu:
- *   - 'a4'       -> kartu "MINYAK GORENG" (Picture1.jpg)
+ * Satu file ini menangani SEBELAS desain kartu:
+ *   - 'a4'            -> kartu "MINYAK GORENG" (Picture1.jpg)
+ *   - 'a4-allocation' -> sama persis dgn 'a4', ditambah baris "Alokasi : ... Pc" di bawah Akhir Periode
  *   - 'segitiga' -> kartu "Segitiga Turun Harga" / TESSA-TP.06 (Picture3.png)
  *   - 'special'  -> kartu "Segitiga Special Price" (Picture3.png / gambar sendiri)
  *   - 'diskon'   -> kartu "DISKON 33%" (GIZZI-MILK), view: segitiga-discount.php
@@ -69,6 +70,8 @@ class PopA4Pdf
     // ubah karena sudah pernah diuji cocok secara visual; kalau ternyata "Rp" di
     // depan angka besar masih kurang/kelebihan besar pas dicetak, kabari saya.
     private const A4_PT_RP_BIG      = 35;
+    // Tabel: "Alokasi : 100 Pc" = Arial Narrow Italic, 22pt tetap (bukan fit-to-shape).
+    private const A4_PT_ALOKASI     = 22;
 
     // Tabel: "BERAS 5KG" ukuran kotak teks 180,4 x 31,05pt = 6,36 x 1,10cm
     // (jauh lebih sempit dari full-width 17cm sebelumnya).
@@ -86,6 +89,8 @@ class PopA4Pdf
     // keduanya ditukar di sini (base makin kecil = makin ke atas).
     private const A4_POS = [
         'periode' => ['right' => 18.47, 'base' => 2.01],
+        // Baris "Alokasi : 100 Pc" nempel persis di bawah "Akhir Periode", rata kanan juga.
+        'alokasi' => ['right' => 18.47, 'base' => 2.95],
         'merk'    => ['cx' => 10.13,    'base' => 7.44],
         'variant' => ['cx' => 9.47,     'base' => 4.81],
         'rp_small'=> ['left' => 1.06,   'base' => 9.96],
@@ -463,7 +468,7 @@ class PopA4Pdf
 
     /**
      * @param array<int,array{row:array,qty?:int}> $items
-     * @param string $template 'a4' (default) | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'pricetag' | 'fresh' | 'curah'
+     * @param string $template 'a4' (default) | 'a4-allocation' | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'pricetag' | 'fresh' | 'curah'
      */
     public function render(array $items, string $template = 'a4'): string
     {
@@ -481,13 +486,14 @@ class PopA4Pdf
         $first = true;
         foreach ($items as $it) {
             $html = match ($template) {
-                'segitiga' => $this->pageHtmlSegitiga($it['row']),
-                'special'  => $this->pageHtmlSpecial($it['row']),
-                'diskon'   => $this->pageHtmlDiskon($it['row']),
-                'a5'       => $this->pageHtmlA5($it['row']),
-                'disc'     => $this->pageHtmlDisc($it['row']),
-                'disc2'    => $this->pageHtmlDisc2($it['row']),
-                default    => $this->pageHtmlA4($it['row']),
+                'segitiga'     => $this->pageHtmlSegitiga($it['row']),
+                'special'      => $this->pageHtmlSpecial($it['row']),
+                'diskon'       => $this->pageHtmlDiskon($it['row']),
+                'a5'           => $this->pageHtmlA5($it['row']),
+                'disc'         => $this->pageHtmlDisc($it['row']),
+                'disc2'        => $this->pageHtmlDisc2($it['row']),
+                'a4-allocation'=> $this->pageHtmlA4Allocation($it['row']),
+                default        => $this->pageHtmlA4($it['row']),
             };
 
             $qty = max(1, (int) ($it['qty'] ?? 1));
@@ -540,13 +546,14 @@ class PopA4Pdf
                     continue;
                 }
                 $html = match ($template) {
-                    'segitiga' => $this->pageHtmlSegitiga($it['row']),
-                    'special'  => $this->pageHtmlSpecial($it['row']),
-                    'diskon'   => $this->pageHtmlDiskon($it['row']),
-                    'a5'       => $this->pageHtmlA5($it['row']),
-                    'disc'     => $this->pageHtmlDisc($it['row']),
-                    'disc2'    => $this->pageHtmlDisc2($it['row']),
-                    default    => $this->pageHtmlA4($it['row']),
+                    'segitiga'      => $this->pageHtmlSegitiga($it['row']),
+                    'special'       => $this->pageHtmlSpecial($it['row']),
+                    'diskon'        => $this->pageHtmlDiskon($it['row']),
+                    'a5'            => $this->pageHtmlA5($it['row']),
+                    'disc'          => $this->pageHtmlDisc($it['row']),
+                    'disc2'         => $this->pageHtmlDisc2($it['row']),
+                    'a4-allocation' => $this->pageHtmlA4Allocation($it['row']),
+                    default         => $this->pageHtmlA4($it['row']),
                 };
                 $qty = max(1, (int) ($it['qty'] ?? 1));
                 for ($i = 0; $i < $qty; $i++) {
@@ -559,9 +566,24 @@ class PopA4Pdf
         return $this->mpdf->Output('', 'S');
     }
 
-    /* ====================== DESAIN 1: "a4" ====================== */
+    /* ====================== DESAIN 1: "a4" (reguler, tanpa baris Alokasi) ====================== */
 
     private function pageHtmlA4(array $row): string
+    {
+        $d = $this->buildA4Data($row, false);
+        return view('pricetag/templates/turun-hrg-a4', $d);
+    }
+
+    /* ====================== DESAIN 1b: "a4-allocation" (sama persis dgn "a4", + baris "Alokasi : ... Pc") ====================== */
+
+    private function pageHtmlA4Allocation(array $row): string
+    {
+        $d = $this->buildA4Data($row, true);
+        return view('pricetag/templates/turun-hrg-a4-allocation', $d);
+    }
+
+    /** Data bersama kedua desain di atas (sama persis selain nama view-nya). */
+    private function buildA4Data(array $row, bool $allocation = false): array
     {
         $promo  = (int) round((float) $row['promo_price']);
         $normal = (int) round((float) $row['normal_price']);
@@ -574,6 +596,11 @@ class PopA4Pdf
             'variant' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
             'plu'     => (string) ($row['sku_plu'] ?? ''),
             'periode' => $this->tanggal($row['end_period'] ?? ''),
+            // Baris ini hanya tampil kalau barangnya memang dialokasikan (allocation_pcs > 0).
+            // Kalau tidak ada alokasi, baris ini otomatis kosong/tidak dicetak.
+            'alokasi' => (float) ($row['allocation_pcs'] ?? 0) > 0
+                ? 'Alokasi : ' . number_format((float) $row['allocation_pcs'], 0, ',', '.') . ' Pc'
+                : '',
             'normal'  => number_format($normal, 0, ',', '.'),
             // Harga >= 1.000: ribuan besar + tiga digit terakhir kecil.
             // Harga 100-999: digit ratusan besar + dua digit terakhir kecil.
@@ -596,12 +623,18 @@ class PopA4Pdf
         $F = [
             'note'    => ['family' => 'arial',      'pt' => self::A4_PT_NOTE],
             'plu'     => ['family' => 'arialnarrow', 'pt' => self::A4_PT_PLU],
+            'alokasi' => ['family' => 'arialnarrow', 'pt' => self::A4_PT_ALOKASI],
             'rp'      => ['family' => 'arial'],
             'rp_small'=> ['pt' => self::A4_PT_RP_SMALL],
             'rp_big'  => ['pt' => self::A4_PT_RP_BIG],
             // Di contoh "BERAS 5KG" fontnya sans-serif tebal (bukan Baskerville yang
             // berserif) -> dipakaikan Arial Bold, sudah terdaftar di A4_FONTS.
-            'merk'    => ['family' => 'arial', 'style' => 'B', 'pt' => $this->fit('arial', 'B', $T['merk'], self::A4_W_MERK, self::A4_PT_MERK_MAX)],
+            // Pada A4 allocation, variant/merk tetap satu baris. Ukurannya
+            // di-fit ke lebar area yang tersedia agar teks panjang tidak
+            // turun ke baris kedua dan menimpa PLU.
+            'merk'    => ['family' => 'arial', 'style' => 'B', 'pt' => $allocation
+                ? $this->fit('arial', 'B', $T['merk'], 11.22, self::A4_PT_MERK_MAX)
+                : $this->fit('arial', 'B', $T['merk'], self::A4_W_MERK, self::A4_PT_MERK_MAX)],
             'variant' => ['family' => 'berlinsans', 'pt' => $this->fit('berlinsans', '', $T['variant'], self::A4_W_VARIANT, self::A4_PT_VARIANT_MAX)],
             'normal'  => ['family' => 'bookantiqua', 'pt' => self::A4_PT_NORMAL, 'style' => 'B'],
             'big'     => ['family' => 'bookantiqua', 'pt' => $this->fit('bookantiqua', '', $T['big'], $bigMaxW, self::A4_PT_BIG_MAX)],
@@ -618,6 +651,8 @@ class PopA4Pdf
 
         $L['periode'] = ['left' => round($ox + $P['periode']['right'] - 12.0, 3), 'w' => 12.0,
                          'top' => $top('arial', 'I', $F['note']['pt'], $P['periode']['base'])];
+        $L['alokasi'] = ['left' => round($ox + $P['alokasi']['right'] - 12.0, 3), 'w' => 12.0,
+                         'top' => $top('arialnarrow', 'BI', $F['alokasi']['pt'], $P['alokasi']['base'])];
         $L['plu']     = ['left' => round($ox + $P['plu']['right'] - 12.0, 3), 'w' => 12.0,
                          'top' => $top('arialnarrow', 'I', $F['plu']['pt'], $P['plu']['base'])];
         $L['merk']    = ['left' => round($ox + 7.25, 3), 'w' => 11.22,
@@ -692,6 +727,8 @@ class PopA4Pdf
         }
 
 
+$bigFont = 'bookantiqua';
+
 $S = [
     'w'       => self::A4_BOX_W * 10,
     'h'       => self::A4_BOX_H * 10,
@@ -703,7 +740,7 @@ $S = [
         'center'
     ),
     'big'     => $this->stretchBox(
-        'bookantiqua',
+        $bigFont,
         $T['big'],
         $bigBox,
         'left'
@@ -759,7 +796,7 @@ if ($T['small'] !== '' && strlen($T['big']) > 1) {
 }
 
         $img = FCPATH . self::A4_IMG_FILE;
-        return view('pricetag/templates/turun-hrg-a4', compact('T', 'L', 'F', 'S', 'img'));
+        return compact('T', 'L', 'F', 'S', 'img');
     }
 
     /* ====================== DESAIN 2: "segitiga" ====================== */

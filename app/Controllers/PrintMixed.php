@@ -65,7 +65,11 @@ class PrintMixed extends BaseController
                             : 'a5'),
                         'fresh' => 'fresh',
                         'curah' => 'curah',
-                        default => 'a4',
+                        // A4 memakai desain allocation hanya jika nilai alokasi
+                        // benar-benar lebih besar dari nol.
+                        default => (int) ($row['allocation_pcs'] ?? 0) > 0
+                            ? 'a4-allocation'
+                            : 'a4',
                     };
                     $mpdfItems[$template][] = ['row' => $row, 'qty' => $count];
                     continue;

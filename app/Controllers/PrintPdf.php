@@ -23,6 +23,9 @@ class PrintPdf extends BaseController
         }
 
         $selectedSizes = array_values(array_unique(array_filter(array_map('strval', array_intersect_key($sizeMap, array_flip($selectedIds))))));
+        if (count($selectedSizes) !== count(array_intersect_key($sizeMap, array_flip($selectedIds)))) {
+            return redirect()->back()->with('error', 'Pastikan produk sudah memilih ukuran template.');
+        }
         if (count($selectedSizes) > 1) {
             return redirect()->back()->with('error', 'Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');
         }
@@ -71,7 +74,7 @@ class PrintPdf extends BaseController
             $size = (string) ($sizeMap[$tagId] ?? '');
             $allvar = isset($allvarMap[$tagId]) && $allvarMap[$tagId] === '1';
             if (! in_array($size, ['kcl', 'tgg'], true)) {
-                return redirect()->back()->with('error', 'Pastikan semua produk sudah memilih ukuran template.');
+                return redirect()->back()->with('error', 'Pastikan produk sudah memilih ukuran template.');
             }
             if ($size === 'tgg' && $allvar && (int) ($product['allocation_pcs'] ?? 0) > 0) {
                 return redirect()->to('/import-history')->with(
