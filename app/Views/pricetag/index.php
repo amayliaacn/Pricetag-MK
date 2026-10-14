@@ -150,7 +150,7 @@
             <select id="filterUkuran" class="form-select"><option value="all" <?= ($templateFilter ?? 'all') === 'all' ? 'selected' : '' ?>>Semua Ukuran</option><option value="kcl" <?= ($templateFilter ?? '') === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="tgg" <?= ($templateFilter ?? '') === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="mpdf" <?= ($templateFilter ?? '') === 'mpdf' ? 'selected' : '' ?>>A4</option><option value="pricetag" <?= ($templateFilter ?? '') === 'pricetag' ? 'selected' : '' ?>>Price Tag</option><option value="a5" <?= ($templateFilter ?? '') === 'a5' ? 'selected' : '' ?>>A5</option><option value="segitiga" <?= ($templateFilter ?? '') === 'segitiga' ? 'selected' : '' ?>>Segitiga</option><option value="fresh" <?= ($templateFilter ?? '') === 'fresh' ? 'selected' : '' ?>>Butcher</option><option value="curah" <?= ($templateFilter ?? '') === 'curah' ? 'selected' : '' ?>>Vegetable</option></select>
         </div>
 
-        <button type="button" id="btnCetak" class="btn btn-danger" disabled data-bs-toggle="modal" data-bs-target="#modalCetak">
+        <button type="button" id="btnCetak" class="btn btn-danger" disabled>
             <i class="bi bi-printer me-1"></i>Cetak Terpilih (<span id="jumlahTerpilih">0</span>)
         </button>
     </div>
@@ -582,9 +582,15 @@
 
         // Bangun isi modal setiap kali tombol Cetak ditekan
         btnCetak.addEventListener('click', function () {
+            const checkedProducts = [...getChecked()];
+            const hasUnselectedTemplate = checkedProducts.some(cb => !cb.dataset.size);
+            if (hasUnselectedTemplate) {
+                tampilkanErrorCetak('Pastikan produk sudah memilih ukuran template.');
+                return;
+            }
             tabelBody.innerHTML = '';
 
-            getChecked().forEach(cb => {
+            checkedProducts.forEach(cb => {
                 const id      = cb.dataset.id;
                 const sku     = cb.dataset.sku;
                 const name    = cb.dataset.name;
@@ -622,6 +628,7 @@
             document.getElementById('formCetak').action = hasMpdf
                 ? '<?= base_url('print-mpdf') ?>'
                 : '<?= base_url('print-pdf') ?>';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCetak')).show();
         });
 
         function tampilkanErrorCetak(message) {
@@ -640,6 +647,10 @@
         document.getElementById('formCetak').addEventListener('submit', async function (event) {
             event.preventDefault();
             const sizes = [...this.querySelectorAll('input[name^="size["]')].map(input => input.value);
+            if (sizes.some(size => !size)) {
+                tampilkanErrorCetak('Pastikan produk sudah memilih ukuran template.');
+                return;
+            }
             const uniqueSizes = [...new Set(sizes.filter(Boolean))];
             if (uniqueSizes.length > 1) {
                 tampilkanErrorCetak('Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');

@@ -22,6 +22,9 @@ class PrintMpdf extends BaseController
         $groups = [];
         $sizes  = (array) $this->request->getPost('size');
         $selectedSizes = array_values(array_unique(array_filter(array_map('strval', array_intersect_key($sizes, array_flip($tagIds))))));
+        if (count($selectedSizes) !== count(array_intersect_key($sizes, array_flip($tagIds)))) {
+            return redirect()->back()->with('error', 'Pastikan produk sudah memilih ukuran template.');
+        }
         if (count($selectedSizes) > 1) {
             return redirect()->back()->with('error', 'Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');
         }
@@ -37,7 +40,10 @@ class PrintMpdf extends BaseController
             if ($tag === null) {
                 continue;
             }
-            $size = (string) ($sizes[$tagId] ?? 'mpdf');
+            $size = (string) ($sizes[$tagId] ?? '');
+            if (! in_array($size, ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'], true)) {
+                return redirect()->back()->with('error', 'Pastikan produk sudah memilih ukuran template.');
+            }
             if ($size === 'a5' && (float) ($tag['promo_price'] ?? 0) <= 0 && (float) ($tag['discount_percent'] ?? 0) <= 0) {
                 return redirect()->back()->with('error', 'A5 Discount/Turun Harga memerlukan Diskon atau Harga Promo.');
             }
@@ -62,7 +68,11 @@ class PrintMpdf extends BaseController
                     : 'a5'),
                 'fresh' => 'fresh',
                 'curah' => 'curah',
-                default => 'a4',
+                // A4 memakai desain allocation hanya jika nilai alokasi
+                // benar-benar lebih besar dari nol.
+                default => (int) ($tag['allocation_pcs'] ?? 0) > 0
+                    ? 'a4-allocation'
+                    : 'a4',
             };
             $groups[$template][] = [
                 'row' => $tag,
