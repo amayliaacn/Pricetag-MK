@@ -22,9 +22,9 @@ $box = $L['box'];
     Akhir Periode : <?= $e($T['periode']) ?>
 </div>
 
-<!-- Nama barang / merk (serif, hitam) -->
-<div class="abs c" style="left: <?= $L['merk']['left'] ?>cm; top: <?= $L['merk']['top'] ?>cm; width: <?= $L['merk']['w'] ?>cm;
-     font-family: <?= $F['merk']['family'] ?>; font-size: <?= $F['merk']['pt'] ?>pt; line-height: <?= $F['merk']['pt'] ?>pt; color: #000000;">
+<!-- Nama barang / merk ("BERAS 5KG" dkk — Arial Bold, hitam, di bawah judul biru) -->
+<div class="abs r" style="left: <?= $L['merk']['left'] ?>cm; top: <?= $L['merk']['top'] ?>cm; width: <?= $L['merk']['w'] ?>cm;
+     font-family: <?= $F['merk']['family'] ?>; font-weight: bold; font-size: <?= $F['merk']['pt'] ?>pt; line-height: <?= $F['merk']['pt'] ?>pt; color: #000000;">
     <?= $e($T['merk']) ?>
 </div>
 

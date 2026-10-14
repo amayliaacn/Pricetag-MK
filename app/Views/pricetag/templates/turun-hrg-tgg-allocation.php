@@ -96,6 +96,7 @@
         font-size: 16pt;
         vertical-align: top;
     }
+    .full-price { color:#E30613; font-weight:bold; font-style:italic; font-size:32pt; line-height:1; white-space:nowrap; }
 
     .meta { font-size: 8pt; color: #000; margin: 1mm 0; }
 </style>
@@ -123,7 +124,7 @@
 
         <p class="promo-price">
             <span class="rp-symbol">Rp</span>
-            <span class="ribuan"><?= esc($tag['harga_ribuan'] ?? '') ?></span><span class="ratusan">,<?= esc($tag['harga_ratusan'] ?? '') ?></span>
+            <span class="full-price"><?= esc($tag['promo_display'] ?? number_format((float)($tag['promo_price'] ?? 0), 0, ',', '.')) ?></span>
         </p>
     </div>
 <?php endforeach; ?>
