@@ -53,25 +53,41 @@ class PopA4Pdf
     ];
 
     private const A4_PT_NOTE        = 20;
-    private const A4_PT_PLU         = 27;
-    private const A4_PT_MERK_MAX    = 33;
+    private const A4_PT_PLU         = 27;    // cocok dgn tabel: "( PLU : ... )" = 27pt
+    private const A4_PT_MERK_MAX    = 31;    // tabel: "BERAS 5KG" tinggi kotak 31,05pt
     private const A4_PT_VARIANT_MAX = 60;
-    private const A4_PT_NORMAL      = 68;
+    // Tabel WordArt terbaru: "17.943 harga normal" = Book Antiqua Bold 60pt FIXED
+    // (bukan 68pt seperti sebelumnya).
+    private const A4_PT_NORMAL      = 60;
     private const A4_PT_BIG_MAX     = 420;
     private const A4_PT_SMALL       = 108;
-    private const A4_PT_RP_SMALL    = 16;
+    private const A4_PT_RP_SMALL    = 16;    // cocok dgn tabel: "Rp harga normal" = 16pt
+    // CATATAN: tabel WordArt menyebut "Rp harga promo" juga 16pt, tapi kotaknya
+    // (33x36pt ~ 1,16x1,27cm) jauh lebih besar dari kotak "Rp harga normal" yang
+    // sama-sama 16pt (19,5x18pt ~ 0,69x0,64cm) — kemungkinan salah baca ChatGPT
+    // dari tabelnya, bukan datanya sendiri. Nilai 35pt di bawah ini TIDAK saya
+    // ubah karena sudah pernah diuji cocok secara visual; kalau ternyata "Rp" di
+    // depan angka besar masih kurang/kelebihan besar pas dicetak, kabari saya.
     private const A4_PT_RP_BIG      = 35;
 
-    private const A4_W_MERK    = 17.0;
-    private const A4_W_VARIANT = 16.7;
+    // Tabel: "BERAS 5KG" ukuran kotak teks 180,4 x 31,05pt = 6,36 x 1,10cm
+    // (jauh lebih sempit dari full-width 17cm sebelumnya).
+    private const A4_W_MERK    = 6.36;
+    // Tabel: "MBOK DARMI" Fit to Shape 494 x 54pt = 17,42 x 1,90cm.
+    private const A4_W_VARIANT = 17.42;
     private const A4_W_BIG     = 11.3;
     // Jarak aman (cm) antara ujung kanan angka besar dan awal angka kecil (".900")
     private const A4_GAP_BIG_SMALL = 0.35;
 
+    // CATATAN (ubah sesuai contoh "MBOK DARMI / BERAS 5KG"): dulu urutannya
+    // merk (hitam, polos) di atas lalu variant (biru, regangan) di bawah.
+    // Di contoh barunya terbalik: variant (biru, regangan, "MBOK DARMI") ADA
+    // DI ATAS, baru merk (hitam, polos, "BERAS 5KG") di bawahnya — jadi base
+    // keduanya ditukar di sini (base makin kecil = makin ke atas).
     private const A4_POS = [
         'periode' => ['right' => 18.47, 'base' => 2.01],
-        'merk'    => ['cx' => 10.13,    'base' => 4.81],
-        'variant' => ['cx' => 9.47,     'base' => 7.44],
+        'merk'    => ['cx' => 10.13,    'base' => 7.44],
+        'variant' => ['cx' => 9.47,     'base' => 4.81],
         'rp_small'=> ['left' => 1.06,   'base' => 9.96],
         'normal'  => ['left' => 2.59,   'base' => 11.06],
         'plu'     => ['right' => 18.47, 'base' => 9.14],
@@ -81,7 +97,9 @@ class PopA4Pdf
     ];
 
     private const A4_BIG_BOX     = ['x'  => 2.33, 'w' => 11.2, 'h' => 13.0, 'base' => 25.71, 'max' => 1.0];
-    private const A4_VARIANT_BOX = ['cx' => 9.47, 'w' => 16.7, 'h' => 1.65, 'base' => 7.44,  'max' => 1.3];
+    // base ikut ditukar sama seperti A4_POS['variant']['base'] di atas.
+    // w/h persis dari tabel WordArt: "MBOK DARMI" 494x54pt = 17,42x1,90cm.
+    private const A4_VARIANT_BOX = ['cx' => 9.755, 'w' => 17.42, 'h' => 1.90, 'base' => 5.75,  'max' => 1.3];
     private const A4_BIG_BOLD    = 0.0;
 
     private const A4_STRIKE = ['x1' => 1.38, 'y1' => 10.90, 'over' => 0.79, 'slope' => 0.146, 'thick' => 0.21];
@@ -548,8 +566,12 @@ class PopA4Pdf
         $promo  = (int) round((float) $row['promo_price']);
         $normal = (int) round((float) $row['normal_price']);
         $T = [
-            'merk'    => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
-            'variant' => mb_strtoupper(trim((string) ($row['variant'] ?? ''))),
+            // Slot "variant" = teks BIRU besar di atas (mis. "MBOK DARMI") -> ambil dari row['name'].
+            // Slot "merk"    = teks HITAM kecil di bawahnya (mis. "BERAS 5KG") -> ambil dari row['variant'].
+            // (Sebelumnya tertukar: row['variant'] yang tampil besar-biru di atas, padahal
+            // semestinya row['name'] yang jadi judul besar-biru.)
+            'merk'    => mb_strtoupper(trim((string) ($row['variant'] ?? ''))),
+            'variant' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
             'plu'     => (string) ($row['sku_plu'] ?? ''),
             'periode' => $this->tanggal($row['end_period'] ?? ''),
             'normal'  => number_format($normal, 0, ',', '.'),
@@ -577,7 +599,9 @@ class PopA4Pdf
             'rp'      => ['family' => 'arial'],
             'rp_small'=> ['pt' => self::A4_PT_RP_SMALL],
             'rp_big'  => ['pt' => self::A4_PT_RP_BIG],
-            'merk'    => ['family' => 'baskerville', 'pt' => $this->fit('baskerville', '', $T['merk'], self::A4_W_MERK, self::A4_PT_MERK_MAX)],
+            // Di contoh "BERAS 5KG" fontnya sans-serif tebal (bukan Baskerville yang
+            // berserif) -> dipakaikan Arial Bold, sudah terdaftar di A4_FONTS.
+            'merk'    => ['family' => 'arial', 'style' => 'B', 'pt' => $this->fit('arial', 'B', $T['merk'], self::A4_W_MERK, self::A4_PT_MERK_MAX)],
             'variant' => ['family' => 'berlinsans', 'pt' => $this->fit('berlinsans', '', $T['variant'], self::A4_W_VARIANT, self::A4_PT_VARIANT_MAX)],
             'normal'  => ['family' => 'bookantiqua', 'pt' => self::A4_PT_NORMAL, 'style' => 'B'],
             'big'     => ['family' => 'bookantiqua', 'pt' => $this->fit('bookantiqua', '', $T['big'], $bigMaxW, self::A4_PT_BIG_MAX)],
@@ -596,8 +620,8 @@ class PopA4Pdf
                          'top' => $top('arial', 'I', $F['note']['pt'], $P['periode']['base'])];
         $L['plu']     = ['left' => round($ox + $P['plu']['right'] - 12.0, 3), 'w' => 12.0,
                          'top' => $top('arialnarrow', 'I', $F['plu']['pt'], $P['plu']['base'])];
-        $L['merk']    = ['left' => round($ox + $P['merk']['cx'] - 9.0, 3), 'w' => 18.0,
-                         'top' => $top('baskerville', '', $F['merk']['pt'], $P['merk']['base'])];
+        $L['merk']    = ['left' => round($ox + 7.25, 3), 'w' => 11.22,
+                         'top' => $top('arial', 'B', $F['merk']['pt'], $P['merk']['base'])];
         $L['variant'] = ['left' => round($ox + $P['variant']['cx'] - 8.36, 3), 'w' => 16.72,
                          'top' => $top('berlinsans', '', $F['variant']['pt'], $P['variant']['base'])];
         $L['rp_small']= ['left' => round($ox + $P['rp_small']['left'], 3),
@@ -705,7 +729,14 @@ if ($T['small'] !== '' && strlen($T['big']) <= 1) {
         '7' => 0.15,
         default => 0.0,
     };
-    $S['big']['x'] = round((($rpRight + $smallLeft - $bigWidth) / 2 + $opticalOffset) * 10, 2);
+    // Sisakan sedikit ruang visual tambahan karena bentuk glyph dapat
+    // melewati batas metrik font, khususnya pada angka 6 dan 9.
+    $S['big']['x'] = round((($rpRight + $smallLeft - $bigWidth) / 2 + $opticalOffset + 0.35) * 10, 2);
+}
+
+// Harga besar 2 digit membutuhkan sedikit ruang tambahan dari label "Rp".
+if ($T['small'] !== '' && strlen($T['big']) === 2) {
+    $S['big']['x'] = round($S['big']['x'] + 7.0, 2);
 }
 
 // Letakkan angka kecil mengikuti ujung aktual angka besar. Dengan begitu,

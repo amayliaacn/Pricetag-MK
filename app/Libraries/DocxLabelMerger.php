@@ -69,16 +69,23 @@ class DocxLabelMerger
             $escapedNeedle = htmlspecialchars($needle, ENT_XML1);
             $safeValue     = htmlspecialchars((string) $value, ENT_XML1);
 
+            // Glyph angka 1 pada font dekoratif template memiliki serif atas
+            // yang menjorok jauh ke kanan. Normalisasi font hanya untuk angka
+            // besar satu digit agar bentuknya simetris.
             // Template tanggung lama memiliki titik literal sebelum
             // placeholder Ratusan. Untuk harga < 1.000 titik tersebut harus
             // dihapus; untuk harga >= 1.000 formatter memang mengembalikan
             // bagian kecil dengan titik dari template.
-            if ($placeholder === 'Ratusan' && !str_starts_with((string) $value, '.')) {
+            if ($placeholder === 'Ratusan') {
+                // Titik pemisah disuplai oleh formatter untuk nominal >= 1.000.
+                // Hapus titik literal dari DOCX agar tidak menjadi dua titik.
                 $xml = str_replace('.' . $escapedNeedle, $escapedNeedle, $xml);
                 // Penyesuaian posisi untuk nominal ratusan pada template
                 // tanggung tanpa alokasi.
-                $xml = str_replace('margin-left:292pt', 'margin-left:276pt', $xml);
-                $xml = str_replace('margin-left:135pt', 'margin-left:130pt', $xml);
+                if (!str_starts_with((string) $value, '.')) {
+                    $xml = str_replace('margin-left:292pt', 'margin-left:276pt', $xml);
+                    $xml = str_replace('margin-left:135pt', 'margin-left:130pt', $xml);
+                }
             }
 
             $xml = str_replace($escapedNeedle, $safeValue, $xml);
@@ -257,7 +264,11 @@ class DocxLabelMerger
             case 'hundreds_id':
                 $amount = (int) $value;
                 return $amount >= 1000
-                    ? str_pad((string) ($amount % 1000), 3, '0', STR_PAD_LEFT)
+                    // Placeholder template menyediakan bagian harga kecil,
+                    // tetapi titik harus ikut dikirim agar tidak bergantung
+                    // pada karakter literal DOCX yang sering hilang saat
+                    // LibreOffice merendernya.
+                    ? '.' . str_pad((string) ($amount % 1000), 3, '0', STR_PAD_LEFT)
                     : str_pad((string) ($amount % 100), 2, '0', STR_PAD_LEFT);
 
             case 'date_id_short':
