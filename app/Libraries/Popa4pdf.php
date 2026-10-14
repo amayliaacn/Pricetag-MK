@@ -535,6 +535,7 @@ class PopA4Pdf
      */
     public function render(array $items, string $template = 'a4'): string
     {
+        log_message('debug', '[print] PopA4Pdf render template={template} items={count}', ['template' => $template, 'count' => count($items)]);
         // Desain multi-kartu (6 per halaman) punya alur sendiri.
         if ($template === 'fresh') {
             return $this->renderFresh($items);
@@ -570,7 +571,9 @@ class PopA4Pdf
                 $first = false;
             }
         }
-        return $this->mpdf->Output('', 'S');
+        $result = $this->mpdf->Output('', 'S');
+        log_message('debug', '[print] PopA4Pdf render complete template={template} bytes={bytes}', ['template' => $template, 'bytes' => strlen($result)]);
+        return $result;
     }
 
     /**
@@ -579,6 +582,7 @@ class PopA4Pdf
      */
     public function renderMixed(array $groups): string
     {
+        log_message('debug', '[print] PopA4Pdf renderMixed groups={groups} items={items}', ['groups' => count($groups), 'items' => array_sum(array_map('count', $groups))]);
         $first = true;
         foreach ($groups as $template => $items) {
             // Label kecil 'pricetag': semua item grup ini digabung supaya mengisi halaman penuh.
@@ -595,21 +599,30 @@ class PopA4Pdf
                 }
                 continue;
             }
-            foreach ($items as $it) {
-                if ($template === 'fresh' || $template === 'curah') {
-                    $rows = [];
+
+            // Butcher/Curah: gabungkan seluruh item dalam grup terlebih dahulu,
+            // kemudian bagi ke halaman sesuai kapasitas kartu. Jika pemisahan
+            // dilakukan per item, setiap produk akan selalu memulai halaman baru.
+            if ($template === 'fresh' || $template === 'curah') {
+                $rows = [];
+                foreach ($items as $it) {
                     $qty = max(1, (int) ($it['qty'] ?? 1));
-                    for ($i = 0; $i < $qty; $i++) $rows[] = $it['row'];
-                    $perPage = $template === 'fresh' ? self::FRS_PER_PAGE : self::CRH_PER_PAGE;
-                    foreach (array_chunk($rows, $perPage) as $chunk) {
-                        if (! $first) $this->mpdf->AddPage();
-                        $this->mpdf->WriteHTML($template === 'fresh'
-                            ? $this->pageHtmlFresh($chunk)
-                            : $this->pageHtmlCurah($chunk));
-                        $first = false;
+                    for ($i = 0; $i < $qty; $i++) {
+                        $rows[] = $it['row'];
                     }
-                    continue;
                 }
+                $perPage = $template === 'fresh' ? self::FRS_PER_PAGE : self::CRH_PER_PAGE;
+                foreach (array_chunk($rows, $perPage) as $chunk) {
+                    if (! $first) $this->mpdf->AddPage();
+                    $this->mpdf->WriteHTML($template === 'fresh'
+                        ? $this->pageHtmlFresh($chunk)
+                        : $this->pageHtmlCurah($chunk));
+                    $first = false;
+                }
+                continue;
+            }
+
+            foreach ($items as $it) {
                 $html = match ($template) {
                     'segitiga'      => $this->pageHtmlSegitiga($it['row']),
                     'special'       => $this->pageHtmlSpecial($it['row']),
@@ -630,7 +643,9 @@ class PopA4Pdf
                 }
             }
         }
-        return $this->mpdf->Output('', 'S');
+        $result = $this->mpdf->Output('', 'S');
+        log_message('debug', '[print] PopA4Pdf renderMixed complete bytes={bytes}', ['bytes' => strlen($result)]);
+        return $result;
     }
 
     /* ====================== DESAIN 1: "a4" (reguler, tanpa baris Alokasi) ====================== */

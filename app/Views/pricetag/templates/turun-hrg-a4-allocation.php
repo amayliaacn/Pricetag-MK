@@ -79,7 +79,7 @@ $box = $L['box'];
         <?php $t = $S['variant']; ?>
         <g transform="translate(<?= $t['x'] ?>,<?= $t['y'] ?>) scale(<?= $t['sx'] ?>,<?= $t['sy'] ?>)">
             <text x="0" y="0" font-family="<?= $t['family'] ?>" font-size="<?= $t['fs'] ?>"
-                  fill="#00B0F0" stroke="#000000" stroke-width="0.25"><?= $e($t['text']) ?></text>
+                  fill="#00B0F0" stroke="#000000" stroke-width="0.08"><?= $e($t['text']) ?></text>
         </g>
         <?php $t = $S['big']; ?>
         <g transform="translate(<?= $t['x'] ?>,<?= $t['y'] ?>) scale(<?= $t['sx'] ?>,<?= $t['sy'] ?>)">

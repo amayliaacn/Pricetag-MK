@@ -9,6 +9,7 @@ class DocxLabelMerger
 {
     protected string $templatePath;
     protected string $workDir;
+    protected string $requestId;
 
     public function __construct(string $templatePath)
     {
@@ -17,6 +18,7 @@ class DocxLabelMerger
         }
 
         $this->templatePath = $templatePath;
+        $this->requestId = bin2hex(random_bytes(8));
 
         $this->workDir = WRITEPATH . 'pricetag_tmp/' . bin2hex(random_bytes(8));
         mkdir($this->workDir, 0775, true);
@@ -24,6 +26,7 @@ class DocxLabelMerger
 
     public function generate(array $items): string
     {
+        log_message('debug', "[print:{id}] DOCX start template={template} items={items}", ['id' => $this->requestId, 'template' => basename($this->templatePath), 'items' => count($items)]);
         if (empty($items)) {
             throw new RuntimeException('Tidak ada produk yang dipilih untuk dicetak.');
         }
@@ -32,8 +35,10 @@ class DocxLabelMerger
         foreach ($items as $i => $item) {
             $docxPaths[$i] = $this->mergeToDocx($item['field_values'], "label_{$i}.docx");
         }
+        log_message('debug', "[print:{id}] DOCX merged count={count}", ['id' => $this->requestId, 'count' => count($docxPaths)]);
 
         $pdfPaths = $this->convertBatchToPdf($docxPaths);
+        log_message('debug', "[print:{id}] DOCX converted count={count}", ['id' => $this->requestId, 'count' => count($pdfPaths)]);
 
         $finalPerItem = [];
         foreach ($items as $i => $item) {
@@ -42,6 +47,8 @@ class DocxLabelMerger
         }
 
         $combined = $this->concatPdfs($finalPerItem, 'gabungan_pricetag.pdf');
+        $this->assertPdf($combined, 'final concat');
+        log_message('debug', "[print:{id}] DOCX complete final={path} bytes={bytes}", ['id' => $this->requestId, 'path' => basename($combined), 'bytes' => filesize($combined)]);
 
         return $combined;
     }
@@ -132,6 +139,7 @@ class DocxLabelMerger
         );
 
         exec($cmd, $output, $returnCode);
+        log_message('debug', "[print:{id}] LibreOffice rc={rc} output={output}", ['id' => $this->requestId, 'rc' => $returnCode, 'output' => implode("\n", $output)]);
 
         if ($returnCode !== 0) {
             throw new RuntimeException('Konversi ke PDF dengan LibreOffice gagal: ' . implode("\n", $output));
@@ -143,6 +151,8 @@ class DocxLabelMerger
             if (! is_file($pdfPath)) {
                 throw new RuntimeException("Hasil PDF tidak ditemukan untuk: {$docxPath}");
             }
+            $this->assertPdf($pdfPath, 'LibreOffice output');
+            log_message('debug', "[print:{id}] PDF converted file={file} bytes={bytes}", ['id' => $this->requestId, 'file' => basename($pdfPath), 'bytes' => filesize($pdfPath)]);
             $pdfPaths[$i] = $pdfPath;
         }
 
@@ -166,11 +176,13 @@ class DocxLabelMerger
         );
 
         exec($cmd, $output, $returnCode);
+        log_message('debug', "[print:{id}] PDFtk duplicate rc={rc} output={output}", ['id' => $this->requestId, 'rc' => $returnCode, 'output' => implode("\n", $output)]);
 
         if ($returnCode !== 0) {
             throw new RuntimeException('Gagal menduplikasi halaman PDF: ' . implode("\n", $output));
         }
 
+        $this->assertPdf($outPath, 'PDFtk duplicate');
         return $outPath;
     }
 
@@ -180,6 +192,7 @@ class DocxLabelMerger
 
         if (count($pdfPaths) === 1) {
             copy($pdfPaths[0], $outPath);
+            $this->assertPdf($outPath, 'single PDF copy');
             return $outPath;
         }
 
@@ -192,12 +205,22 @@ class DocxLabelMerger
         );
 
         exec($cmd, $output, $returnCode);
+        log_message('debug', "[print:{id}] PDFtk concat rc={rc} output={output}", ['id' => $this->requestId, 'rc' => $returnCode, 'output' => implode("\n", $output)]);
 
         if ($returnCode !== 0) {
             throw new RuntimeException('Gagal menggabungkan PDF: ' . implode("\n", $output));
         }
 
+        $this->assertPdf($outPath, 'PDFtk concat');
         return $outPath;
+    }
+
+    protected function assertPdf(string $path, string $stage): void
+    {
+        if (! is_file($path) || filesize($path) <= 0) {
+            log_message('error', "[print:{id}] PDF validation failed stage={stage} path={path} exists={exists} bytes={bytes}", ['id' => $this->requestId, 'stage' => $stage, 'path' => basename($path), 'exists' => is_file($path) ? 'yes' : 'no', 'bytes' => is_file($path) ? filesize($path) : 0]);
+            throw new RuntimeException("Output PDF tidak valid pada tahap {$stage}");
+        }
     }
 
     public function cleanup(): void

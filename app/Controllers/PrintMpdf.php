@@ -9,7 +9,9 @@ class PrintMpdf extends BaseController
 {
     public function index()
     {
+        $requestId = bin2hex(random_bytes(8));
         $tagIds   = (array) $this->request->getPost('tag_ids');
+        log_message('debug', '[print:{id}] PrintMpdf start products={count}', ['id' => $requestId, 'count' => count($tagIds)]);
         $qtyMap   = (array) $this->request->getPost('qty');
         $importId = (int) $this->request->getPost('import_id');
         $discountMode = (array) $this->request->getPost('discount_mode');
@@ -21,13 +23,25 @@ class PrintMpdf extends BaseController
         $model = new MpdfPriceTagModel();
         $groups = [];
         $sizes  = (array) $this->request->getPost('size');
-        $selectedSizes = array_values(array_unique(array_filter(array_map('strval', array_intersect_key($sizes, array_flip($tagIds))))));
-        if (count($selectedSizes) !== count(array_intersect_key($sizes, array_flip($tagIds)))) {
+        $matchedSizes = array_intersect_key($sizes, array_flip($tagIds));
+        log_message('debug', '[print:{id}] mPDF size payload tag_ids={ids} size_keys={keys} size_values={values} matched={matched}', [
+            'id' => $requestId,
+            'ids' => json_encode(array_values($tagIds)),
+            'keys' => json_encode(array_keys($sizes)),
+            'values' => json_encode($sizes),
+            'matched' => json_encode($matchedSizes),
+        ]);
+        $missingSizeIds = array_values(array_filter($tagIds, static fn ($id): bool => ! array_key_exists($id, $sizes) || trim((string) $sizes[$id]) === ''));
+        if ($missingSizeIds !== []) {
+            log_message('debug', '[print:{id}] mPDF validation rejected missing size ids={ids}', ['id' => $requestId, 'ids' => json_encode($missingSizeIds)]);
             return redirect()->back()->with('error', 'Pastikan produk sudah memilih ukuran template.');
         }
+        $selectedSizes = array_values(array_unique(array_map(static fn ($size): string => strtolower(trim((string) $size)), $matchedSizes)));
         if (count($selectedSizes) > 1) {
+            log_message('debug', '[print:{id}] mPDF validation rejected mixed sizes={sizes}', ['id' => $requestId, 'sizes' => json_encode($selectedSizes)]);
             return redirect()->back()->with('error', 'Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');
         }
+        log_message('debug', '[print:{id}] mPDF size validation passed sizes={sizes}', ['id' => $requestId, 'sizes' => json_encode($selectedSizes)]);
         foreach ($tagIds as $tagId) {
             $query = $model->where('id', (int) $tagId);
             if ($importId > 0) {
@@ -87,6 +101,7 @@ class PrintMpdf extends BaseController
 
         try {
             $contents = (new PopA4Pdf())->renderMixed($groups);
+            log_message('debug', '[print:{id}] mPDF rendered groups={groups} bytes={bytes}', ['id' => $requestId, 'groups' => count($groups), 'bytes' => strlen($contents)]);
             $token = bin2hex(random_bytes(16));
             $dir = WRITEPATH . 'pricetag_downloads/';
             if (! is_dir($dir) && ! mkdir($dir, 0775, true) && ! is_dir($dir)) {
@@ -99,11 +114,14 @@ class PrintMpdf extends BaseController
                 ]), LOCK_EX) === false) {
                 throw new \RuntimeException('PDF hasil cetak tidak dapat disimpan.');
             }
+            if (! is_file($dir . $token . '.pdf') || filesize($dir . $token . '.pdf') <= 0) {
+                throw new \RuntimeException('PDF final tidak valid setelah penyimpanan.');
+            }
 
             return redirect()->to(site_url('print-mpdf/' . $token));
         } catch (\Throwable $e) {
-            log_message('error', 'Cetak mPDF gagal: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+            log_message('error', '[print:{id}] PrintMpdf failed: {message} at {file}:{line}', ['id' => $requestId, 'message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
+            return redirect()->back()->with('error', 'Gagal membuat PDF. Silakan periksa pilihan template dan coba lagi.');
         }
     }
 
