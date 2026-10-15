@@ -10,7 +10,7 @@ use Mpdf\Mpdf;
  * Cetak POP Price Tag A4 langsung dari HTML (mPDF), tanpa Word/LibreOffice.
  * Satu file ini menangani TIGA BELAS desain kartu:
  *   - 'a4'            -> kartu "MINYAK GORENG" (Picture1.jpg)
- *   - 'a4-allocation' -> sama persis dgn 'a4', ditambah baris "Alokasi : ... Pc" di bawah Akhir Periode
+ *   - 'a4-allocation' -> sama persis dgn 'a4', ditambah baris "Alokasi : ... Pcs" di bawah Akhir Periode
  *   - 'segitiga' -> kartu "Segitiga Turun Harga" / TESSA-TP.06 (Picture3.png)
  *   - 'special'  -> kartu "Segitiga Special Price" (Picture3.png / gambar sendiri)
  *   - 'diskon'   -> kartu "DISKON 33%" (GIZZI-MILK), view: segitiga-discount.php
@@ -18,7 +18,7 @@ use Mpdf\Mpdf;
  *   - 'disc'     -> kartu landscape "KAOS WANITA / ARTIKEL TERTENTU / DISC 50%", view: discount-a5.php
  *   - 'disc2'    -> kartu landscape DISC 50% + harga normal dicoret + harga setelah diskon, view: discount2-a5.php
  *   - 'disc-a4'  -> kartu A4 potret "Diskon : 50%" + harga normal dicoret + harga sesudah diskon (BELFOOD), view: disc-a4.php
- *   - 'disc-a4-allocation' -> sama dgn 'disc-a4', ditambah baris "Alokasi : ... Pc" di bawah periode, view: disc-a4-allocation.php
+ *   - 'disc-a4-allocation' -> sama dgn 'disc-a4', ditambah baris "Alokasi : ... Pcs" di bawah periode, view: disc-a4-allocation.php
  *   - 'pricetag' -> label rak kecil 8 x 3,5 cm (nama, PLU, harga; hitam-putih), banyak per halaman A4, view: price-tag.php
  *   - 'fresh'    -> 6 kartu per halaman A4 (2 x 3) "Manna Kampus FRESH" /100gr, view: butcher.php
  *   - 'curah'    -> 6 kartu per halaman A4 (2 x 3) "BAWANG KATING CURAH" + harga coret, view: curah-6up.php
@@ -72,7 +72,7 @@ class PopA4Pdf
     // ubah karena sudah pernah diuji cocok secara visual; kalau ternyata "Rp" di
     // depan angka besar masih kurang/kelebihan besar pas dicetak, kabari saya.
     private const A4_PT_RP_BIG      = 35;
-    // Tabel: "Alokasi : 100 Pc" = Arial Narrow Italic, 22pt tetap (bukan fit-to-shape).
+    // Tabel: "Alokasi : 100 Pcs" = Arial Narrow Italic, 22pt tetap (bukan fit-to-shape).
     private const A4_PT_ALOKASI     = 22;
 
     // Tabel: "BERAS 5KG" ukuran kotak teks 180,4 x 31,05pt = 6,36 x 1,10cm
@@ -91,7 +91,7 @@ class PopA4Pdf
     // keduanya ditukar di sini (base makin kecil = makin ke atas).
     private const A4_POS = [
         'periode' => ['right' => 18.47, 'base' => 2.01],
-        // Baris "Alokasi : 100 Pc" nempel persis di bawah "Akhir Periode", rata kanan juga.
+        // Baris "Alokasi : 100 Pcs" nempel persis di bawah "Akhir Periode", rata kanan juga.
         'alokasi' => ['right' => 18.47, 'base' => 2.95],
         'merk'    => ['cx' => 10.13,    'base' => 7.44],
         'variant' => ['cx' => 9.47,     'base' => 4.81],
@@ -317,7 +317,7 @@ class PopA4Pdf
     /* ============================================================================
      * DESAIN 6d: "disc-a4" — kartu A4 POTRET "Diskon : 50%" + harga normal (dicoret) + harga sesudah diskon
      * Contoh: BELFOOD / FAV.500G CRUNCHY NUGGET, 43.882 -> 21.941. View: disc-a4.php
-     * Varian "disc-a4-allocation" sama, ditambah baris "Alokasi : ... Pc" di bawah periode
+     * Varian "disc-a4-allocation" sama, ditambah baris "Alokasi : ... Pcs" di bawah periode
      * (elemen 'alokasi' di DCA_EL; hanya digambar kalau teksnya terisi). View: disc-a4-allocation.php
      * Posisi diukur dari screenshot Word (kartu kuning ~19,0 x 27,2 cm).
      * ==========================================================================*/
@@ -344,7 +344,7 @@ class PopA4Pdf
     // teks          family          w      h      x      base    align    warna      outline  maxRatio
     private const DCA_EL = [
         'periode'     => ['poppinsxb',   8.83,  0.62, 17.63,  2.18, 'right',  '#000000', null, 0],
-        // Baris "Alokasi : 100 Pc" tepat di bawah periode (hanya muncul di 'disc-a4-allocation').
+        // Baris "Alokasi : 100 Pcs" tepat di bawah periode (hanya muncul di 'disc-a4-allocation').
         'alokasi'     => ['arialbi',     6.10,  0.50, 17.63,  2.90, 'right',  '#FF0000', null, 0],
         'nama_produk' => ['berlinsans', 16.60,  2.05,  9.69,  5.72, 'center', '#00B0F0', null, 0],
         'variant'     => ['berlinsans', 11.50,  0.62, 17.97,  7.04, 'right',  '#000000', null, 0],
@@ -504,7 +504,7 @@ class PopA4Pdf
         $fontdata['calistoi']     = ['R' => $this->pilihFont(['CALISTI.TTF', 'calisti.ttf', 'Calisti.ttf'], 'CALIST.TTF')];
         $fontdata['bookantiquai'] = ['R' => $this->pilihFont(['BOOKOSI.TTF', 'bookosi.ttf', 'Bookosi.ttf'], 'BOOKOS.TTF')];
 
-        // Arial Bold Italic sebagai satu family sendiri (baris "Alokasi : ... Pc" pada 'disc-a4-allocation').
+        // Arial Bold Italic sebagai satu family sendiri (baris "Alokasi : ... Pcs" pada 'disc-a4-allocation').
         // stretchEl() selalu memakai style reguler, jadi file BI didaftarkan sebagai 'R'.
         $fontdata['arialbi'] = ['R' => 'arialbi.ttf'];
 
@@ -656,7 +656,7 @@ class PopA4Pdf
         return view('pricetag/templates/turun-hrg-a4', $d);
     }
 
-    /* ====================== DESAIN 1b: "a4-allocation" (sama persis dgn "a4", + baris "Alokasi : ... Pc") ====================== */
+    /* ====================== DESAIN 1b: "a4-allocation" (sama persis dgn "a4", + baris "Alokasi : ... Pcs") ====================== */
 
     private function pageHtmlA4Allocation(array $row): string
     {
@@ -678,7 +678,7 @@ class PopA4Pdf
             'periode' => $this->tanggal($row['end_period'] ?? ''),
             // Baris ini hanya tampil kalau barangnya memang dialokasikan (allocation_pcs > 0).
             'alokasi' => (float) ($row['allocation_pcs'] ?? 0) > 0
-                ? 'Alokasi : ' . number_format((float) $row['allocation_pcs'], 0, ',', '.') . ' Pc'
+                ? 'Alokasi : ' . number_format((float) $row['allocation_pcs'], 0, ',', '.') . ' Pcs'
                 : '',
             'normal'  => number_format($normal, 0, ',', '.'),
             // Harga >= 1.000: ribuan besar + tiga digit terakhir kecil.
@@ -1226,7 +1226,7 @@ class PopA4Pdf
         return view('pricetag/templates/disc-a4', $this->buildDiscA4Data($row, false));
     }
 
-    /** Desain "disc-a4-allocation": sama dengan "disc-a4" + baris "Alokasi : ... Pc" di bawah periode. */
+    /** Desain "disc-a4-allocation": sama dengan "disc-a4" + baris "Alokasi : ... Pcs" di bawah periode. */
     private function pageHtmlDiscA4Allocation(array $row): string
     {
         return view('pricetag/templates/disc-a4-allocation', $this->buildDiscA4Data($row, true));
@@ -1262,7 +1262,7 @@ class PopA4Pdf
             'periode'     => $this->periodeText($row['start_period'] ?? '', $row['end_period'] ?? ''),
             // Baris alokasi hanya terisi di varian "disc-a4-allocation" dan kalau allocation_pcs > 0.
             'alokasi'     => ($allocation && $pcs > 0)
-                ? 'Alokasi : ' . number_format($pcs, 0, ',', '.') . ' Pc'
+                ? 'Alokasi : ' . number_format($pcs, 0, ',', '.') . ' Pcs'
                 : '',
             'nama_produk' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
             'variant'     => mb_strtoupper(trim((string) ($row['variant'] ?? ''))),
@@ -1345,7 +1345,9 @@ class PopA4Pdf
         $tags = [];
 
         foreach (array_values($rows) as $i => $row) {
-            $harga = (int) round((float) (($row['promo_price'] ?? 0) > 0 ? $row['promo_price'] : ($row['normal_price'] ?? 0)));
+            // Template pricetag hanya menampilkan satu harga: harga normal.
+            // Harga promo dipakai oleh template promosi/diskon lain, bukan di sini.
+            $harga = (int) round((float) ($row['normal_price'] ?? 0));
             $nama  = mb_strtoupper(trim(trim((string) ($row['name'] ?? '')) . ' ' . trim((string) ($row['variant'] ?? ''))));
 
             $text = [

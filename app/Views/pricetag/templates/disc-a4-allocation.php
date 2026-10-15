@@ -1,6 +1,6 @@
 <?php
 /**
- * View: POP A4 "DISKON" + baris "Alokasi : ... Pc" di bawah periode (untuk mPDF)
+ * View: POP A4 "DISKON" + baris "Alokasi : ... Pcs" di bawah periode (untuk mPDF)
  * Sama dengan disc-a4.php; bedanya $S['el']['alokasi'] terisi (dari PopA4Pdf::pageHtmlDiscA4Allocation),
  * sehingga baris alokasi ikut digambar di SVG dan posisinya pas di bawah "PERIODE : ...".
  *

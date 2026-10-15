@@ -23,7 +23,7 @@ $box = $L['box'];
 </div>
 
 <?php if ($T['alokasi'] !== ''): ?>
-<!-- Alokasi : 100 Pc (Arial Narrow Bold Italic, 22pt tetap, Merah) -->
+<!-- Alokasi : 100 Pcs (Arial Narrow Bold Italic, 22pt tetap, Merah) -->
 <div class="abs r" style="left: <?= $L['alokasi']['left'] ?>cm; top: <?= $L['alokasi']['top'] ?>cm; width: <?= $L['alokasi']['w'] ?>cm;
      font-family: <?= $F['alokasi']['family'] ?>; font-weight: bold; font-style: italic; font-size: <?= $F['alokasi']['pt'] ?>pt;
      line-height: <?= $F['alokasi']['pt'] ?>pt; color: #EE0000;">
