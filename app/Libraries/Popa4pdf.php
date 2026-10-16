@@ -145,7 +145,8 @@ class PopA4Pdf
         'plu'     => ['arialblack',  5.20, 0.66,   9.38, 23.32, 'center', '#000080', null],
     ];
 
-    private const SEG_STRIKE = ['x1' => 3.2, 'y1' => 13.55, 'over' => 0.4, 'slope' => 0.16, 'thick' => 0.18];
+    // Garis coret dipusatkan pada badan angka harga normal (sebelumnya terlalu rendah).
+    private const SEG_STRIKE = ['x1' => 4.60, 'y1' => 12.45, 'over' => 0.4, 'slope' => 0.16, 'thick' => 0.18];
 
     /* ============================================================================
      * DESAIN 3: "special" — kartu Segitiga Special Price
