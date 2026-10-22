@@ -46,9 +46,10 @@ class PopA4Pdf
         'arial'      => ['R' => 'arial.ttf', 'B' => 'arialbd.ttf', 'I' => 'ariali.ttf', 'BI' => 'arialbi.ttf'],
         'berlinsans' => ['R' => 'BRLNSDB.TTF'],
         'baskerville'=> ['R' => 'BASKVILL.TTF'],
-        // Hanya BOOKOS.TTF tersedia di assets/fonts; gunakan font reguler
-        // sebagai fallback untuk style bold agar mPDF tidak gagal memuat font.
-        'bookantiqua'=> ['R' => 'BOOKOS.TTF'],
+        // Book Antiqua resmi tersedia pada Windows server. Variasi bold
+        // didaftarkan terpisah agar SVG dapat memilih family yang tepat.
+        'bookantiqua' => ['R' => 'BKANT.TTF'],
+        'bookantiquab' => ['R' => 'ANTQUAB.TTF'],
         'arialnarrow'=> ['R' => 'ARIALN.TTF', 'B' => 'ARIALNB.TTF', 'I' => 'ARIALNI.TTF', 'BI' => 'ARIALNBI.TTF'],
         'bodonimt'   => ['R' => 'BOD_R.TTF'],
         'bodoniblack'=> ['R' => 'BOD_BLAR.TTF'],
@@ -83,6 +84,8 @@ class PopA4Pdf
     private const A4_W_BIG     = 11.3;
     // Jarak aman (cm) antara ujung kanan angka besar dan awal angka kecil (".900")
     private const A4_GAP_BIG_SMALL = 0.35;
+    // Minimum visual gap for the two-digit main price and the decimal part.
+    private const A4_MIN_GAP_BIG_SMALL = 0.45;
 
     // CATATAN (ubah sesuai contoh "MBOK DARMI / BERAS 5KG"): dulu urutannya
     // merk (hitam, polos) di atas lalu variant (biru, regangan) di bawah.
@@ -507,6 +510,11 @@ class PopA4Pdf
         $fontdata['calistoi']     = ['R' => $this->pilihFont(['CALISTI.TTF', 'calisti.ttf', 'Calisti.ttf'], 'CALIST.TTF')];
         $fontdata['bookantiquai'] = ['R' => $this->pilihFont(['BOOKOSI.TTF', 'bookosi.ttf', 'Bookosi.ttf'], 'BOOKOS.TTF')];
 
+        // Family khusus A5 Turun Harga. Dipisahkan dari family template lain
+        // agar perubahan font A5 tidak mengubah A5 Diskon.
+        $fontdata['a5bookantiqua']  = ['R' => 'BKANT.TTF'];
+        $fontdata['a5bookantiquab'] = ['R' => 'ANTQUAB.TTF'];
+
         // Arial Bold Italic sebagai satu family sendiri (baris "Alokasi : ... Pcs" pada 'disc-a4-allocation').
         // stretchEl() selalu memakai style reguler, jadi file BI didaftarkan sebagai 'R'.
         $fontdata['arialbi'] = ['R' => 'arialbi.ttf'];
@@ -518,6 +526,11 @@ class PopA4Pdf
             $this->diskonFont = 'mingliub';
         }
 
+        $fontDirs = array_merge($d['fontDir'], [FCPATH . 'assets/fonts']);
+        if (is_dir('C:\\Windows\\Fonts')) {
+            $fontDirs[] = 'C:\\Windows\\Fonts';
+        }
+
         $this->mpdf = new Mpdf([
             'mode'          => 'utf-8',
             'format'        => 'A4',
@@ -526,7 +539,7 @@ class PopA4Pdf
             'margin_header' => 0, 'margin_footer' => 0,
             'autoPageBreak' => false,
             'tempDir'       => WRITEPATH . 'mpdf',
-            'fontDir'       => array_merge($d['fontDir'], [FCPATH . 'assets/fonts']),
+            'fontDir'       => $fontDirs,
             'fontdata'      => $fd['fontdata'] + $fontdata,
             'default_font'  => 'arial',
         ]);
@@ -693,6 +706,10 @@ class PopA4Pdf
             'small_prefix' => $promo >= 1000 ? '.' : '',
         ];
 
+        // Metode B: satu digit regular, dua/tiga digit bold.
+        $bigDigitCount = strlen($T['big']);
+        $bigFont = $bigDigitCount === 1 ? 'bookantiqua' : 'bookantiquab';
+
         // Lebar maksimal angka besar: sisakan ruang untuk angka kecil (".900") di kanannya
         // supaya keduanya tidak saling menimpa. Angka kecil rata kanan di A4_POS['small']['right'].
         $bigMaxW = self::A4_W_BIG;
@@ -806,8 +823,6 @@ class PopA4Pdf
             );
         }
 
-        $bigFont = 'bookantiqua';
-
         $S = [
             'w'       => self::A4_BOX_W * 10,
             'h'       => self::A4_BOX_H * 10,
@@ -836,6 +851,7 @@ class PopA4Pdf
                 self::A4_PT_SMALL,
                 $T['small_prefix'] . $T['small']
             );
+
             $smallLeft = $smallRight - $smallWidth;
             $rpWidth = $this->textWidthCm('arial', 'BI', self::A4_PT_RP_BIG, 'Rp');
             $rpRight = self::A4_POS['rp_big']['left'] + $rpWidth;
@@ -850,15 +866,23 @@ class PopA4Pdf
             $S['big']['x'] = round((($rpRight + $smallLeft - $bigWidth) / 2 + $opticalOffset + 0.35) * 10, 2);
         }
 
+        // Kandidat 2 (Medium), hanya untuk angka promo tiga digit.
+        // Nilai ini berada pada koordinat viewBox (1 unit = 1 mm), sehingga
+        // x=30.56 adalah posisi absolut pada kartu, bukan offset box SVG.
+        if ($bigDigitCount === 3) {
+            $S['big']['x'] = 30.56;
+            $S['big']['sx'] = 4.4906;
+            $S['big']['sy'] = 19.0616;
+        }
+
         // Harga besar 2 digit membutuhkan sedikit ruang tambahan dari label "Rp".
         if ($T['small'] !== '' && strlen($T['big']) === 2) {
             $S['big']['x'] = round($S['big']['x'] + 7.0, 2);
         }
 
-        // Letakkan angka kecil mengikuti ujung aktual angka besar. Dengan begitu,
-        // jarak tidak melebar saat angka besar hanya 1 digit, dan tetap aman saat
-        // angka besar terdiri dari 2 atau 3 digit.
-        if ($T['small'] !== '' && strlen($T['big']) > 1) {
+        // Untuk tiga digit, pertahankan penempatan Kandidat 2 dan gunakan gap
+        // yang telah menjadi bagian dari eksperimen tersebut.
+        if ($T['small'] !== '' && $bigDigitCount === 3) {
             $smallRightLimit = $promo >= 1000 ? self::A4_POS['small']['right'] : (self::A4_POS['small']['right'] - 1.2);
             $smallWidth = $this->textWidthCm(
                 'bookantiqua',
@@ -872,6 +896,21 @@ class PopA4Pdf
                 $bigRight + self::A4_GAP_BIG_SMALL + $smallWidth
             );
             $L['small']['left'] = round($ox + $smallRight - 12.0, 3);
+        }
+
+        // Dua digit memakai desimal pada posisi tetap. Bila lebar glyph hasil
+        // pengukuran + transformasi membuat gap aktual terlalu kecil, geser
+        // angka utama ke kiri saja; desimal dan scaling tidak diubah.
+        if ($T['small'] !== '' && $bigDigitCount === 2) {
+            $smallRightLimit = $promo >= 1000 ? self::A4_POS['small']['right'] : (self::A4_POS['small']['right'] - 1.2);
+            $smallWidth = $this->textWidthCm('bookantiqua', '', self::A4_PT_SMALL, $T['small_prefix'] . $T['small']);
+            $smallLeft = $smallRightLimit - $smallWidth;
+            $bigRight = ($S['big']['x'] + ($S['big']['w0'] * $S['big']['sx'])) / 10;
+            $gap = $smallLeft - $bigRight;
+            if ($gap < self::A4_MIN_GAP_BIG_SMALL) {
+                $targetRight = $smallLeft - self::A4_MIN_GAP_BIG_SMALL;
+                $S['big']['x'] = round(($targetRight - ($S['big']['w0'] * $S['big']['sx']) / 10) * 10, 2);
+            }
         }
 
         $img = FCPATH . self::A4_IMG_FILE;
@@ -1053,9 +1092,17 @@ class PopA4Pdf
             'periode2' => $this->tanggal($row['end_period'] ?? ''),
         ];
 
+        $a5BigFamily = 'a5bookantiqua';
+
         $S = ['w' => self::A5_BOX_W * 10, 'h' => self::A5_BOX_H * 10, 'el' => []];
         foreach (self::A5_EL as $key => $def) {
             [$fam, $w, $h, $x, $base, $align, $color, $outline, $maxSkew] = $def;
+            if ($key === 'big') {
+                $fam = $a5BigFamily;
+                $outline = '#FF0000 0.20';
+            } elseif ($key === 'small') {
+                $fam = 'a5bookantiquab';
+            }
             // Harga 1 digit masih terlalu jauh dari titik dan harga kecil.
             // Geser hanya angka besarnya; posisi harga 2 dan 3 digit tetap.
             if ($key === 'big' && $promo >= 1000 && $promo < 10000) {
@@ -1067,12 +1114,20 @@ class PopA4Pdf
             if ($key === 'big' && $promo >= 100000) {
                 $x = 6.85;
             }
+            // Satu-satunya koreksi horizontal harga promo besar: 3,0 mm ke kanan.
+            if ($key === 'big') {
+                $x += 0.30;
+            }
             if ($key === 'small' && $promo < 1000) {
                 $x = 12.75;
             }
             $element = in_array($key, ['big', 'small'], true)
                 ? $this->stretchBox($fam, $text[$key], ['x' => $x, 'w' => $w, 'h' => $h, 'base' => $base, 'max' => 1.0], $align)
                 : $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, 0, (float) $maxSkew);
+            if ($key === 'big' && strlen($text['big']) === 3) {
+                // Pertahankan titik awal x; rampingkan hanya lebar horizontal.
+                $element['sx'] = round($element['sx'] * 0.95, 4);
+            }
             $S['el'][$key] = $element + [
                 'color' => $color, 'outline' => $outline,
             ];
