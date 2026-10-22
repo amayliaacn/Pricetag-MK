@@ -33,6 +33,6 @@ $e = static fn($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
     <svg xmlns="http://www.w3.org/2000/svg" width="<?= $L['strike']['w'] ?>cm" height="<?= $L['strike']['h'] ?>cm"
          viewBox="0 0 <?= $L['strike']['w'] ?> <?= $L['strike']['h'] ?>">
         <line x1="0" y1="<?= $L['strike']['y1'] ?>" x2="<?= $L['strike']['w'] ?>" y2="<?= $L['strike']['y2'] ?>"
-              stroke="#000000" stroke-width="<?= $L['strike']['sw'] ?>" />
+              stroke="#FF0000" stroke-width="<?= $L['strike']['sw'] ?>" />
     </svg>
 </div>

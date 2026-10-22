@@ -69,15 +69,23 @@ class PriceTag extends BaseController
                 if (empty($tags)) $tags = $snapshotRows;
             }
 
-            $snapshotSizes = [];
+            $snapshotSizesById = [];
+            $snapshotSizesBySku = [];
             foreach ($snapshotRows as $snapshotRow) {
-                if (! empty($snapshotRow['sku_plu']) && ! empty($snapshotRow['template_size'])) {
-                    $snapshotSizes[(string) $snapshotRow['sku_plu']] = $snapshotRow['template_size'];
+                if (! empty($snapshotRow['template_size'])) {
+                    if (! empty($snapshotRow['price_tag_id'])) {
+                        $snapshotSizesById[(int) $snapshotRow['price_tag_id']] = $snapshotRow['template_size'];
+                    } elseif (! empty($snapshotRow['sku_plu'])) {
+                        $snapshotSizesBySku[(string) $snapshotRow['sku_plu']] = $snapshotRow['template_size'];
+                    }
                 }
             }
             foreach ($tags as &$tag) {
-                if (empty($tag['template_size']) && isset($snapshotSizes[(string) $tag['sku_plu']])) {
-                    $tag['template_size'] = $snapshotSizes[(string) $tag['sku_plu']];
+                $tagId = (int) ($tag['id'] ?? 0);
+                if (empty($tag['template_size']) && isset($snapshotSizesById[$tagId])) {
+                    $tag['template_size'] = $snapshotSizesById[$tagId];
+                } elseif (empty($tag['template_size']) && $tagId <= 0 && isset($snapshotSizesBySku[(string) $tag['sku_plu']])) {
+                    $tag['template_size'] = $snapshotSizesBySku[(string) $tag['sku_plu']];
                 }
             }
             unset($tag);
@@ -304,7 +312,7 @@ class PriceTag extends BaseController
                 $snapshot = json_decode($history['snapshot'], true);
                 if (is_array($snapshot)) {
                     foreach ($snapshot as &$snapshotRow) {
-                        if ((string) ($snapshotRow['sku_plu'] ?? '') === (string) $savedTag['sku_plu']) {
+                        if ((int) ($snapshotRow['price_tag_id'] ?? 0) === $id) {
                             $snapshotRow['template_size'] = $savedSize;
                         }
                     }
