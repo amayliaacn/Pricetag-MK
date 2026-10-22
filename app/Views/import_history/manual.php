@@ -125,7 +125,7 @@
             <div class="table-responsive">
                 <table class="table align-middle manual-entry-table">
                     <thead class="table-dark">
-                        <tr data-price-tag-id="<?= (int) ($row['price_tag_id'] ?? 0) ?>">
+                        <tr>
                             <th>No</th>
                             <th>Awal Periode</th>
                             <th>Akhir Periode</th>
@@ -147,7 +147,7 @@
                             $row   = $rows[$i] ?? [];
                             $harga = (float) ($row['normal_price'] ?? 0);
                         ?>
-                        <tr>
+                        <tr data-price-tag-id="<?= (int) ($row['price_tag_id'] ?? 0) ?>">
                             <td class="row-number"><?= $i + 1 ?></td>
                             <td><div class="cell" contenteditable="true" data-field="start_period" data-tipe="tgl" data-ph="12-Jul-2026"><?= esc($tgl($row['start_period'] ?? '')) ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="end_period" data-tipe="tgl" data-ph="30-Jul-2026"><?= esc($tgl($row['end_period'] ?? '')) ?></div></td>

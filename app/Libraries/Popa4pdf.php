@@ -135,7 +135,9 @@ class PopA4Pdf
     private const SEG_EL = [
         'periode' => ['bahnschrift', 6.98, 0.60,  16.58,  2.08, 'right', '#0000CC', null],
         'alokasi' => ['bahnschrift', 4.61, 0.60,  16.12,  3.02, 'right', '#FF0000', '#FF0000 0.7pt'],
-        'nama_produk'   => ['bernardmt',  15.15, 3.37,   9.87,  7.57, 'center', '#101AE0', null],
+        // Optical centering: Bernard MT's side bearings make the ink appear
+        // shifted to the right when centered by the font advance width.
+        'nama_produk'   => ['bernardmt',  15.15, 3.37,   9.27,  7.57, 'center', '#101AE0', null],
         'variant'  => ['arialblack', 8.37, 1.05,   9.62,  9.45, 'center', '#000000', null],
         'rp_lama' => ['bookantiqua', 1.00, 1.12,   3.31, 12.77, 'left',  '#000000', null],
         'lama'    => ['bookantiqua', 7.97, 1.91,   4.75, 12.82, 'left',  '#000000', '#000000 1pt'],
@@ -146,7 +148,7 @@ class PopA4Pdf
     ];
 
     // Garis coret dipusatkan pada badan angka harga normal (sebelumnya terlalu rendah).
-    private const SEG_STRIKE = ['x1' => 4.60, 'y1' => 12.45, 'over' => 0.4, 'slope' => 0.16, 'thick' => 0.18];
+    private const SEG_STRIKE = ['x1' => 4.60, 'y1' => 12.20, 'over' => 0.4, 'slope' => 0.16, 'thick' => 0.18];
 
     /* ============================================================================
      * DESAIN 3: "special" — kartu Segitiga Special Price
@@ -208,7 +210,7 @@ class PopA4Pdf
         'plu_val'     => ['arialblack',  2.59, 0.66,  9.25, 23.66, 'left',   '#000000', null,              0],
     ];
 
-    private const DSK_STRIKE = ['x1' => 2.15, 'y1' => 19.45, 'over' => 0.35, 'slope' => 0.20, 'thick' => 0.15];
+    private const DSK_STRIKE = ['x1' => 2.15, 'y1' => 18.95, 'over' => 0.35, 'slope' => 0.20, 'thick' => 0.15];
 
     /* ============================================================================
      * DESAIN 5: "a5" — kartu A5, ukuran cetak fisik 19,5 x 13,5 cm (landscape)
@@ -234,8 +236,8 @@ class PopA4Pdf
     private const A5_EL = [
         'merk'      => ['arialblack',    17.46, 0.95,  1.05,  3.31,  'left', '#00B0F0', '#000000 0.25pt', 0],
         'plu'       => ['arialnarrow',    4.45, 0.64, 18.70,  4.45,  'right','#000000', null,             0],
-        'rp_lama'   => ['calistomt',      0.56, 0.64,  1.73,  5.10,  'left', '#FF0000', null,             0],
-        'lama'      => ['bookantiqua',    4.13, 1.27,  2.35,  5.67,  'left', '#FF0000', '#FF0000 0.45pt',  1.3],
+        'rp_lama'   => ['calistomt',      0.56, 0.64,  1.73,  5.10,  'left', '#000000', null,             0],
+        'lama'      => ['bookantiqua',    4.13, 1.27,  2.35,  5.67,  'left', '#000000', '#000000 0.45pt',  1.3],
         'rp_baru'   => ['calistomt',      0.78, 0.82,  5.90,  7.95,  'left', '#FF0000', null,             0],
         'big'       => ['bookantiqua',    7.62, 6.20,  7.15, 11.90,  'left', '#FF0000', '#FF0000 0.45pt',  1.3],
         'small'     => ['bookantiqua',    4.45, 1.75, 14.05, 11.90,  'left', '#FF0000', '#FF0000 0.45pt',  1.3],
@@ -1116,7 +1118,7 @@ class PopA4Pdf
         $variant = mb_strtoupper(trim((string) ($row['variant'] ?? '')));
         $text = [
             'nama_produk' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
-            'artikel'     => $variant !== '' ? $variant : self::DSC_TEKS_ARTIKEL,
+            'artikel'     => $variant,
             'label'       => self::DSC_TEKS_LABEL,
             'angka'       => (string) $pct,
             'persen'      => '%',
@@ -1172,7 +1174,7 @@ class PopA4Pdf
 
         $text = [
             'nama_produk' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
-            'artikel'     => $variant !== '' ? $variant : self::DSC_TEKS_ARTIKEL,
+            'artikel'     => $variant,
             'label'       => self::DSC_TEKS_LABEL,
             'angka'       => (string) $pct,
             'persen'      => '%',
