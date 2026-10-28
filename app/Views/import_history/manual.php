@@ -12,7 +12,7 @@
     <style>
         .manual-entry-table td { padding: 6px 8px; }
         .manual-entry-table { width: 100%; table-layout: fixed; }
-        .manual-entry-table th:nth-child(1), .manual-entry-table td:nth-child(1) { width: 42px; }
+        .manual-entry-table th:nth-child(1), .manual-entry-table td:nth-child(1) { width: 42px; text-align: center; }
         .manual-entry-table th:nth-child(2), .manual-entry-table td:nth-child(2),
         .manual-entry-table th:nth-child(3), .manual-entry-table td:nth-child(3) { width: 120px; }
         .manual-entry-table th:nth-child(4), .manual-entry-table td:nth-child(4) { width: 95px; }
@@ -137,7 +137,7 @@
             <div class="table-responsive">
                 <table class="table align-middle manual-entry-table">
                     <thead class="table-dark">
-                        <tr data-price-tag-id="<?= (int) ($row['price_tag_id'] ?? 0) ?>">
+                        <tr>
                             <th>No</th>
                             <th>Awal Periode</th>
                             <th>Akhir Periode</th>
@@ -159,7 +159,7 @@
                             $row   = $rows[$i] ?? [];
                             $harga = (float) ($row['normal_price'] ?? 0);
                         ?>
-                        <tr>
+                        <tr data-price-tag-id="<?= (int) ($row['price_tag_id'] ?? 0) ?>">
                             <td class="row-number"><?= $i + 1 ?></td>
                             <td><div class="cell" contenteditable="true" data-field="start_period" data-tipe="tgl" data-ph="12-Jul-2026"><?= esc($tgl($row['start_period'] ?? '')) ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="end_period" data-tipe="tgl" data-ph="30-Jul-2026"><?= esc($tgl($row['end_period'] ?? '')) ?></div></td>
@@ -286,7 +286,12 @@
             document.execCommand('insertText', false, rows[0][0]);
             return;
         }
-        const td = el.closest('td'), r0 = td.parentElement.rowIndex - 1, c0 = [...td.parentElement.children].indexOf(td) - 1;
+        const td = el.closest('td'), tr0 = td.parentElement;
+        const r0 = tr0.rowIndex - 1;
+        // Gunakan indeks di antara elemen .cell, bukan indeks <td> fisik.
+        // Dua <td> pertama berisi checkbox dan nomor baris, sehingga
+        // memakai indeks children akan membuat paste bergeser satu kolom.
+        const c0 = cells(tr0).indexOf(el);
         rows.forEach((kol, i) => {
             while (!tb.rows[r0 + i]) tb.appendChild(buatBaris());
             const cs = cells(tb.rows[r0 + i]);

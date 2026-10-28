@@ -22,9 +22,9 @@ $box = $L['box'];
     Akhir Periode : <?= $e($T['periode']) ?>
 </div>
 
-<!-- Nama barang / merk (serif, hitam) -->
-<div class="abs c" style="left: <?= $L['merk']['left'] ?>cm; top: <?= $L['merk']['top'] ?>cm; width: <?= $L['merk']['w'] ?>cm;
-     font-family: <?= $F['merk']['family'] ?>; font-size: <?= $F['merk']['pt'] ?>pt; line-height: <?= $F['merk']['pt'] ?>pt; color: #000000;">
+<!-- Nama barang / merk ("BERAS 5KG" dkk — Arial Bold, hitam, di bawah judul biru) -->
+<div class="abs r" style="left: <?= $L['merk']['left'] ?>cm; top: <?= $L['merk']['top'] ?>cm; width: <?= $L['merk']['w'] ?>cm;
+     font-family: <?= $F['merk']['family'] ?>; font-weight: bold; font-size: <?= $F['merk']['pt'] ?>pt; line-height: <?= $F['merk']['pt'] ?>pt; color: #000000;">
     <?= $e($T['merk']) ?>
 </div>
 
@@ -38,8 +38,8 @@ $box = $L['box'];
 <div class="abs red outline-red" style="left: <?= $L['rp_small']['left'] ?>cm; top: <?= $L['rp_small']['top'] ?>cm; width: 3cm;
      font-family: <?= $F['rp']['family'] ?>; font-weight: bold; font-style: italic; font-size: <?= $F['rp_small']['pt'] ?>pt; line-height: <?= $F['rp_small']['pt'] ?>pt;">Rp</div>
 
-<div class="abs red outline-red" style="left: <?= $L['normal']['left'] ?>cm; top: <?= $L['normal']['top'] ?>cm; width: 12cm;
-     font-family: <?= $F['normal']['family'] ?>; font-weight: bold; font-size: <?= $F['normal']['pt'] ?>pt; line-height: <?= $F['normal']['pt'] ?>pt;">
+<div class="abs" style="left: <?= $L['normal']['left'] ?>cm; top: <?= $L['normal']['top'] ?>cm; width: 12cm;
+     font-family: <?= $F['normal']['family'] ?>; font-weight: bold; font-size: <?= $F['normal']['pt'] ?>pt; line-height: <?= $F['normal']['pt'] ?>pt; color: #000000;">
     <?= $e($T['normal']) ?>
 </div>
 
@@ -48,7 +48,7 @@ $box = $L['box'];
     <svg xmlns="http://www.w3.org/2000/svg" width="<?= $L['strike']['w'] ?>cm" height="<?= $L['strike']['h'] ?>cm"
          viewBox="0 0 <?= $L['strike']['vw'] ?> <?= $L['strike']['vh'] ?>">
         <line x1="0" y1="<?= $L['strike']['y1'] ?>" x2="<?= $L['strike']['vw'] ?>" y2="<?= $L['strike']['y2'] ?>"
-              stroke="#000000" stroke-width="<?= $L['strike']['sw'] ?>" />
+              stroke="#FF0000" stroke-width="<?= $L['strike']['sw'] ?>" />
     </svg>
 </div>
 

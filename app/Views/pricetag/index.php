@@ -150,7 +150,7 @@
             <select id="filterUkuran" class="form-select"><option value="all" <?= ($templateFilter ?? 'all') === 'all' ? 'selected' : '' ?>>Semua Ukuran</option><option value="kcl" <?= ($templateFilter ?? '') === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="tgg" <?= ($templateFilter ?? '') === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="mpdf" <?= ($templateFilter ?? '') === 'mpdf' ? 'selected' : '' ?>>A4</option><option value="pricetag" <?= ($templateFilter ?? '') === 'pricetag' ? 'selected' : '' ?>>Price Tag</option><option value="a5" <?= ($templateFilter ?? '') === 'a5' ? 'selected' : '' ?>>A5</option><option value="segitiga" <?= ($templateFilter ?? '') === 'segitiga' ? 'selected' : '' ?>>Segitiga</option><option value="fresh" <?= ($templateFilter ?? '') === 'fresh' ? 'selected' : '' ?>>Butcher</option><option value="curah" <?= ($templateFilter ?? '') === 'curah' ? 'selected' : '' ?>>Vegetable</option></select>
         </div>
 
-        <button type="button" id="btnCetak" class="btn btn-danger" disabled data-bs-toggle="modal" data-bs-target="#modalCetak">
+        <button type="button" id="btnCetak" class="btn btn-danger" disabled>
             <i class="bi bi-printer me-1"></i>Cetak Terpilih (<span id="jumlahTerpilih">0</span>)
         </button>
     </div>
@@ -582,9 +582,15 @@
 
         // Bangun isi modal setiap kali tombol Cetak ditekan
         btnCetak.addEventListener('click', function () {
+            const checkedProducts = [...getChecked()];
+            const hasUnselectedTemplate = checkedProducts.some(cb => !cb.dataset.size);
+            if (hasUnselectedTemplate) {
+                tampilkanErrorCetak('Pastikan produk sudah memilih ukuran template.');
+                return;
+            }
             tabelBody.innerHTML = '';
 
-            getChecked().forEach(cb => {
+            checkedProducts.forEach(cb => {
                 const id      = cb.dataset.id;
                 const sku     = cb.dataset.sku;
                 const name    = cb.dataset.name;
@@ -609,7 +615,7 @@
                     <td>
                         <input type="hidden" name="size[${id}]" value="${size}">
                         ${size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${id}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : ((size === 'mpdf' || size === 'pricetag' || size === 'a5' || size === 'fresh' || size === 'curah' || size === 'segitiga') ? `${size === 'pricetag' ? 'Price Tag' : (size === 'curah' ? 'Vegetable' : (size === 'fresh' ? 'Butcher' : (size === 'a5' ? 'A5' : (size === 'segitiga' ? 'Segitiga' : 'A4'))))}` : '<span class="text-muted">Kecil</span>')}
-                        ${canChooseDiscount ? `<div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="auto" checked> Turun harga</label><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="show"> Tampil diskon</label></div>` : (showA4DiscountInfo ? `<input type="hidden" name="discount_mode[${id}]" value="auto"><div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" checked disabled> Turun harga</label><label class="d-block text-muted" title="Pilihan ini tidak tersedia untuk template A4"><input type="radio" disabled> Tampil diskon <span class="fst-italic">(tidak tersedia untuk A4)</span></label></div>` : (showDiscountInfo ? `<input type="hidden" name="discount_mode[${id}]" value="auto"><div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" checked disabled> Turun harga</label><label class="d-block text-muted"><input type="radio" disabled> Tampil diskon <span class="fst-italic">(tidak tersedia untuk ukuran ini)</span></label></div>` : `<input type="hidden" name="discount_mode[${id}]" value="auto">`))}
+                        ${canChooseDiscount ? `<div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="auto" checked> Turun harga</label><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="show"> Tampil diskon</label></div>` : (showA4DiscountInfo ? `<input type="hidden" name="discount_mode[${id}]" value="show"><div class="mt-2 small"><div class="text-muted mb-1">Diskon persen A4</div><span class="text-success">Otomatis menggunakan template Disc A4</span></div>` : (showDiscountInfo ? `<input type="hidden" name="discount_mode[${id}]" value="auto"><div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" checked disabled> Turun harga</label><label class="d-block text-muted"><input type="radio" disabled> Tampil diskon <span class="fst-italic">(tidak tersedia untuk ukuran ini)</span></label></div>` : `<input type="hidden" name="discount_mode[${id}]" value="auto">`))}
                     </td>
                     <td>
                         <input type="number" name="qty[${id}]" value="1" min="1" class="form-control form-control-sm" required>
@@ -622,6 +628,7 @@
             document.getElementById('formCetak').action = hasMpdf
                 ? '<?= base_url('print-mpdf') ?>'
                 : '<?= base_url('print-pdf') ?>';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCetak')).show();
         });
 
         function tampilkanErrorCetak(message) {
@@ -640,6 +647,10 @@
         document.getElementById('formCetak').addEventListener('submit', async function (event) {
             event.preventDefault();
             const sizes = [...this.querySelectorAll('input[name^="size["]')].map(input => input.value);
+            if (sizes.some(size => !size)) {
+                tampilkanErrorCetak('Pastikan produk sudah memilih ukuran template.');
+                return;
+            }
             const uniqueSizes = [...new Set(sizes.filter(Boolean))];
             if (uniqueSizes.length > 1) {
                 tampilkanErrorCetak('Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');

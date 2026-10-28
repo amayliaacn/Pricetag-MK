@@ -85,6 +85,39 @@ class ImportHistory extends BaseController
         return redirect()->to(base_url('import-history'))->with('success', 'Data file import dan produk terkait berhasil dihapus.');
     }
 
+    public function deleteSelected()
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $this->request->getPost('history_ids')))));
+        if ($ids === []) {
+            return redirect()->back()->with('error', 'Pilih minimal satu data untuk dihapus.');
+        }
+
+        $role = (string) session()->get('role');
+        $outletId = session()->get('outlet_id');
+        $historyModel = new ImportHistoryModel();
+        $visibleIds = [];
+        foreach ($ids as $id) {
+            if ($historyModel->findVisibleImport($id, $role, $outletId === null ? null : (int) $outletId)) {
+                $visibleIds[] = $id;
+            }
+        }
+
+        if ($visibleIds === []) {
+            return redirect()->back()->with('error', 'Data yang dipilih tidak ditemukan atau tidak dapat dihapus.');
+        }
+
+        $db = db_connect();
+        $db->transStart();
+        $db->table('price_tags')->whereIn('import_id', $visibleIds)->delete();
+        $historyModel->whereIn('id', $visibleIds)->delete();
+        $db->transComplete();
+
+        return redirect()->back()->with(
+            $db->transStatus() ? 'success' : 'error',
+            $db->transStatus() ? count($visibleIds) . ' data history berhasil dihapus.' : 'Data history gagal dihapus.'
+        );
+    }
+
     public function createManual()
     {
         $role = (string) session()->get('role');
@@ -196,7 +229,10 @@ class ImportHistory extends BaseController
             $data = [
                 'sku_plu'          => $sku,
                 'name'             => $row['name'],
-                'variant'          => $row['variant'],
+                // Jika nama produk tidak memakai pemisah "#", parser tidak
+                // menghasilkan varian. Pertahankan varian yang sebelumnya
+                // sudah diedit melalui detail produk.
+                'variant'          => $row['variant'] ?? ($existing['variant'] ?? null),
                 'normal_price'     => (float) $row['normal_price'],
                 'discount_percent' => $discount,
                 'promo_price'      => $promoPrice,
@@ -206,6 +242,8 @@ class ImportHistory extends BaseController
                 'uploaded_by'      => (int) session()->get('id'),
                 'import_date'      => date('Y-m-d'),
                 'import_id'        => $id,
+                // Produk baru belum punya ukuran template. Produk lama tetap
+                // mempertahankan pilihan yang sudah tersimpan.
                 'template_size'    => $existing['template_size'] ?? null,
                 'is_printed'       => 0,
             ];
@@ -218,6 +256,8 @@ class ImportHistory extends BaseController
             $usedIds[] = $tagId;
             $row['sku_plu'] = $sku;
             $row['price_tag_id'] = $tagId;
+            $row['variant'] = $data['variant'];
+            $row['template_size'] = $data['template_size'];
             $savedRows[] = $row;
         }
 

@@ -169,6 +169,14 @@ class MpdfLibreTemplate
             'promo_hundreds' => $hasThousands
                 ? '.' . str_pad((string) ($promo % 1000), 3, '0', STR_PAD_LEFT)
                 : str_pad((string) ($promo % 100), 2, '0', STR_PAD_LEFT),
+            // Nominal utuh dipakai oleh renderer tanggung agar separator dan
+            // jarak antar digit tidak bergantung pada dua kotak berposisi tetap.
+            'promo_display' => number_format($promo, 0, ',', '.'),
+            'harga_ribuan' => $hasThousands ? (string) intdiv($promo, 1000) : (string) intdiv($promo, 100),
+            'harga_ratusan' => $hasThousands
+                ? str_pad((string) ($promo % 1000), 3, '0', STR_PAD_LEFT)
+                : str_pad((string) ($promo % 100), 2, '0', STR_PAD_LEFT),
+            'alokasi' => (string) ($row['allocation_pcs'] ?? ''),
         ];
     }
 
@@ -196,15 +204,12 @@ class MpdfLibreTemplate
             ];
         }
 
-        // Ribuan + ratusan (".991"); sudah disiapkan prepareTag()
-        $S['el']['big']   = $this->stretchBox('bookantiqua', (string) $tag['promo_thousands'], self::TGG_BIG)
-            + ['color' => '#FF0000', 'outline' => '#FF0000 0.45pt'];
-        $smallBox = self::TGG_SMALL;
-        // Harga ratusan tidak memakai separator dan harus menempel ke angka besar.
-        if ((int) ($tag['promo_price'] ?? 0) < 1000) {
-            $smallBox['x'] = 12.65;
-        }
-        $S['el']['small'] = $this->stretchBox('bookantiqua', (string) $tag['promo_hundreds'], $smallBox)
+        // Harga promo digambar sebagai satu teks utuh. Sebelumnya harga dipecah
+        // ke dua kotak dengan posisi tetap sehingga titik hilang/angka bertumpuk
+        // pada nominal 1, 2, dan 3 digit maupun saat ada alokasi.
+        $S['el']['big']   = $this->stretchBox('bookantiqua', (string) $tag['promo_display'], [
+            'x' => 9.29, 'w' => 7.70, 'h' => 3.15, 'base' => 7.08, 'max' => 1.0,
+        ])
             + ['color' => '#FF0000', 'outline' => '#FF0000 0.45pt'];
 
         // Baris kedua "Akhir Periode": skala sama dengan baris pertama, rata kiri
@@ -238,7 +243,7 @@ class MpdfLibreTemplate
         return compact('S', 'L', 'box');
     }
 
-    /** "2026-09-15" -> "15 SEP '26" (kalau bukan tanggal valid, dipakai apa adanya) */
+    /** "2026-09-15" -> "15 SEP 2026" (kalau bukan tanggal valid, dipakai apa adanya) */
     private function tanggalPendek(string $ymd): string
     {
         $ts = strtotime($ymd);
@@ -246,7 +251,7 @@ class MpdfLibreTemplate
             return mb_strtoupper(trim($ymd));
         }
         $b = [1 => 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
-        return date('j', $ts) . ' ' . $b[(int) date('n', $ts)] . " '" . date('y', $ts);
+        return date('j', $ts) . ' ' . $b[(int) date('n', $ts)] . ' ' . date('Y', $ts);
     }
 
     /* ---------- util regang teks (sama dengan PopA4Pdf::stretchEl / stretchBox) ---------- */

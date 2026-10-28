@@ -13,7 +13,9 @@ class PrintMixed extends BaseController
 {
     public function index()
     {
+        $requestId = bin2hex(random_bytes(8));
         $ids = (array) $this->request->getPost('tag_ids');
+        log_message('debug', '[print:{id}] PrintMixed start products={count}', ['id' => $requestId, 'count' => count($ids)]);
         $qty = (array) $this->request->getPost('qty');
         $sizes = (array) $this->request->getPost('size');
         $allvar = (array) $this->request->getPost('allvar');
@@ -65,7 +67,11 @@ class PrintMixed extends BaseController
                             : 'a5'),
                         'fresh' => 'fresh',
                         'curah' => 'curah',
-                        default => 'a4',
+                        // A4 memakai desain allocation hanya jika nilai alokasi
+                        // benar-benar lebih besar dari nol.
+                        default => (int) ($row['allocation_pcs'] ?? 0) > 0
+                            ? 'a4-allocation'
+                            : 'a4',
                     };
                     $mpdfItems[$template][] = ['row' => $row, 'qty' => $count];
                     continue;
@@ -88,14 +94,15 @@ class PrintMixed extends BaseController
             if ($mpdfItems !== []) {
                 $pdfs[] = $this->writeMpdfMixed($mpdfItems);
             }
-            foreach ($libreGroups as $key => $items) { $mergers[$key] = new DocxLabelMerger(PriceTagTemplates::find($key)['docx']); $pdfs[] = $mergers[$key]->generate($items); }
+            foreach ($libreGroups as $key => $items) { log_message('debug', '[print:{id}] mixed DOCX template={template} items={count}', ['id' => $requestId, 'template' => $key, 'count' => count($items)]); $mergers[$key] = new DocxLabelMerger(PriceTagTemplates::find($key)['docx']); $pdfs[] = $mergers[$key]->generate($items); }
             if ($pdfs === []) return redirect()->back()->with('error', 'Produk yang dipilih tidak ditemukan.');
             $path = $this->combine($pdfs);
             $dir = WRITEPATH . 'pricetag_downloads/'; if (!is_dir($dir)) mkdir($dir, 0775, true);
             $token = bin2hex(random_bytes(16)); copy($path, $dir . $token . '.pdf');
+            if (! is_file($dir . $token . '.pdf') || filesize($dir . $token . '.pdf') <= 0) throw new \RuntimeException('PDF final tidak valid setelah penyimpanan.');
             file_put_contents($dir . $token . '.json', json_encode(['user_id'=>(int)session()->get('id'),'expires_at'=>time()+3600]), LOCK_EX);
             return redirect()->to(site_url('print-pdf/' . $token));
-        } catch (\Throwable $e) { log_message('error', 'Cetak campuran gagal: '.$e->getMessage()); return redirect()->back()->with('error', 'Gagal membuat PDF: '.$e->getMessage()); }
+        } catch (\Throwable $e) { log_message('error', '[print:{id}] PrintMixed failed: {message} at {file}:{line}', ['id' => $requestId, 'message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]); return redirect()->back()->with('error', 'Gagal membuat PDF. Silakan periksa pilihan template dan coba lagi.'); }
         finally { foreach ($mergers as $merger) $merger->cleanup(); }
     }
 
@@ -142,5 +149,5 @@ class PrintMixed extends BaseController
     }
     private function promoPrice(array $r): ?int { $p=(float)($r['promo_price']??0); $n=(float)($r['normal_price']??0); $d=(float)($r['discount_percent']??0); return $p>0?(int)round($p):($n>0&&$d>0?(int)round($n*(1-$d/100)):null); }
     private function showDiscount(array $row, string $mode): bool { $d=(float)($row['discount_percent']??0); return $d>0 && ($d>=10 || $mode==='show'); }
-    private function combine(array $paths): string { if(count($paths)===1)return $paths[0]; $out=WRITEPATH.'pricetag_tmp/combined_'.bin2hex(random_bytes(8)).'.pdf'; $pdftk='C:\\Program Files (x86)\\PDFtk Server\\bin\\pdftk.exe'; exec('"'.$pdftk.'" '.implode(' ',array_map('escapeshellarg',$paths)).' cat output '.escapeshellarg($out).' 2>&1',$o,$c); if($c!==0||!is_file($out))throw new \RuntimeException('Gagal menggabungkan hasil PDF: '.implode("\n",$o)); return $out; }
+    private function combine(array $paths): string { if(count($paths)===1)return $paths[0]; $out=WRITEPATH.'pricetag_tmp/combined_'.bin2hex(random_bytes(8)).'.pdf'; $pdftk='C:\\Program Files (x86)\\PDFtk Server\\bin\\pdftk.exe'; exec('"'.$pdftk.'" '.implode(' ',array_map('escapeshellarg',$paths)).' cat output '.escapeshellarg($out).' 2>&1',$o,$c); log_message('debug', '[print] mixed PDFtk rc={rc} output={output}', ['rc'=>$c,'output'=>implode("\n",$o)]); if($c!==0||!is_file($out)||filesize($out)<=0)throw new \RuntimeException('Gagal menggabungkan hasil PDF.'); return $out; }
 }

@@ -9,6 +9,7 @@ class DocxLabelMerger
 {
     protected string $templatePath;
     protected string $workDir;
+    protected string $requestId;
 
     public function __construct(string $templatePath)
     {
@@ -17,6 +18,7 @@ class DocxLabelMerger
         }
 
         $this->templatePath = $templatePath;
+        $this->requestId = bin2hex(random_bytes(8));
 
         $this->workDir = WRITEPATH . 'pricetag_tmp/' . bin2hex(random_bytes(8));
         mkdir($this->workDir, 0775, true);
@@ -24,6 +26,7 @@ class DocxLabelMerger
 
     public function generate(array $items): string
     {
+        log_message('debug', "[print:{id}] DOCX start template={template} items={items}", ['id' => $this->requestId, 'template' => basename($this->templatePath), 'items' => count($items)]);
         if (empty($items)) {
             throw new RuntimeException('Tidak ada produk yang dipilih untuk dicetak.');
         }
@@ -32,8 +35,10 @@ class DocxLabelMerger
         foreach ($items as $i => $item) {
             $docxPaths[$i] = $this->mergeToDocx($item['field_values'], "label_{$i}.docx");
         }
+        log_message('debug', "[print:{id}] DOCX merged count={count}", ['id' => $this->requestId, 'count' => count($docxPaths)]);
 
         $pdfPaths = $this->convertBatchToPdf($docxPaths);
+        log_message('debug', "[print:{id}] DOCX converted count={count}", ['id' => $this->requestId, 'count' => count($pdfPaths)]);
 
         $finalPerItem = [];
         foreach ($items as $i => $item) {
@@ -42,6 +47,8 @@ class DocxLabelMerger
         }
 
         $combined = $this->concatPdfs($finalPerItem, 'gabungan_pricetag.pdf');
+        $this->assertPdf($combined, 'final concat');
+        log_message('debug', "[print:{id}] DOCX complete final={path} bytes={bytes}", ['id' => $this->requestId, 'path' => basename($combined), 'bytes' => filesize($combined)]);
 
         return $combined;
     }
@@ -69,16 +76,23 @@ class DocxLabelMerger
             $escapedNeedle = htmlspecialchars($needle, ENT_XML1);
             $safeValue     = htmlspecialchars((string) $value, ENT_XML1);
 
+            // Glyph angka 1 pada font dekoratif template memiliki serif atas
+            // yang menjorok jauh ke kanan. Normalisasi font hanya untuk angka
+            // besar satu digit agar bentuknya simetris.
             // Template tanggung lama memiliki titik literal sebelum
             // placeholder Ratusan. Untuk harga < 1.000 titik tersebut harus
             // dihapus; untuk harga >= 1.000 formatter memang mengembalikan
             // bagian kecil dengan titik dari template.
-            if ($placeholder === 'Ratusan' && !str_starts_with((string) $value, '.')) {
+            if ($placeholder === 'Ratusan') {
+                // Titik pemisah disuplai oleh formatter untuk nominal >= 1.000.
+                // Hapus titik literal dari DOCX agar tidak menjadi dua titik.
                 $xml = str_replace('.' . $escapedNeedle, $escapedNeedle, $xml);
                 // Penyesuaian posisi untuk nominal ratusan pada template
                 // tanggung tanpa alokasi.
-                $xml = str_replace('margin-left:292pt', 'margin-left:276pt', $xml);
-                $xml = str_replace('margin-left:135pt', 'margin-left:130pt', $xml);
+                if (!str_starts_with((string) $value, '.')) {
+                    $xml = str_replace('margin-left:292pt', 'margin-left:276pt', $xml);
+                    $xml = str_replace('margin-left:135pt', 'margin-left:130pt', $xml);
+                }
             }
 
             $xml = str_replace($escapedNeedle, $safeValue, $xml);
@@ -125,6 +139,7 @@ class DocxLabelMerger
         );
 
         exec($cmd, $output, $returnCode);
+        log_message('debug', "[print:{id}] LibreOffice rc={rc} output={output}", ['id' => $this->requestId, 'rc' => $returnCode, 'output' => implode("\n", $output)]);
 
         if ($returnCode !== 0) {
             throw new RuntimeException('Konversi ke PDF dengan LibreOffice gagal: ' . implode("\n", $output));
@@ -136,6 +151,8 @@ class DocxLabelMerger
             if (! is_file($pdfPath)) {
                 throw new RuntimeException("Hasil PDF tidak ditemukan untuk: {$docxPath}");
             }
+            $this->assertPdf($pdfPath, 'LibreOffice output');
+            log_message('debug', "[print:{id}] PDF converted file={file} bytes={bytes}", ['id' => $this->requestId, 'file' => basename($pdfPath), 'bytes' => filesize($pdfPath)]);
             $pdfPaths[$i] = $pdfPath;
         }
 
@@ -159,11 +176,13 @@ class DocxLabelMerger
         );
 
         exec($cmd, $output, $returnCode);
+        log_message('debug', "[print:{id}] PDFtk duplicate rc={rc} output={output}", ['id' => $this->requestId, 'rc' => $returnCode, 'output' => implode("\n", $output)]);
 
         if ($returnCode !== 0) {
             throw new RuntimeException('Gagal menduplikasi halaman PDF: ' . implode("\n", $output));
         }
 
+        $this->assertPdf($outPath, 'PDFtk duplicate');
         return $outPath;
     }
 
@@ -173,6 +192,7 @@ class DocxLabelMerger
 
         if (count($pdfPaths) === 1) {
             copy($pdfPaths[0], $outPath);
+            $this->assertPdf($outPath, 'single PDF copy');
             return $outPath;
         }
 
@@ -185,12 +205,22 @@ class DocxLabelMerger
         );
 
         exec($cmd, $output, $returnCode);
+        log_message('debug', "[print:{id}] PDFtk concat rc={rc} output={output}", ['id' => $this->requestId, 'rc' => $returnCode, 'output' => implode("\n", $output)]);
 
         if ($returnCode !== 0) {
             throw new RuntimeException('Gagal menggabungkan PDF: ' . implode("\n", $output));
         }
 
+        $this->assertPdf($outPath, 'PDFtk concat');
         return $outPath;
+    }
+
+    protected function assertPdf(string $path, string $stage): void
+    {
+        if (! is_file($path) || filesize($path) <= 0) {
+            log_message('error', "[print:{id}] PDF validation failed stage={stage} path={path} exists={exists} bytes={bytes}", ['id' => $this->requestId, 'stage' => $stage, 'path' => basename($path), 'exists' => is_file($path) ? 'yes' : 'no', 'bytes' => is_file($path) ? filesize($path) : 0]);
+            throw new RuntimeException("Output PDF tidak valid pada tahap {$stage}");
+        }
     }
 
     public function cleanup(): void
@@ -257,7 +287,11 @@ class DocxLabelMerger
             case 'hundreds_id':
                 $amount = (int) $value;
                 return $amount >= 1000
-                    ? str_pad((string) ($amount % 1000), 3, '0', STR_PAD_LEFT)
+                    // Placeholder template menyediakan bagian harga kecil,
+                    // tetapi titik harus ikut dikirim agar tidak bergantung
+                    // pada karakter literal DOCX yang sering hilang saat
+                    // LibreOffice merendernya.
+                    ? '.' . str_pad((string) ($amount % 1000), 3, '0', STR_PAD_LEFT)
                     : str_pad((string) ($amount % 100), 2, '0', STR_PAD_LEFT);
 
             case 'date_id_short':

@@ -11,21 +11,39 @@ class PrintPdf extends BaseController
 {
     public function index()
     {
+        $requestId = bin2hex(random_bytes(8));
         $selectedIds  = (array) $this->request->getPost('tag_ids');
+        log_message('debug', '[print:{id}] PrintPdf start products={count}', ['id' => $requestId, 'count' => count($selectedIds)]);
         $qtyMap       = (array) $this->request->getPost('qty');
         $sizeMap      = (array) $this->request->getPost('size');
         $allvarMap    = (array) $this->request->getPost('allvar');
         $discountMode = (array) $this->request->getPost('discount_mode');
         $importId     = (int) $this->request->getPost('import_id');
 
+        $matchedSizes = array_intersect_key($sizeMap, array_flip($selectedIds));
+        log_message('debug', '[print:{id}] size payload tag_ids={ids} size_keys={keys} size_values={values} matched={matched}', [
+            'id' => $requestId,
+            'ids' => json_encode(array_values($selectedIds)),
+            'keys' => json_encode(array_keys($sizeMap)),
+            'values' => json_encode($sizeMap),
+            'matched' => json_encode($matchedSizes),
+        ]);
+
         if (empty($selectedIds)) {
             return redirect()->to('/import-history')->with('error', 'Pilih minimal 1 produk untuk dicetak.');
         }
 
-        $selectedSizes = array_values(array_unique(array_filter(array_map('strval', array_intersect_key($sizeMap, array_flip($selectedIds))))));
+        $missingSizeIds = array_values(array_filter($selectedIds, static fn ($id): bool => ! array_key_exists($id, $sizeMap) || trim((string) $sizeMap[$id]) === ''));
+        if ($missingSizeIds !== []) {
+            log_message('debug', '[print:{id}] validation rejected missing size ids={ids}', ['id' => $requestId, 'ids' => json_encode($missingSizeIds)]);
+            return redirect()->back()->with('error', 'Pastikan produk sudah memilih ukuran template.');
+        }
+        $selectedSizes = array_values(array_unique(array_map(static fn ($size): string => strtolower(trim((string) $size)), $matchedSizes)));
         if (count($selectedSizes) > 1) {
+            log_message('debug', '[print:{id}] validation rejected mixed sizes={sizes}', ['id' => $requestId, 'sizes' => json_encode($selectedSizes)]);
             return redirect()->back()->with('error', 'Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');
         }
+        log_message('debug', '[print:{id}] size validation passed sizes={sizes}', ['id' => $requestId, 'sizes' => json_encode($selectedSizes)]);
 
         $model      = new PriceTagModel();
         $userId     = (int) session()->get('id');
@@ -71,7 +89,7 @@ class PrintPdf extends BaseController
             $size = (string) ($sizeMap[$tagId] ?? '');
             $allvar = isset($allvarMap[$tagId]) && $allvarMap[$tagId] === '1';
             if (! in_array($size, ['kcl', 'tgg'], true)) {
-                return redirect()->back()->with('error', 'Pastikan semua produk sudah memilih ukuran template.');
+                return redirect()->back()->with('error', 'Pastikan produk sudah memilih ukuran template.');
             }
             if ($size === 'tgg' && $allvar && (int) ($product['allocation_pcs'] ?? 0) > 0) {
                 return redirect()->to('/import-history')->with(
@@ -105,11 +123,13 @@ class PrintPdf extends BaseController
         try {
             $groupPdfs = [];
             foreach ($groups as $templateKey => $items) {
+                log_message('debug', '[print:{id}] DOCX group template={template} items={count}', ['id' => $requestId, 'template' => $templateKey, 'count' => count($items)]);
                 $template = PriceTagTemplates::find($templateKey);
                 $mergers[$templateKey] = new DocxLabelMerger($template['docx']);
                 $groupPdfs[] = $mergers[$templateKey]->generate($items);
             }
             $pdfPath = $this->combinePdfs($groupPdfs);
+            log_message('debug', '[print:{id}] controller combine output={path} bytes={bytes}', ['id' => $requestId, 'path' => basename($pdfPath), 'bytes' => is_file($pdfPath) ? filesize($pdfPath) : 0]);
 
             // Simpan PDF di luar web root agar Chrome dapat mengambil ulang
             // file melalui GET saat pengguna menekan tombol unduh.
@@ -123,6 +143,7 @@ class PrintPdf extends BaseController
             if (! copy($pdfPath, $storedPdfPath)) {
                 throw new \RuntimeException('PDF sementara tidak dapat disimpan.');
             }
+            if (! is_file($storedPdfPath) || filesize($storedPdfPath) <= 0) throw new \RuntimeException('PDF final tidak valid setelah penyimpanan.');
 
             $expiresAt = time() + 3600;
             foreach (glob($downloadDir . '*.json') ?: [] as $metadataPath) {
@@ -144,8 +165,8 @@ class PrintPdf extends BaseController
 
             return redirect()->to(site_url('print-pdf/' . $downloadToken));
         } catch (\Throwable $e) {
-            log_message('error', 'Cetak price tag gagal: ' . $e->getMessage());
-            return redirect()->to('/import-history')->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+            log_message('error', '[print:{id}] PrintPdf failed: {message} at {file}:{line}', ['id' => $requestId, 'message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
+            return redirect()->to('/import-history')->with('error', 'Gagal membuat PDF. Silakan periksa pilihan template dan coba lagi.');
         } finally {
             foreach ($mergers as $merger) {
                 $merger->cleanup();
