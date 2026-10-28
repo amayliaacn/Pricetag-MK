@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Libraries\DocxLabelMerger;
 use App\Libraries\PriceTagTemplates;
+use App\Libraries\MpdfLibreTemplate;
 use App\Models\PriceTagModel;
 use App\Models\ImportHistoryModel;
 
@@ -18,6 +19,7 @@ class PrintPdf extends BaseController
         $sizeMap      = (array) $this->request->getPost('size');
         $allvarMap    = (array) $this->request->getPost('allvar');
         $discountMode = (array) $this->request->getPost('discount_mode');
+        $renderer = (string) $this->request->getPost('renderer');
         $importId     = (int) $this->request->getPost('import_id');
 
         $matchedSizes = array_intersect_key($sizeMap, array_flip($selectedIds));
@@ -80,6 +82,8 @@ class PrintPdf extends BaseController
 
         // Kelompokkan produk berdasarkan template yang sesuai dengan datanya.
         $groups = [];
+        $mpdfGroups = [];
+        $useMpdf = $renderer === 'mpdf-dev';
         foreach ($selectedIds as $tagId) {
             $product = $productsById[$tagId] ?? null;
             if ($product === null) continue;
@@ -107,6 +111,48 @@ class PrintPdf extends BaseController
             $template = PriceTagTemplates::find($templateKey);
             if ($template === null) continue;
 
+            if ($useMpdf) {
+                $requestedRenderer = $renderer !== '' ? $renderer : 'libreoffice(default)';
+                $validationReason = in_array($templateKey, ['turun-harga-tgg', 'turun-harga-tgg-allvar', 'turun-harga-tgg-allocation'], true)
+                    ? 'accepted-template-key'
+                    : 'unsupported-template-key-for-mpdf-dev';
+                log_message('debug', '[print:{id}] renderer diagnostic product_id={product_id} sku={sku} product_import_id={product_import_id} request_import_id={request_import_id} request_size={request_size} db_template_size={db_template_size} normal_price={normal_price} promo_price={promo_price} discount_percent={discount_percent} allocation_pcs={allocation_pcs} allvar={allvar} discount_mode={discount_mode} renderer={renderer} template_key={template_key} validation_reason={reason}', [
+                    'id' => $requestId,
+                    'product_id' => (int) $tagId,
+                    'sku' => (string) ($product['sku_plu'] ?? ''),
+                    'product_import_id' => (int) ($product['import_id'] ?? 0),
+                    'request_import_id' => $importId,
+                    'request_size' => $size,
+                    'db_template_size' => (string) ($product['template_size'] ?? ''),
+                    'normal_price' => $product['normal_price'] ?? null,
+                    'promo_price' => $product['promo_price'] ?? null,
+                    'discount_percent' => $product['discount_percent'] ?? null,
+                    'allocation_pcs' => $product['allocation_pcs'] ?? null,
+                    'allvar' => $allvar ? '1' : '0',
+                    'discount_mode' => (string) ($discountMode[$tagId] ?? 'not-sent'),
+                    'renderer' => $requestedRenderer,
+                    'template_key' => $templateKey,
+                    'reason' => $validationReason,
+                ]);
+            }
+
+            if ($useMpdf) {
+                // Development renderer is deliberately allow-listed. The key is
+                // recomputed above from trusted product data and never accepted
+                // from the browser.
+                if (! in_array($templateKey, ['turun-harga-tgg', 'turun-harga-tgg-allvar', 'turun-harga-tgg-allocation'], true)) {
+                    log_message('warning', '[print:{id}] renderer rejected product_id={product_id} sku={sku} template_key={template_key} reason=unsupported-template-key-for-mpdf-dev', [
+                        'id' => $requestId,
+                        'product_id' => (int) $tagId,
+                        'sku' => (string) ($product['sku_plu'] ?? ''),
+                        'template_key' => $templateKey,
+                    ]);
+                    return redirect()->back()->with('error', 'Renderer mPDF Pengembangan saat ini hanya tersedia untuk template Tanggung Turun Harga yang sudah dimigrasikan.');
+                }
+                $mpdfGroups[$templateKey][] = ['row' => $product, 'qty' => max(1, (int) ($qtyMap[$tagId] ?? 1))];
+                continue;
+            }
+
             $groups[$templateKey][] = [
                 'sku'          => $sku,
                 'qty'          => max(1, (int) ($qtyMap[$tagId] ?? 1)),
@@ -114,13 +160,33 @@ class PrintPdf extends BaseController
             ];
         }
 
-        if (empty($groups)) {
+        if ($useMpdf && empty($mpdfGroups)) {
+            return redirect()->back()->with('error', 'Tidak ada produk yang memenuhi syarat renderer mPDF Pengembangan.');
+        }
+        if (! $useMpdf && empty($groups)) {
             return redirect()->to('/import-history')->with('error', 'Produk yang dipilih tidak ditemukan di database.');
         }
 
         $mergers = [];
 
         try {
+            if ($useMpdf) {
+                $contents = (new MpdfLibreTemplate())->render($mpdfGroups);
+                $downloadToken = bin2hex(random_bytes(16));
+                $downloadDir = WRITEPATH . 'pricetag_downloads/';
+                if (! is_dir($downloadDir) && ! mkdir($downloadDir, 0775, true) && ! is_dir($downloadDir)) {
+                    throw new \RuntimeException('Folder penyimpanan PDF tidak dapat dibuat.');
+                }
+                $storedPdfPath = $downloadDir . $downloadToken . '.pdf';
+                if (file_put_contents($storedPdfPath, $contents, LOCK_EX) === false || ! is_file($storedPdfPath) || filesize($storedPdfPath) <= 0) {
+                    throw new \RuntimeException('PDF mPDF tidak valid setelah penyimpanan.');
+                }
+                if (file_put_contents($downloadDir . $downloadToken . '.json', json_encode(['user_id' => $userId, 'expires_at' => time() + 3600]), LOCK_EX) === false) {
+                    @unlink($storedPdfPath);
+                    throw new \RuntimeException('Informasi PDF sementara tidak dapat disimpan.');
+                }
+                return redirect()->to(site_url('print-pdf/' . $downloadToken));
+            }
             $groupPdfs = [];
             foreach ($groups as $templateKey => $items) {
                 log_message('debug', '[print:{id}] DOCX group template={template} items={count}', ['id' => $requestId, 'template' => $templateKey, 'count' => count($items)]);
@@ -176,7 +242,11 @@ class PrintPdf extends BaseController
 
     private function templateKeyForProduct(array $product, string $size, bool $allvar, string $discountMode = 'auto'): string
     {
-        $discount = (float) ($product['discount_percent'] ?? 0);
+        // Harga promo nominal adalah sumber harga akhir utama. Jangan
+        // mengklasifikasikannya sebagai template Diskon hanya karena ada
+        // persentase tersirat/tersimpan pada baris produk.
+        $hasPromoPrice = (float) ($product['promo_price'] ?? 0) > 0;
+        $discount = $hasPromoPrice ? 0.0 : (float) ($product['discount_percent'] ?? 0);
         $program = ($discount > 0 && ($discount >= 10 || $discountMode === 'show'))
             ? 'disc-reg'
             : 'turun-harga';

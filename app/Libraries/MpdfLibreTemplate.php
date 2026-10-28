@@ -21,8 +21,8 @@ class MpdfLibreTemplate
     private const TEMPLATES = [
         'turun-harga-kcl'          => ['view' => 'turun-hrg-kcl', 'size' => [70, 45]],
         'turun-harga-tgg'          => ['view' => 'turun-hrg-tgg', 'size' => [210, 297], 'builder' => 'buildTgg', 'pagePerTag' => true],
-        'turun-harga-tgg-allvar'   => ['view' => 'turun-hrg-tgg-allvar', 'size' => [157, 84]],
-        'turun-harga-tgg-allocation' => ['view' => 'turun-hrg-tgg-allocation', 'size' => [157, 84]],
+        'turun-harga-tgg-allvar'   => ['view' => 'turun-hrg-tgg-allvar-mpdf', 'size' => [210, 297], 'builder' => 'buildTggAllvar', 'pagePerTag' => true],
+        'turun-harga-tgg-allocation' => ['view' => 'turun-hrg-tgg-allocation', 'size' => [210, 297], 'builder' => 'buildTggAllocation', 'pagePerTag' => true],
         'disc-reg-kcl'             => ['view' => 'discount-reg-kcl', 'size' => [70, 45]],
         'disc-reg-kcl-allocation'  => ['view' => 'discount-reg-kcl-allocation', 'size' => [70, 45]],
     ];
@@ -31,7 +31,11 @@ class MpdfLibreTemplate
     private const FONTS = [
         'arialblack'     => ['R' => 'ariblk.ttf'],
         'arialnarrow'    => ['R' => 'ARIALN.TTF', 'B' => 'ARIALNB.TTF', 'I' => 'ARIALNI.TTF', 'BI' => 'ARIALNBI.TTF'],
-        'bookantiqua'    => ['R' => 'BOOKOS.TTF'],
+        // Samakan dengan PopA4Pdf: A4 memakai BKANT regular untuk satu digit
+        // dan ANTQUAB untuk angka besar multi-digit. BOOKOS adalah Bookman,
+        // bukan Book Antiqua, sehingga tidak dipakai untuk angka promo.
+        'bookantiqua'    => ['R' => 'BKANT.TTF'],
+        'bookantiquab'   => ['R' => 'ANTQUAB.TTF'],
         'calistomt'      => ['R' => 'CALIST.TTF'],
         'arialb'         => ['R' => 'arialbd.ttf'],     // Arial Bold
         'centurygothicb' => ['R' => 'GOTHICB.TTF'],     // Century Gothic Bold
@@ -66,8 +70,31 @@ class MpdfLibreTemplate
     private const TGG_PERIODE2 = ['x' => 4.02, 'h' => 0.40, 'base' => 6.24];
 
     // Ribuan & ratusan (lebar dibatasi supaya huruf tidak melar)
-    private const TGG_BIG   = ['x' => 9.29,  'w' => 4.67, 'h' => 3.15, 'base' => 7.08, 'max' => 1.0];
+    // Rasio lebar/tinggi WordArt aktif adalah 127.3/93.45 = 1.362.
+    // Gunakan rasio tersebut sebagai batas scaling horizontal agar glyph
+    // dapat mengisi proporsi objek DOCX tanpa mengubah tinggi.
+    // Tinggi, titik kiri, dan kotak angka tetap; pelebaran hanya berlaku pada
+    // elemen Ribuan melalui sx di stretchEl().
+    private const TGG_BIG   = ['x' => 9.29,  'w' => 4.67, 'h' => 3.15, 'base' => 7.08, 'max' => 1.60];
+    // Kalibrasi khusus Ribuan dua digit; tiga digit tetap memakai TGG_BIG.
+    private const TGG_BIG_2 = ['h' => 3.20, 'base' => 6.98];
     private const TGG_SMALL = ['x' => 14.24, 'w' => 2.97, 'h' => 1.13, 'base' => 7.06, 'max' => 1.0];
+
+    // Layout awal Allocation (A4); seluruh koordinat diukur absolut dari kiri-atas halaman.
+    private const TGG_ALLOC_EL = [
+        'pop'      => ['arialnarrow', 2.10, 0.25, 13.70, 1.13, 'left', '#000000', null, 0],
+        'nama'     => ['arialblack', 10.60, 0.61, 11.75, 3.13, 'center', '#00B0F0', '#000000 0.08pt', 0.9],
+        'plu'      => ['arialnarrow', 2.57, 0.28, 14.64, 3.82, 'left', '#000000', null, 1.1],
+        'rp_lama'  => ['calistomt', 0.60, 0.40, 4.14, 3.98, 'left', '#FF0000', null, 0],
+        'lama'     => ['bookantiqua', 3.58, 1.05, 5.11, 4.59, 'left', '#000000', '#000000 0.3pt', 1.3],
+        'rp_baru'  => ['calistomt', 0.60, 0.40, 8.73, 5.09, 'left', '#FF0000', null, 0],
+        'alokasi'  => ['centurygothicb', 3.30, 0.35, 4.00, 6.77, 'left', '#FF0000', null, 0],
+        'periode1' => ['centurygothicb', 2.05, 0.38, 14.70, 4.65, 'left', '#FF0000', null, 0],
+        'periode2' => ['centurygothicb', 2.05, 0.38, 14.70, 5.08, 'left', '#FF0000', null, 0],
+        'big'      => ['bookantiqua', 4.67, 3.15, 9.29, 6.83, 'left', '#FF0000', '#FF0000 0.25pt', 1.60],
+        'small'    => ['bookantiqua', 2.97, 1.13, 14.24, 6.81, 'left', '#FF0000', '#FF0000 0.45pt', 1.0],
+    ];
+    private const TGG_ALLOC_NOTE = ['x' => 4.00, 'base' => 5.32, 'h' => 0.30];
 
     // Garis coret miring: x1,y1 = ujung KIRI-BAWAH; ujung kanan = akhir harga normal + over
     private const TGG_STRIKE = ['x1' => 4.14, 'y1' => 4.67, 'over' => 0.60, 'slope' => 0.212, 'thick' => 0.07];
@@ -100,7 +127,7 @@ class MpdfLibreTemplate
             'margin_top' => 0,
             'margin_bottom' => 0,
             'tempDir' => WRITEPATH . 'mpdf',
-            'fontDir' => array_merge($d['fontDir'], [FCPATH . 'assets/fonts']),
+            'fontDir' => array_merge($d['fontDir'], [FCPATH . 'assets/fonts'], is_dir('C:\\Windows\\Fonts') ? ['C:\\Windows\\Fonts'] : []),
             'fontdata' => $fd['fontdata'] + self::FONTS,
         ]);
         $this->pdf = $pdf;
@@ -204,13 +231,40 @@ class MpdfLibreTemplate
             ];
         }
 
-        // Harga promo digambar sebagai satu teks utuh. Sebelumnya harga dipecah
-        // ke dua kotak dengan posisi tetap sehingga titik hilang/angka bertumpuk
-        // pada nominal 1, 2, dan 3 digit maupun saat ada alokasi.
-        $S['el']['big']   = $this->stretchBox('bookantiqua', (string) $tag['promo_display'], [
-            'x' => 9.29, 'w' => 7.70, 'h' => 3.15, 'base' => 7.08, 'max' => 1.0,
-        ])
-            + ['color' => '#FF0000', 'outline' => '#FF0000 0.45pt'];
+        // Harga promo tetap dipisah menjadi dua objek SVG seperti WordArt DOCX:
+        // bagian ribuan dan bagian ratusan memiliki kotak serta skala sendiri.
+        // Semua angka Ribuan memakai Book Antiqua Regular agar ketebalan
+        // visual dua/tiga digit mengikuti acuan satu digit. Konfigurasi
+        // geometrinya tetap dipisahkan: satu digit memakai override kalibrasi,
+        // sedangkan dua/tiga digit memakai TGG_BIG.
+        $isSingleDigitBig = strlen((string) ($tag['promo_thousands'] ?? '')) === 1;
+        $isTwoDigitBig = strlen((string) ($tag['promo_thousands'] ?? '')) === 2;
+        $bigFamily = 'bookantiqua';
+        // Untuk satu digit, izinkan glyph mengisi rasio kotak yang tersedia.
+        // Penyesuaian kecil ini khusus angka Ribuan satu digit: glyph dinaikkan
+        // sedikit dan dibuat sedikit lebih tinggi, sementara batas rasio
+        // diturunkan proporsional agar lebar visual tetap seperti sebelumnya.
+        $bigH = $isSingleDigitBig
+            ? 3.27
+            : ($isTwoDigitBig ? self::TGG_BIG_2['h'] : self::TGG_BIG['h']);
+        $bigBase = $isSingleDigitBig
+            ? 7.01
+            : ($isTwoDigitBig ? self::TGG_BIG_2['base'] : self::TGG_BIG['base']);
+        $bigMaxRatio = $isSingleDigitBig
+            ? 2.10 * (self::TGG_BIG['h'] / 3.22) * (3.22 / $bigH)
+            : ($isTwoDigitBig
+                ? self::TGG_BIG['max'] * (self::TGG_BIG['h'] / $bigH)
+                : self::TGG_BIG['max']);
+        $S['el']['big'] = $this->stretchEl(
+            $bigFamily,
+            (string) ($tag['promo_thousands'] ?? ''),
+            self::TGG_BIG['w'], $bigH, self::TGG_BIG['x'], $bigBase, 'left', $bigMaxRatio
+        ) + ['color' => '#FF0000', 'outline' => '#FF0000 0.25pt'];
+        $S['el']['small'] = $this->stretchEl(
+            'bookantiqua',
+            (string) ($tag['promo_hundreds'] ?? ''),
+            self::TGG_SMALL['w'], self::TGG_SMALL['h'], self::TGG_SMALL['x'], self::TGG_SMALL['base'], 'left', self::TGG_SMALL['max']
+        ) + ['color' => '#FF0000', 'outline' => '#FF0000 0.45pt'];
 
         // Baris kedua "Akhir Periode": skala sama dengan baris pertama, rata kiri
         $periode = $this->tanggalPendek((string) ($tag['periode_display'] ?? ''));
@@ -239,6 +293,102 @@ class MpdfLibreTemplate
         ]];
 
         $box = ['x' => self::TGG_BOX_X, 'y' => self::TGG_BOX_Y, 'w' => self::TGG_BOX_W, 'h' => self::TGG_BOX_H];
+
+        return compact('S', 'L', 'box');
+    }
+
+    /**
+     * All Varian memakai geometri Tanggung Reguler yang sudah dikalibrasi.
+     * Hanya label identitas yang berbeda: PLU diganti ALL VARIAN.
+     */
+    private function buildTggAllvar(array $tag): array
+    {
+        $layout = $this->buildTgg($tag);
+        // Override vertikal khusus All Varian. Satuan y SVG adalah mm.
+        // Reguler menghasilkan y=70.10 mm (base 7.01 cm). Override awal
+        // membawa All Varian ke 68.60 mm, namun masih terlalu rendah pada
+        // perbandingan visual; naikkan lagi 0,15 cm menjadi 67.10 mm.
+        // x, ukuran horizontal, font, dan outline tetap tidak berubah.
+        $layout['S']['el']['big']['y'] = round($layout['S']['el']['big']['y'] - 3.0, 2);
+        // Kurangi tinggi visual sekitar 4% agar angka tidak terlalu dekat
+        // dengan nama produk; lebar horizontal tetap dipertahankan.
+        $layout['S']['el']['big']['sy'] = round($layout['S']['el']['big']['sy'] * 0.96, 4);
+
+        // Angka tidak memiliki descender, sehingga batas bawah visualnya
+        // mengikuti baseline translate(y). Samakan baseline .693 dengan
+        // baseline angka besar setelah override All Varian.
+        $layout['S']['el']['small']['y'] = $layout['S']['el']['big']['y'];
+
+        // Pertahankan transform, ukuran, dan posisi baseline Reguler; hanya
+        // isi label identitas yang diganti agar tidak mengubah kalibrasi utama.
+        $layout['S']['el']['plu']['text'] = 'All Variant';
+        // Label All Variant pada DOCX sedikit lebih rendah daripada PLU.
+        $layout['S']['el']['plu']['y'] = round($layout['S']['el']['plu']['y'] + 2.5, 2);
+        // Perbesar tinggi visual melampaui ukuran minimum "TANPA ALOKASI".
+        // Lebarkan teks secara horizontal; x dan sy tetap dipertahankan.
+        $layout['S']['el']['plu']['sx'] = round($layout['S']['el']['plu']['sx'] * 1.15, 4);
+        $layout['S']['el']['plu']['sy'] = round($layout['S']['el']['alokasi']['sy'] * 1.40, 4);
+        // Nilai ini berada dalam koordinat SVG sebelum transform scale.
+        $layout['S']['el']['plu']['letterSpacing'] = 0.35;
+
+        return $layout;
+    }
+
+    /** Layout awal khusus DOCX Tanggung Allocation; tidak berbagi konstanta posisi dengan Reguler. */
+    private function buildTggAllocation(array $tag): array
+    {
+        $text = [
+            'pop' => 'JUMLAH POP : 2',
+            'nama' => mb_strtoupper(trim((string) ($tag['display_name'] ?? ''))),
+            'plu' => '( PLU : ' . ($tag['sku_plu'] ?? '') . ' )',
+            'rp_lama' => 'Rp',
+            'lama' => number_format((float) ($tag['normal_price'] ?? 0), 0, ',', '.'),
+            'rp_baru' => 'Rp',
+            'alokasi' => 'Alokasi : ' . (string) ($tag['alokasi'] ?? '') . ' Pcs',
+            'periode1' => 'Akhir Periode :',
+            'periode2' => $this->tanggalPendek((string) ($tag['periode_display'] ?? '')),
+            'big' => (string) ($tag['promo_thousands'] ?? ''),
+            'small' => (string) ($tag['promo_hundreds'] ?? ''),
+        ];
+
+        // Satuan SVG mengikuti renderer Reguler: 10 user-units = 1 mm.
+        // Karena halaman A4 berukuran 210 x 297 mm, viewBox harus 210 x 297.
+        $S = ['w' => 210, 'h' => 297, 'el' => []];
+        foreach (self::TGG_ALLOC_EL as $key => $def) {
+            [$fam, $w, $h, $x, $base, $align, $color, $outline, $max] = $def;
+            $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $max)
+                + ['color' => $color, 'outline' => $outline];
+        }
+        foreach (['*Promo Berlaku', 'Selama Alokasi', 'Masih ada'] as $i => $line) {
+            $S['el']['note' . $i] = $this->stretchEl('centurygothicb', $line, 2.55, 0.33, self::TGG_ALLOC_NOTE['x'], self::TGG_ALLOC_NOTE['base'] + $i * 0.38, 'left')
+                + ['color' => '#00B0F0', 'outline' => null];
+        }
+
+        // Harga promo memakai baseline Reguler, termasuk kalibrasi per jumlah digit.
+        $isSingleDigitBig = strlen((string) ($tag['promo_thousands'] ?? '')) === 1;
+        $isTwoDigitBig = strlen((string) ($tag['promo_thousands'] ?? '')) === 2;
+        $bigH = $isSingleDigitBig ? 3.27 : ($isTwoDigitBig ? self::TGG_BIG_2['h'] : self::TGG_BIG['h']);
+        $bigBase = ($isSingleDigitBig ? 7.01 : ($isTwoDigitBig ? self::TGG_BIG_2['base'] : self::TGG_BIG['base'])) - 0.45;
+        $bigMax = $isSingleDigitBig
+            ? 2.10 * (self::TGG_BIG['h'] / 3.22) * (3.22 / $bigH)
+            : ($isTwoDigitBig ? self::TGG_BIG['max'] * (self::TGG_BIG['h'] / $bigH) : self::TGG_BIG['max']);
+        $S['el']['big'] = $this->stretchEl('bookantiqua', (string) ($tag['promo_thousands'] ?? ''), self::TGG_BIG['w'], $bigH, self::TGG_BIG['x'], $bigBase, 'left', $bigMax)
+            + ['color' => '#FF0000', 'outline' => '#FF0000 0.25pt'];
+        $S['el']['small'] = $this->stretchEl('bookantiqua', (string) ($tag['promo_hundreds'] ?? ''), self::TGG_SMALL['w'], self::TGG_SMALL['h'], self::TGG_SMALL['x'], self::TGG_SMALL['base'] - 0.45, 'left', self::TGG_SMALL['max'])
+            + ['color' => '#FF0000', 'outline' => '#FF0000 0.45pt'];
+
+        $lama = $S['el']['lama'];
+        $x2 = ($lama['x'] + $lama['sx'] * $lama['w0']) / 10 + self::TGG_STRIKE['over'];
+        $left = self::TGG_STRIKE['x1'];
+        $width = max(2.0, $x2 - $left);
+        $rise = $width * self::TGG_STRIKE['slope'];
+        $pad = self::TGG_STRIKE['thick'];
+        $strikeY = self::TGG_STRIKE['y1'] - 0.12;
+        $box = ['x' => 0.0, 'y' => 0.0, 'w' => 21.00, 'h' => 29.70];
+        $L = ['strike' => [
+            'left' => $left, 'top' => $strikeY - $rise - $pad, 'w' => $width,
+            'h' => $rise + 2 * $pad, 'y1' => $rise + $pad, 'y2' => $pad, 'sw' => $pad,
+        ]];
 
         return compact('S', 'L', 'box');
     }

@@ -250,6 +250,7 @@
                                             data-size="<?= esc($templateSize) ?>"
                                             data-allocation="<?= (int) ($tag['allocation_pcs'] ?? 0) ?>"
                                             data-discount="<?= (float) ($tag['discount_percent'] ?? 0) ?>"
+                                            data-promo="<?= (float) ($tag['promo_price'] ?? 0) ?>"
                                         >
                                     </td>
                                     <td><?= $tagIndex + 1 ?></td>
@@ -387,6 +388,20 @@
                                 <!-- Diisi otomatis via JS -->
                             </tbody>
                         </table>
+                        <div id="rendererPicker" class="border rounded-3 bg-light-subtle p-3 mt-3 d-none">
+                            <div class="fw-semibold mb-2">Pilih Mesin Pencetak</div>
+                            <div class="d-flex flex-column flex-sm-row gap-2 gap-sm-4 small">
+                                <label class="form-check mb-0">
+                                    <input class="form-check-input" type="radio" name="renderer" value="libreoffice" checked>
+                                    <span class="form-check-label">LibreOffice (Original)</span>
+                                </label>
+                                <label id="mpdfRendererOption" class="form-check mb-0">
+                                    <input class="form-check-input" type="radio" name="renderer" value="mpdf-dev">
+                                    <span class="form-check-label">mPDF (Pengembangan)</span>
+                                </label>
+                            </div>
+                            <div id="rendererHint" class="text-muted mt-2">LibreOffice tetap menjadi mesin default selama migrasi.</div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -409,6 +424,8 @@
         const productRows    = document.querySelectorAll('#tabelProdukDetail tbody tr');
         const editModal      = new bootstrap.Modal(document.getElementById('modalEdit'));
         const formEdit       = document.getElementById('formEdit');
+        const rendererPicker = document.getElementById('rendererPicker');
+        const mpdfRendererOption = document.getElementById('mpdfRendererOption');
 
         // Diskon dan Harga Promo adalah dua cara alternatif untuk menentukan harga akhir.
         // Saat salah satunya diisi, kosongkan yang lain agar data tidak bertentangan.
@@ -506,6 +523,37 @@
             return document.querySelectorAll('.product-check:checked');
         }
 
+        function getMpdfDevEligibility(form) {
+            const reasons = [];
+            const selected = [...form.querySelectorAll('input[name="tag_ids[]"]')].map(input => {
+                const source = document.querySelector(`.product-check[data-id="${CSS.escape(input.value)}"]`);
+                const id = input.value;
+                const size = form.querySelector(`input[name="size[${CSS.escape(id)}]"]`)?.value || '';
+                const allvar = !!form.querySelector(`input[name="allvar[${CSS.escape(id)}]"]:checked`);
+                const discountMode = form.querySelector(`input[name="discount_mode[${CSS.escape(id)}]"]:checked`)?.value
+                    || form.querySelector(`input[name="discount_mode[${CSS.escape(id)}]"]`)?.value
+                    || 'not-sent';
+                const product = {
+                    id,
+                    size,
+                    discount: Number(source?.dataset.discount || 0),
+                    promo: Number(source?.dataset.promo || 0),
+                    allocation: Number(source?.dataset.allocation || 0),
+                    allvar,
+                    discountMode,
+                };
+                const effectiveDiscount = product.promo > 0 ? 0 : product.discount;
+                if (product.size !== 'tgg') reasons.push(`${id}: ukuran=${product.size || '(kosong)'}`);
+                if (product.allvar && product.allocation > 0) reasons.push(`${id}: allvar dengan alokasi=${product.allocation}`);
+                if (effectiveDiscount >= 10) reasons.push(`${id}: diskon=${effectiveDiscount} (Diskon Reguler)`);
+                if (effectiveDiscount > 0 && effectiveDiscount < 10 && product.discountMode === 'show') reasons.push(`${id}: discount_mode=show`);
+                return product;
+            });
+            const eligible = selected.length > 0 && reasons.length === 0;
+            console.debug('[print] mPDF dev frontend diagnostic', { eligible, reasons, selected });
+            return { eligible, reasons, selected };
+        }
+
         function updateTombolCetak() {
             const jumlah = getChecked().length;
             jumlahTerpilih.textContent = jumlah;
@@ -580,6 +628,13 @@
         });
         filterRows();
 
+        tabelBody.addEventListener('change', function (event) {
+            if (!event.target.matches('.allvar-product')) return;
+            // All Varian Tanggung sudah memiliki builder/view SVG mPDF sendiri.
+            // Pilihan LibreOffice tetap menjadi default; status mPDF ditentukan
+            // ulang oleh eligibility ketika modal dibangun.
+        });
+
         // Bangun isi modal setiap kali tombol Cetak ditekan
         btnCetak.addEventListener('click', function () {
             const checkedProducts = [...getChecked()];
@@ -625,6 +680,14 @@
             });
             const sizes = [...getChecked()].map(cb => cb.dataset.size);
             const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
+            const mpdfRadio = mpdfRendererOption.querySelector('input');
+            const libreRadio = document.querySelector('input[name="renderer"][value="libreoffice"]');
+            const eligibility = getMpdfDevEligibility(document.getElementById('formCetak'));
+            const canUseMpdfDev = !hasMpdf && eligibility.eligible;
+            rendererPicker.classList.toggle('d-none', hasMpdf || !sizes.length || !sizes.every(size => size === 'tgg'));
+            mpdfRendererOption.classList.toggle('d-none', !canUseMpdfDev);
+            mpdfRadio.disabled = !canUseMpdfDev;
+            if (!canUseMpdfDev) libreRadio.checked = true;
             document.getElementById('formCetak').action = hasMpdf
                 ? '<?= base_url('print-mpdf') ?>'
                 : '<?= base_url('print-pdf') ?>';
@@ -658,6 +721,13 @@
             }
 
             const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'].includes(size));
+            const renderer = this.querySelector('input[name="renderer"]:checked')?.value || 'libreoffice';
+            const eligibility = getMpdfDevEligibility(this);
+            if (renderer === 'mpdf-dev' && (hasMpdf || !eligibility.eligible)) {
+                const reason = eligibility.reasons.length ? ` (${eligibility.reasons.join('; ')})` : '';
+                tampilkanErrorCetak(`mPDF Pengembangan hanya tersedia untuk Tanggung Turun Harga Reguler, Allocation, atau All Varian.${reason}`);
+                return;
+            }
             this.action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
 
             const submitButton = this.querySelector('button[type="submit"]');
