@@ -38,7 +38,19 @@
         .manual-entry-table .cell:focus { border-color: #f26b0f; box-shadow: 0 0 0 .2rem rgba(242,107,15,.18); }
         .manual-entry-table .cell.err { border-color: #dc3545; background: #fff5f5; }
         .manual-entry-table .cell.num { text-align: left; }
-        .manual-entry-table thead th { white-space: nowrap; font-size: 14px; }
+        .manual-entry-table thead th {
+            white-space: nowrap;
+            font-size: 14px;
+            vertical-align: top;
+        }
+        .manual-entry-table thead th:nth-child(7) {
+            white-space: normal;
+            overflow-wrap: anywhere;
+            line-height: 1.2;
+            vertical-align: middle;
+        }
+        .manual-entry-table thead th:nth-child(7) .promo-title { white-space: nowrap; }
+        .manual-entry-table thead th:nth-child(7) .promo-unit { display: inline-block; width: 100%; text-align: center; }
         .manual-entry-table thead th:nth-child(6) { min-width: 0; }
         .manual-entry-table th, .manual-entry-table td { overflow: hidden; }
         .manual-entry-table td:not(.row-number):not(.col-aksi) .cell { width: 100%; }
@@ -130,9 +142,9 @@
                             <th>Awal Periode</th>
                             <th>Akhir Periode</th>
                             <th>SKU / PLU</th>
-                            <th>Brand / Merk <span class="text-danger">*</span></th>
+                            <th>Nama Produk <span class="text-danger">*</span></th>
                             <th>Harga Normal</th>
-                            <th>Program Promo</th>
+                            <th><span class="promo-title">Program Promo</span><br><span class="promo-unit">( Rp / % )</span></th>
                             <th class="col-aksi">Aksi</th>
                         </tr>
                     </thead>
