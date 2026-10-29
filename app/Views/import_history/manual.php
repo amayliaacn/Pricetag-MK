@@ -131,6 +131,7 @@
                 <div>
                     <h5 class="mk-history-title mb-1">Tambah Data Produk</h5>
                     <p class="text-primary mb-0">Klik sel untuk mengisi, atau copy dari Excel lalu paste (Ctrl+V) ke sel pertama. Tab/Enter/panah untuk pindah sel.</p>
+                    <p class="text-muted small mb-0">Gunakan tanda # untuk memisahkan nama produk dan varian. Contoh: INDOFOOD # BMB RCK 26G AYAM GRG</p>
                 </div>
             </div>
 

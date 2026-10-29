@@ -16,7 +16,7 @@ class ImportHistory extends BaseController
         $page = max(1, (int) ($this->request->getGet('page') ?? 1));
         $role = (string) session()->get('role');
         $outletId = session()->get('outlet_id');
-        $mode = $this->request->getGet('mode') === 'manual' ? 'manual' : 'excel';
+        $mode = $this->request->getGet('mode') === 'excel' ? 'excel' : 'manual';
         $sourceType = $mode === 'manual' ? 1 : 0;
         $filters = [
             'outlet_id' => $this->request->getGet('outlet_id'),
@@ -152,6 +152,27 @@ class ImportHistory extends BaseController
         }
 
         $rows = json_decode($history['snapshot'] ?? '[]', true);
+        if (is_array($rows)) {
+            foreach ($rows as &$row) {
+                if (! is_array($row)) continue;
+
+                $brand   = trim((string) ($row['brand'] ?? ''));
+                $name    = trim((string) ($row['name'] ?? ''));
+                $variant = trim((string) ($row['variant'] ?? ''));
+
+                // Untuk tampilan manual, satukan nama dan varian tanpa
+                // mengubah snapshot asli yang tersimpan di database.
+                if ($name !== '' && $variant !== '') {
+                    $row['brand'] = $name . ' # ' . $variant;
+                } elseif ($brand !== '') {
+                    // Brand yang sudah berupa gabungan tetap digunakan apa adanya.
+                    $row['brand'] = $brand;
+                } else {
+                    $row['brand'] = $name;
+                }
+            }
+            unset($row);
+        }
         return view('import_history/manual', [
             'title' => 'Isi Data Manual',
             'history' => $history,
