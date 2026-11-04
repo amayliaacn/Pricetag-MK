@@ -55,6 +55,18 @@
         .manual-entry-table th, .manual-entry-table td { overflow: hidden; }
         .manual-entry-table td:not(.row-number):not(.col-aksi) .cell { width: 100%; }
         .manual-entry-table { min-width: 1250px; }
+        .manual-horizontal-scrollbar {
+            display: none;
+            position: sticky;
+            bottom: 92px;
+            z-index: 1039;
+            height: 17px;
+            margin: 0 0 8px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            background: #fff;
+        }
+        .manual-horizontal-scrollbar-inner { height: 1px; }
     </style>
 </head>
 <body class="mk-body mk-manual-entry-page">
@@ -175,6 +187,10 @@
                 </table>
             </div>
 
+            <div class="manual-horizontal-scrollbar" id="manualHorizontalScrollbar" aria-label="Geser tabel secara horizontal" tabindex="0">
+                <div class="manual-horizontal-scrollbar-inner" id="manualHorizontalScrollbarInner"></div>
+            </div>
+
             <div class="d-flex align-items-center gap-3 border-top mt-3 pt-3 manual-actions-floating">
                 <button type="button" class="btn mk-btn-primary" id="addRow">
                     <i class="bi bi-plus-lg me-2"></i>Tambah Baris
@@ -198,8 +214,37 @@
 (function () {
     const tb   = document.getElementById('manualRows');
     const form = document.getElementById('manualForm');
+    const tableViewport = document.querySelector('#manual-table .table-responsive');
+    const topScrollbar = document.getElementById('manualHorizontalScrollbar');
+    const topScrollbarInner = document.getElementById('manualHorizontalScrollbarInner');
     const awal = tb.innerHTML;                       // kondisi awal untuk tombol Reset
     const d2   = n => String(n).padStart(2, '0');
+
+    let tableInWorkArea = false;
+    let syncingHorizontalScroll = false;
+    const syncTopScrollbar = () => {
+        topScrollbarInner.style.width = tableViewport.scrollWidth + 'px';
+        topScrollbar.style.display = tableInWorkArea && tableViewport.scrollWidth > tableViewport.clientWidth ? 'block' : 'none';
+    };
+    topScrollbar.addEventListener('scroll', () => {
+        if (syncingHorizontalScroll) return;
+        syncingHorizontalScroll = true;
+        tableViewport.scrollLeft = topScrollbar.scrollLeft;
+        syncingHorizontalScroll = false;
+    });
+    tableViewport.addEventListener('scroll', () => {
+        if (syncingHorizontalScroll) return;
+        syncingHorizontalScroll = true;
+        topScrollbar.scrollLeft = tableViewport.scrollLeft;
+        syncingHorizontalScroll = false;
+    });
+    const tableAreaObserver = new IntersectionObserver(entries => {
+        tableInWorkArea = entries[0].isIntersecting;
+        syncTopScrollbar();
+    }, {threshold: 0});
+    tableAreaObserver.observe(tableViewport);
+    window.addEventListener('resize', syncTopScrollbar);
+    if (window.ResizeObserver) new ResizeObserver(syncTopScrollbar).observe(tableViewport);
 
     const COLS = [
         {field:'start_period', tipe:'tgl',  ph:'12-Jul-2026',   req:false},
