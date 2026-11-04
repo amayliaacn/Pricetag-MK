@@ -306,6 +306,11 @@ class ImportHistory extends BaseController
     private function normalizeManualDate($value): string
     {
         $value = trim((string) $value);
+        $value = preg_replace_callback('/[A-Za-z]{3}/', static function ($match) {
+            return [
+                'Mei' => 'May', 'Agu' => 'Aug', 'Okt' => 'Oct', 'Des' => 'Dec',
+            ][$match[0]] ?? $match[0];
+        }, $value) ?? $value;
         foreach (['Y-m-d', 'd-M-y', 'd-M-Y'] as $format) {
             $date = \DateTimeImmutable::createFromFormat($format, $value);
             if ($date && $date->format($format) === $value) return $date->format('Y-m-d');

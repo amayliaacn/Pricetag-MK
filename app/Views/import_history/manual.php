@@ -231,10 +231,11 @@
             const m = v.match(/^(\d{1,2})[-\/.]([A-Za-z]{3}|\d{1,2})[-\/.](\d{2}|\d{4})$/);
             let ok = false;
             if (m) {
-                const months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+                const months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Mei:5,Jun:6,Jul:7,Aug:8,Agu:8,Sep:9,Oct:10,Okt:10,Nov:11,Dec:12,Des:12};
+                const outputMonths = {1:'Jan',2:'Feb',3:'Mar',4:'Apr',5:'Mei',6:'Jun',7:'Jul',8:'Agu',9:'Sep',10:'Okt',11:'Nov',12:'Des'};
                 const d = +m[1], key = m[2].substring(0,1).toUpperCase() + m[2].substring(1).toLowerCase(), mo = isNaN(+m[2]) ? months[key] : +m[2], y = m[3].length === 2 ? 2000 + (+m[3]) : +m[3], x = new Date(y, mo - 1, d);
                 ok = x.getFullYear() === y && x.getMonth() === mo - 1 && x.getDate() === d;
-                if (ok) v = d2(d) + '-' + Object.keys(months).find(k => months[k] === mo) + '-' + String(y).slice(-2);
+                if (ok) v = d2(d) + '-' + outputMonths[mo] + '-' + String(y).slice(-2);
             }
             el.textContent = v;
             if (!ok) el.classList.add('err');
@@ -346,7 +347,7 @@
         data.forEach((v, i) => {
             COLS.forEach((c, j) => {
                 let val = v[j];
-                if (c.tipe === 'tgl' && val) { const p = val.split('-'), months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12}; val = '20' + p[2] + '-' + String(months[p[1]]).padStart(2,'0') + '-' + p[0]; }  // -> Y-m-d
+                if (c.tipe === 'tgl' && val) { const p = val.split('-'), months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Mei:5,Jun:6,Jul:7,Aug:8,Agu:8,Sep:9,Oct:10,Okt:10,Nov:11,Dec:12,Des:12}; val = '20' + p[2] + '-' + String(months[p[1]]).padStart(2,'0') + '-' + p[0]; }  // -> Y-m-d
                 if (c.tipe === 'rp')         val = val.replace(/\D/g, '');                                       // -> angka murni
                 const inp = document.createElement('input');
                 inp.type = 'hidden'; inp.className = 'gen';
