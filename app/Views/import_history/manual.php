@@ -177,7 +177,7 @@
                             <td><div class="cell" contenteditable="true" data-field="start_period" data-tipe="tgl" data-ph="12-Jul-2026"><?= esc($tgl($row['start_period'] ?? '')) ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="end_period" data-tipe="tgl" data-ph="30-Jul-2026"><?= esc($tgl($row['end_period'] ?? '')) ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="sku_plu" data-tipe="teks" data-ph="023509"><?= esc($row['sku_plu'] ?? '') ?></div></td>
-                            <td><div class="cell" contenteditable="true" data-field="brand" data-tipe="teks" data-ph="Masukkan brand / merk"><?= esc($row['brand'] ?? '') ?></div></td>
+                            <td><div class="cell" contenteditable="true" data-field="brand" data-tipe="teks" data-ph="Masukkan nama produk"><?= esc($row['brand'] ?? '') ?></div></td>
                             <td><div class="cell num" contenteditable="true" data-field="normal_price" data-tipe="rp" data-ph="23.500"><?= $harga > 0 ? number_format($harga, 0, ',', '.') : '' ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="promo" data-tipe="teks" data-ph="Set 10%"><?= esc($row['promo'] ?? '') ?></div></td>
                             <td class="col-aksi"><button type="button" class="btn btn-danger btn-sm remove-row"><i class="bi bi-trash"></i></button></td>
@@ -250,7 +250,7 @@
         {field:'start_period', tipe:'tgl',  ph:'12-Jul-2026',   req:false},
         {field:'end_period',   tipe:'tgl',  ph:'30-Jul-2026',   req:false},
         {field:'sku_plu',      tipe:'teks', ph:'023509',        req:false},
-        {field:'brand',        tipe:'teks', ph:'Masukkan brand / merk', req:true},
+        {field:'brand',        tipe:'teks', ph:'Masukkan nama produk', req:true},
         {field:'normal_price', tipe:'rp',   ph:'23.500',        req:false},
         {field:'promo',        tipe:'teks', ph:'Set 10%',       req:false}
     ];

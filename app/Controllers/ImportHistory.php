@@ -153,8 +153,19 @@ class ImportHistory extends BaseController
 
         $rows = json_decode($history['snapshot'] ?? '[]', true);
         if (is_array($rows)) {
+            // Snapshot lama mungkin belum menyimpan alokasi. Ambil nilai terbaru
+            // dari price_tags agar alokasi tetap muncul saat form dibuka kembali.
+            $tagsById = [];
+            foreach ((new PriceTagModel())->where('import_id', $id)->findAll() as $tag) {
+                $tagsById[(int) $tag['id']] = $tag;
+            }
             foreach ($rows as &$row) {
                 if (! is_array($row)) continue;
+
+                $tag = $tagsById[(int) ($row['price_tag_id'] ?? 0)] ?? null;
+                if ($tag && (int) ($row['allocation_pcs'] ?? 0) <= 0 && (int) ($tag['allocation_pcs'] ?? 0) > 0) {
+                    $row['allocation_pcs'] = (int) $tag['allocation_pcs'];
+                }
 
                 $brand   = trim((string) ($row['brand'] ?? ''));
                 $name    = trim((string) ($row['name'] ?? ''));
@@ -169,6 +180,13 @@ class ImportHistory extends BaseController
                     $row['brand'] = $brand;
                 } else {
                     $row['brand'] = $name;
+                }
+
+                // Pertahankan alokasi saat form manual dibuka kembali.
+                // Parser ProductTextParser akan membaca format ini saat disimpan ulang.
+                $allocation = (int) ($row['allocation_pcs'] ?? 0);
+                if ($allocation > 0 && ! preg_match('/(?:^|\s)(?:sisa\s+)?al(?:ok(?:asi)?)?\b[^=\r\n]*=\s*\d+/iu', $row['brand'])) {
+                    $row['brand'] = trim($row['brand']) . ' Alokasi = ' . $allocation;
                 }
             }
             unset($row);
