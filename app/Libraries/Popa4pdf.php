@@ -143,7 +143,7 @@ class PopA4Pdf
         'nama_produk'   => ['bernardmt',  15.15, 3.37,   9.27,  7.57, 'center', '#101AE0', null],
         'variant'  => ['arialblack', 8.37, 1.05,   9.62,  9.45, 'center', '#000000', null],
         'rp_lama' => ['bookantiqua', 1.00, 1.12,   3.31, 12.77, 'left',  '#000000', null],
-        'lama'    => ['bookantiqua', 7.97, 1.91,   4.75, 12.82, 'left',  '#000000', '#000000 1pt'],
+        'lama'    => ['bookantiqua', 7.97, 1.91,   4.75, 12.82, 'left',  '#000000', '#000000 0.5pt'],
         'rp_baru' => ['bookantiqua', 1.40, 1.60,   1.80, 19.20, 'left',  '#000000', null],
         'baru'    => ['arialblack', 12.55, 7.97,   4.19, 21.85, 'left',  '#FF0000', null],
         // PLU dibuat satu elemen terpusat, sama seperti desain "special price".
@@ -200,8 +200,8 @@ class PopA4Pdf
     private const DSK_EL = [
         'periode'     => ['bahnschrift', 6.98, 0.60, 15.77,  2.03, 'right',  '#0000CC', null,              0],
         'alokasi'     => ['bahnschrift', 4.61, 0.60, 15.73,  2.82, 'right',  '#FF0000', '#FF0000 0.7pt',   0],
-        'nama_produk' => ['bernardmt',  15.13, 2.59,  9.34,  7.00, 'center', '#0000FF', '#000000 0.03pt', 0.6],
-        'variant'     => ['berlinsans',  3.18, 0.85,  8.99,  8.33, 'center', '#000000', null,              0.8],
+        'nama_produk' => ['bernardmt',  16.00, 2.59,  9.34,  7.00, 'center', '#0000FF', '#000000 0.03pt', 0.6],
+        'variant'     => ['berlinsans',  8.37, 0.85,  8.99,  8.33, 'center', '#000000', null,              0.8],
         'label'       => ['MING',        5.98, 1.20,  1.89, 10.00, 'left',   '#FFFF00', '#000000 0.25pt', 0],
         'angka'       => ['arialblack',  9.92, 6.40,  4.19, 16.61, 'left',   '#FF0000', '#000000 0.02pt', 0.85],
         'persen'      => ['arialblack',  2.00, 1.85,  0.00, 12.29, 'left',   '#000000', '#000000 0.1pt',  0],   // x dihitung otomatis
@@ -1046,6 +1046,11 @@ class PopA4Pdf
                 // tanda % menempel di kanan angka diskon, berapa pun lebar angkanya
                 $a = $S['el']['angka'];
                 $x = ($a['x'] + $a['sx'] * $a['w0']) / 10 + self::DSK_GAP_PERSEN;
+            }
+            // Nama produk yang pendek mengisi area lebarnya agar tidak tampak terlalu kecil.
+            // Nama yang lebih panjang tetap memakai batas normal supaya tidak mengganggu layout.
+            if ($key === 'nama_produk' && mb_strlen($text[$key]) <= 10) {
+                $maxRatio = 0;
             }
             $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $maxRatio) + [
                 'color' => $color, 'outline' => $outline,
