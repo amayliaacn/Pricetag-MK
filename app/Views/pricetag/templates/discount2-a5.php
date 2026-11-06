@@ -1,64 +1,121 @@
 <?php
-/**
- * View: POP "DISC 50%" landscape + harga normal dicoret + harga setelah diskon (untuk mPDF)
- * Dipakai desain 'disc2' di App\Libraries\PopA4Pdf::pageHtmlDisc2
- * $S     = tiap teks + hasil hitung transform SVG
- * $L     = ['strike' => garis coret harga normal, atau null kalau tidak ada harga normal]
- * $box   = posisi/ukuran kartu di halaman A4 (cm)
- * $img   = path gambar latar, atau null -> bingkai digambar sendiri dengan HTML/CSS
- * $frame = pengaturan bingkai cadangan (dari PopA4Pdf::DSC_FRAME)
- */
-$e = static fn($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+/** POP One — Frisian Flag HALF PRICE (disc2 only), top of A4 portrait page. */
+$e = static fn($v) => htmlspecialchars((string) $v, ENT_QUOTES | ENT_XML1, 'UTF-8');
+$f = static fn($v) => number_format((float) $v, 4, '.', '');
+$d = $data ?? [];
+$box = $box ?? ['x' => 0.0, 'y' => 0.0, 'w' => 21.0, 'h' => 15.0];
+$name = trim((string) ($d['name'] ?? ''));
+$variant = trim((string) ($d['variant'] ?? ''));
+$normal = trim((string) ($d['normal'] ?? ''));
+$promo = trim((string) ($d['promo'] ?? ''));
+$percent = trim((string) ($d['percent'] ?? '0'));
+$period = trim((string) ($d['period'] ?? ''));
+$allocation = trim((string) ($d['allocation'] ?? ''));
+// Area kiri sebelum panel abu-abu. Nama dibagi berdasarkan estimasi lebar visual,
+// bukan jumlah karakter mentah, dan tidak pernah dipaksa memakai textLength.
+$leftMax = 108.0;
+$nameSize = 12.5;
+$nameLines = [$name];
+$measure = static function (string $text, float $size): float {
+    $total = 0.0;
+    foreach (preg_split('/\s+/u', trim($text)) ?: [] as $word) {
+        // Conservative estimate for Arial Black as rendered by mPDF SVG.
+        $total += mb_strlen($word) * $size * 0.70;
+    }
+    return max(0.0, $total + max(0, substr_count(trim($text), ' ')) * $size * 0.70);
+};
+$words = preg_split('/\s+/u', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+if (count($words) > 1) {
+    // Try every word boundary and choose the most balanced valid pair.
+    $best = null;
+    for ($cut = 1; $cut < count($words); $cut++) {
+        $first = implode(' ', array_slice($words, 0, $cut));
+        $second = implode(' ', array_slice($words, $cut));
+        $w1 = $measure($first, $nameSize);
+        $w2 = $measure($second, $nameSize);
+        $overflow = max(0.0, $w1 - $leftMax) + max(0.0, $w2 - $leftMax);
+        $score = ($overflow * 1000) + abs($w1 - $w2);
+        if ($best === null || $score < $best['score']) {
+            $best = ['first' => $first, 'second' => $second, 'score' => $score];
+        }
+    }
+    if ($best !== null) $nameLines = [$best['first'], $best['second']];
+}
+while ($nameSize > 6.5 && max(array_map(fn($line) => $measure($line, $nameSize), $nameLines)) > $leftMax) {
+    $nameSize -= 0.5;
+}
+$nameY = count($nameLines) === 1 ? [38] : [32, 47];
+$variantY = count($nameLines) === 1 ? 52 : 59;
+$variantSize = 10.5;
+while ($variant !== '' && $variantSize > 6.0 && $measure($variant, $variantSize) > $leftMax) $variantSize -= 0.5;
+$pctSize = mb_strlen($percent) >= 3 ? 43 : (mb_strlen($percent) === 2 ? 55 : 61);
+$promoSize = mb_strlen($promo) > 8 ? 14 : 17;
+$normalStrikeEnd = min(121, 50 + (mb_strlen($normal) * 7.1));
+$panelLeft = 132.0;
+$panelRight = 199.0;
+$panelCenterX = ($panelLeft + $panelRight) / 2;
+$halfX = $panelCenterX - 27.0;
+$priceX = $panelCenterX - 28.0;
+$discX = $panelCenterX - 13.0;
+$pctRenderSize = mb_strlen($percent) >= 3 ? 36 : (mb_strlen($percent) === 2 ? 46 : 53);
+$pctVisualWidth = mb_strlen($percent) >= 3 ? 62.0 : (mb_strlen($percent) === 2 ? 48.0 : 28.0);
+$pctX = $panelCenterX - ($pctVisualWidth / 2);
+$percentSignX = $panelCenterX - 6.0;
 ?>
 <style>
-    body { margin: 0; padding: 0; }
-    .abs { position: absolute; margin: 0; padding: 0; }
+body { margin: 0; padding: 0; }
+.ds2-layer { position: absolute; margin: 0; padding: 0; }
 </style>
-
-<?php if ($img): ?>
-<!-- Gambar latar: kuning + kotak putih rounded + logo MURAH -->
-<div class="abs" style="left: <?= $box['x'] ?>cm; top: <?= $box['y'] ?>cm; width: <?= $box['w'] ?>cm; height: <?= $box['h'] ?>cm;">
-    <img src="<?= $e($img) ?>" style="width: <?= $box['w'] ?>cm; height: <?= $box['h'] ?>cm;">
-</div>
-<?php else: ?>
-<!-- Bingkai HTML/CSS: kotak kuning -->
-<div class="abs" style="left: <?= $box['x'] ?>cm; top: <?= $box['y'] ?>cm; width: <?= $box['w'] ?>cm; height: <?= $box['h'] ?>cm; background-color: <?= $frame['kuning'] ?>;"></div>
-
-<!-- Kotak putih rounded -->
-<div class="abs" style="left: <?= $box['x'] + $frame['in_x'] ?>cm; top: <?= $box['y'] + $frame['in_top'] ?>cm;
-     width: <?= $box['w'] - 2 * $frame['in_x'] ?>cm; height: <?= $box['h'] - $frame['in_top'] - $frame['in_bot'] ?>cm;
-     background-color: #FFFFFF; border-radius: <?= $frame['radius'] ?>cm;"></div>
-
-<!-- Badge "MURAH..!" -->
-<div class="abs" style="left: <?= $box['x'] + $frame['badge']['x'] ?>cm; top: <?= $box['y'] + $frame['badge']['y'] ?>cm;
-     width: <?= $frame['badge']['w'] - 0.2 ?>cm; height: <?= $frame['badge']['h'] - 0.2 ?>cm;
-     background-color: #F7A21B; border: 0.1cm solid #F3E6C4; border-radius: 50%;
-     text-align: center; line-height: <?= $frame['badge']['h'] - 0.2 ?>cm;
-     font-family: arialblack; font-size: 15pt; font-style: italic; color: #E0202B;">MURAH..!</div>
-<?php endif; ?>
-
-<!-- Semua teks: masing-masing diregangkan (scaleX/scaleY) mengisi kotak WordArt-nya -->
-<div class="abs" style="left: <?= $box['x'] ?>cm; top: <?= $box['y'] ?>cm; width: <?= $box['w'] ?>cm; height: <?= $box['h'] ?>cm;">
-    <svg xmlns="http://www.w3.org/2000/svg" width="<?= $box['w'] ?>cm" height="<?= $box['h'] ?>cm" viewBox="0 0 <?= $S['w'] ?> <?= $S['h'] ?>">
-        <?php foreach ($S['el'] as $t): if ($t['text'] === '') continue; ?>
-        <g transform="translate(<?= $t['x'] ?>,<?= $t['y'] ?>) scale(<?= $t['sx'] ?>,<?= $t['sy'] ?>)">
-            <text x="0" y="0" font-family="<?= $t['family'] ?>" font-size="<?= $t['fs'] ?>"
-                  fill="<?= $t['color'] ?>"
-                  <?php if ($t['outline']): [$oc, $ow] = explode(' ', $t['outline']); ?>
-                  stroke="<?= $oc ?>" stroke-width="<?= (float) $ow ?>"
-                  <?php endif; ?>><?= $e($t['text']) ?></text>
-        </g>
-        <?php endforeach; ?>
-    </svg>
-</div>
-
-<?php if (! empty($L['strike'])): $k = $L['strike']; ?>
-<!-- Garis coret miring (merah) pada harga normal -->
-<div class="abs" style="left: <?= $k['left'] ?>cm; top: <?= $k['top'] ?>cm; width: <?= $k['w'] ?>cm; height: <?= $k['h'] ?>cm;">
-    <svg xmlns="http://www.w3.org/2000/svg" width="<?= $k['w'] ?>cm" height="<?= $k['h'] ?>cm"
-         viewBox="0 0 <?= $k['w'] ?> <?= $k['h'] ?>">
-        <line x1="0" y1="<?= $k['y1'] ?>" x2="<?= $k['w'] ?>" y2="<?= $k['y2'] ?>"
-              stroke="#FF0000" stroke-width="<?= $k['sw'] ?>" />
-    </svg>
+<?php if (!empty($img)): ?>
+<div class="ds2-layer" style="left:<?= $f($box['x']) ?>cm;top:<?= $f($box['y']) ?>cm;width:<?= $f($box['w']) ?>cm;height:<?= $f($box['h']) ?>cm;">
+  <img src="<?= $e($img) ?>" style="width:<?= $f($box['w']) ?>cm;height:<?= $f($box['h']) ?>cm;" />
 </div>
 <?php endif; ?>
+<div class="ds2-layer" style="left:<?= $f($box['x']) ?>cm;top:<?= $f($box['y']) ?>cm;width:<?= $f($box['w']) ?>cm;height:<?= $f($box['h']) ?>cm;">
+<svg xmlns="http://www.w3.org/2000/svg" width="<?= $f($box['w']) ?>cm" height="<?= $f($box['h']) ?>cm" viewBox="0 0 210 150" preserveAspectRatio="none">
+  <!-- Picture4.jpg supplies yellow border, white rounded frame and MURAH logo. -->
+  <!-- Right gray panel: square left corners, large rounded right corners. -->
+  <path d="M126 7 H193 C200 7 205 14 205 24 V126 C205 136 200 143 193 143 H126 Z" fill="#E5E5E5"/>
+
+  <!-- Left product block; first baseline below logo. -->
+  <?php foreach ($nameLines as $index => $line): ?>
+  <text x="12" y="<?= $f($nameY[$index]) ?>" font-family="arialblack,Arial" font-weight="bold" font-size="<?= $f($nameSize) ?>" fill="#0800FF"><?= $e($line) ?></text>
+  <?php endforeach; ?>
+  <?php if ($variant !== ''): ?>
+  <text x="12" y="<?= $f($variantY) ?>" font-family="arial,Arial" font-size="<?= $f($variantSize) ?>" fill="#0800FF"><?= $e($variant) ?></text>
+  <?php endif; ?>
+
+  <!-- Old price -->
+  <text x="12" y="73" font-family="centurygothic,Arial" font-size="7.5" fill="#ED1C24">Harga</text>
+  <text x="12" y="80" font-family="centurygothic,Arial" font-size="7.5" fill="#ED1C24">Normal</text>
+  <?php if ($normal !== ''): ?>
+  <text x="41" y="73" font-family="arial,Arial" font-size="5.2" fill="#ED1C24">Rp</text>
+  <text x="50" y="80" font-family="arial,Arial" font-size="10.8" fill="#ED1C24"><?= $e($normal) ?></text>
+  <?php if (!empty($d['strike'])): ?>
+  <line x1="50" y1="79" x2="<?= $f($normalStrikeEnd) ?>" y2="70" stroke="#111111" stroke-width="1.15" />
+  <?php endif; ?>
+  <?php endif; ?>
+
+  <!-- Discount price -->
+  <text x="12" y="99" font-family="centurygothic,Arial" font-size="7.5" fill="#ED1C24">Harga</text>
+  <text x="12" y="106" font-family="centurygothic,Arial" font-size="7.5" fill="#ED1C24">Diskon</text>
+  <text x="41" y="98" font-family="arial,Arial" font-weight="bold" font-size="6" fill="#ED1C24">Rp</text>
+  <text x="50" y="106" font-family="arialblack,Arial" font-weight="bold" font-size="<?= $f($promoSize) ?>" fill="#ED1C24"><?= $e($promo) ?></text>
+
+  <!-- Yellow period/allocation capsule inside existing white frame -->
+  <rect x="10" y="115" width="113" height="24" rx="11" fill="#FFF000" />
+  <text x="15" y="124.5" font-family="arialblack,Arial" font-weight="bold" font-size="5.7" fill="#ED1C24">Akhir Periode: <?= $e($period) ?></text>
+  <text x="15" y="133" font-family="arialblack,Arial" font-weight="bold" font-size="5.7" fill="#ED1C24">Alokasi: <?= $e($allocation) ?></text>
+
+  <!-- HALF PRICE: centered within the gray panel, with a thin safe margin. -->
+  <text x="<?= $f($halfX) ?>" y="32" font-family="arial,Arial" font-weight="normal" font-size="21" fill="#ED1C24">HALF</text>
+  <text x="<?= $f($priceX) ?>" y="54" font-family="arial,Arial" font-weight="normal" font-size="20" fill="#ED1C24">PRICE</text>
+  <text x="<?= $f($discX) ?>" y="75" font-family="arial,Arial" font-weight="bold" font-size="10.5" fill="#ED1C24">Disc.</text>
+  <?php
+  // mPDF SVG builds may ignore text-anchor; use the shared panel center and
+  // an adaptive visual width to place the value explicitly.
+  ?>
+  <text x="<?= $f($pctX) ?>" y="115" font-family="arial,Arial" font-weight="bold" font-size="<?= $f($pctRenderSize) ?>" fill="#ED1C24"><?= $e($percent) ?></text>
+  <text x="<?= $f($percentSignX) ?>" y="137" font-family="arial,Arial" font-weight="bold" font-size="13" fill="#ED1C24">%</text>
+</svg>
+</div>
