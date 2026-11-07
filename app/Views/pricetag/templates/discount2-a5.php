@@ -50,16 +50,21 @@ $variantSize = 10.5;
 while ($variant !== '' && $variantSize > 6.0 && $measure($variant, $variantSize) > $leftMax) $variantSize -= 0.5;
 $pctSize = mb_strlen($percent) >= 3 ? 43 : (mb_strlen($percent) === 2 ? 55 : 61);
 $promoSize = mb_strlen($promo) > 8 ? 14 : 17;
-$normalStrikeEnd = min(121, 50 + (mb_strlen($normal) * 7.1));
-$panelLeft = 132.0;
-$panelRight = 199.0;
+$normalStrikeEnd = 50 + ($measure($normal, 10.8) * 0.68) + 0.3;
+$panelLeft = 126.0;
+$panelRight = 200.0;
 $panelCenterX = ($panelLeft + $panelRight) / 2;
-$halfX = $panelCenterX - 27.0;
-$priceX = $panelCenterX - 28.0;
-$discX = $panelCenterX - 13.0;
-$pctRenderSize = mb_strlen($percent) >= 3 ? 36 : (mb_strlen($percent) === 2 ? 46 : 53);
-$pctVisualWidth = mb_strlen($percent) >= 3 ? 62.0 : (mb_strlen($percent) === 2 ? 48.0 : 28.0);
-$pctX = $panelCenterX - ($pctVisualWidth / 2);
+$halfPanelCenterX = $panelCenterX;
+$halfFontSize = 25.0;
+$halfGlyphWidths = [0.62, 0.62, 0.54, 0.55];
+$halfLetterGap = 2.0;
+$halfTotalWidth = array_sum($halfGlyphWidths) * $halfFontSize + (count($halfGlyphWidths) - 1) * $halfLetterGap;
+$halfGlyphX = $halfPanelCenterX - ($halfTotalWidth / 2) - 2.0;
+$priceX = $halfPanelCenterX - 35.0;
+$discX = $panelCenterX - 15.0;
+$pctRenderSize = mb_strlen($percent) >= 3 ? 40 : (mb_strlen($percent) === 2 ? 48 : 58);
+$pctVisualWidth = mb_strlen($percent) >= 3 ? 60.0 : (mb_strlen($percent) === 2 ? 58.0 : 28.0);
+$pctX = $panelCenterX - ($pctVisualWidth / 2) - 2.0;
 $percentSignX = $panelCenterX - 6.0;
 ?>
 <style>
@@ -75,7 +80,13 @@ body { margin: 0; padding: 0; }
 <svg xmlns="http://www.w3.org/2000/svg" width="<?= $f($box['w']) ?>cm" height="<?= $f($box['h']) ?>cm" viewBox="0 0 210 150" preserveAspectRatio="none">
   <!-- Picture4.jpg supplies yellow border, white rounded frame and MURAH logo. -->
   <!-- Right gray panel: square left corners, large rounded right corners. -->
-  <path d="M126 7 H193 C200 7 205 14 205 24 V126 C205 136 200 143 193 143 H126 Z" fill="#E5E5E5"/>
+  <!-- Revisi 20: bounding box tetap x=126..200, y=8..142.
+       Radius lengkungan diperbesar menjadi 18 unit. -->
+  <path d="M126 8 H182
+           C191.941 8 200 16.059 200 26
+           V124
+           C200 132.941 191.941 142 182 142
+           H126 Z" fill="#E5E5E5"/>
 
   <!-- Left product block; first baseline below logo. -->
   <?php foreach ($nameLines as $index => $line): ?>
@@ -92,7 +103,7 @@ body { margin: 0; padding: 0; }
   <text x="41" y="73" font-family="arial,Arial" font-size="5.2" fill="#ED1C24">Rp</text>
   <text x="50" y="80" font-family="arial,Arial" font-size="10.8" fill="#ED1C24"><?= $e($normal) ?></text>
   <?php if (!empty($d['strike'])): ?>
-  <line x1="50" y1="79" x2="<?= $f($normalStrikeEnd) ?>" y2="70" stroke="#111111" stroke-width="1.15" />
+  <line x1="50" y1="79" x2="<?= $f($normalStrikeEnd) ?>" y2="72" stroke="#111111" stroke-width="1.15" />
   <?php endif; ?>
   <?php endif; ?>
 
@@ -104,18 +115,24 @@ body { margin: 0; padding: 0; }
 
   <!-- Yellow period/allocation capsule inside existing white frame -->
   <rect x="10" y="115" width="113" height="24" rx="11" fill="#FFF000" />
+  <?php if ($allocation !== ''): ?>
   <text x="15" y="124.5" font-family="arialblack,Arial" font-weight="bold" font-size="5.7" fill="#ED1C24">Akhir Periode: <?= $e($period) ?></text>
   <text x="15" y="133" font-family="arialblack,Arial" font-weight="bold" font-size="5.7" fill="#ED1C24">Alokasi: <?= $e($allocation) ?></text>
+  <?php else: ?>
+  <text x="15" y="128.5" font-family="arialblack,Arial" font-weight="bold" font-size="5.7" fill="#ED1C24">Akhir Periode: <?= $e($period) ?></text>
+  <?php endif; ?>
 
   <!-- HALF PRICE: centered within the gray panel, with a thin safe margin. -->
-  <text x="<?= $f($halfX) ?>" y="32" font-family="arial,Arial" font-weight="normal" font-size="21" fill="#ED1C24">HALF</text>
-  <text x="<?= $f($priceX) ?>" y="54" font-family="arial,Arial" font-weight="normal" font-size="20" fill="#ED1C24">PRICE</text>
-  <text x="<?= $f($discX) ?>" y="75" font-family="arial,Arial" font-weight="bold" font-size="10.5" fill="#ED1C24">Disc.</text>
+  <?php $halfChars = ['H', 'A', 'L', 'F']; $halfX = $halfGlyphX; foreach ($halfChars as $i => $char): ?>
+  <text x="<?= $f($halfX) ?>" y="35" font-family="arial,Arial" font-weight="normal" font-size="25" fill="#ED1C24"><?= $e($char) ?></text>
+  <?php $halfX += ($halfGlyphWidths[$i] * $halfFontSize) + $halfLetterGap; endforeach; ?>
+  <text x="<?= $f($priceX) ?>" y="61" font-family="arial,Arial" font-weight="normal" font-size="22" fill="#ED1C24">PRICE</text>
+  <text x="<?= $f($discX) ?>" y="78" font-family="arial,Arial" font-weight="bold" font-size="12" fill="#ED1C24">Disc.</text>
   <?php
   // mPDF SVG builds may ignore text-anchor; use the shared panel center and
   // an adaptive visual width to place the value explicitly.
   ?>
-  <text x="<?= $f($pctX) ?>" y="115" font-family="arial,Arial" font-weight="bold" font-size="<?= $f($pctRenderSize) ?>" fill="#ED1C24"><?= $e($percent) ?></text>
-  <text x="<?= $f($percentSignX) ?>" y="137" font-family="arial,Arial" font-weight="bold" font-size="13" fill="#ED1C24">%</text>
+  <text x="<?= $f($pctX) ?>" y="118" font-family="arialblack,Arial" font-weight="bold" font-size="<?= $f($pctRenderSize) ?>" fill="#ED1C24"><?= $e($percent) ?></text>
+  <text x="<?= $f($percentSignX) ?>" y="132" font-family="arialblack,Arial" font-weight="bold" font-size="15" fill="#ED1C24">%</text>
 </svg>
 </div>
