@@ -544,9 +544,12 @@
                 };
                 const effectiveDiscount = product.promo > 0 ? 0 : product.discount;
                 if (product.size !== 'tgg') reasons.push(`${id}: ukuran=${product.size || '(kosong)'}`);
+                const useDiscountTemplate = effectiveDiscount >= 10
+                    || (effectiveDiscount > 0 && effectiveDiscount < 10 && product.discountMode === 'show');
                 if (product.allvar && product.allocation > 0) reasons.push(`${id}: allvar dengan alokasi=${product.allocation}`);
-                if (effectiveDiscount >= 10) reasons.push(`${id}: diskon=${effectiveDiscount} (Diskon Reguler)`);
-                if (effectiveDiscount > 0 && effectiveDiscount < 10 && product.discountMode === 'show') reasons.push(`${id}: discount_mode=show`);
+                if (useDiscountTemplate && (product.allvar || product.allocation > 0)) {
+                    reasons.push(`${id}: Diskon Reguler Tanggung mPDF belum tersedia untuk All Varian/Allocation`);
+                }
                 return product;
             });
             const eligible = selected.length > 0 && reasons.length === 0;
@@ -725,7 +728,7 @@
             const eligibility = getMpdfDevEligibility(this);
             if (renderer === 'mpdf-dev' && (hasMpdf || !eligibility.eligible)) {
                 const reason = eligibility.reasons.length ? ` (${eligibility.reasons.join('; ')})` : '';
-                tampilkanErrorCetak(`mPDF Pengembangan hanya tersedia untuk Tanggung Turun Harga Reguler, Allocation, atau All Varian.${reason}`);
+                tampilkanErrorCetak(`mPDF Pengembangan hanya tersedia untuk template Tanggung yang sudah dimigrasikan.${reason}`);
                 return;
             }
             this.action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';

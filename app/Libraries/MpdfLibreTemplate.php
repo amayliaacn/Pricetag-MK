@@ -23,6 +23,7 @@ class MpdfLibreTemplate
         'turun-harga-tgg'          => ['view' => 'turun-hrg-tgg', 'size' => [210, 297], 'builder' => 'buildTgg', 'pagePerTag' => true],
         'turun-harga-tgg-allvar'   => ['view' => 'turun-hrg-tgg-allvar-mpdf', 'size' => [210, 297], 'builder' => 'buildTggAllvar', 'pagePerTag' => true],
         'turun-harga-tgg-allocation' => ['view' => 'turun-hrg-tgg-allocation', 'size' => [210, 297], 'builder' => 'buildTggAllocation', 'pagePerTag' => true],
+        'disc-reg-tgg'             => ['view' => 'discount-tgg', 'size' => [210, 297], 'builder' => 'buildTggDiscount', 'pagePerTag' => true],
         'disc-reg-kcl'             => ['view' => 'discount-reg-kcl', 'size' => [70, 45]],
         'disc-reg-kcl-allocation'  => ['view' => 'discount-reg-kcl-allocation', 'size' => [70, 45]],
     ];
@@ -37,6 +38,7 @@ class MpdfLibreTemplate
         'bookantiqua'    => ['R' => 'BKANT.TTF'],
         'bookantiquab'   => ['R' => 'ANTQUAB.TTF'],
         'calistomt'      => ['R' => 'CALIST.TTF'],
+        'berlinsansfb'   => ['R' => 'BRLNSB.TTF'],
         'arialb'         => ['R' => 'arialbd.ttf'],     // Arial Bold
         'centurygothicb' => ['R' => 'GOTHICB.TTF'],     // Century Gothic Bold
     ];
@@ -95,6 +97,25 @@ class MpdfLibreTemplate
         'small'    => ['bookantiqua', 2.97, 1.13, 14.24, 6.81, 'left', '#FF0000', '#FF0000 0.45pt', 1.0],
     ];
     private const TGG_ALLOC_NOTE = ['x' => 4.00, 'base' => 5.32, 'h' => 0.30];
+
+    // Layout khusus Tanggung Diskon Reguler. Koordinat absolut halaman A4.
+    private const TGG_DISC_EL = [
+        'pop'       => ['arialnarrow', 2.10, 0.25, 14.55, 1.45, 'left',   '#000000', null, 0],
+        'nama'      => ['arialblack',  10.60, 0.61, 11.75, 4.10, 'center', '#00B0F0', '#000000 0.08pt', 0],
+        'plu'       => ['arialnarrow', 2.57, 0.28, 14.64, 4.55, 'left',   '#000000', null, 1.1],
+        'diskon'    => ['bookantiquab', 2.25, 0.55, 4.00, 4.85, 'left',   '#FF0000', null, 1.1],
+        'program'   => ['bookantiquab', 7.00, 3.25, 9.00, 8.00, 'center', '#FF0000', '#FF0000 0.25pt', 1.8],
+        'percent'   => ['calistomt',   1.00, 1.20, 12.60, 6.25, 'left',   '#FF0000', null, 0],
+        'rp_lama'   => ['calistomt',   0.60, 0.40, 14.00, 5.90, 'left',   '#FF0000', null, 0],
+        'lama'      => ['bookantiquab', 2.80, 0.80, 14.65, 5.98, 'left',   '#000000', null, 1.3],
+        'label_lama'=> ['arialnarrow', 2.80, 0.28, 15.05, 6.50, 'center', '#000000', null, 1.1],
+        'rp_baru'   => ['calistomt',   0.60, 0.40, 14.00, 7.15, 'left',   '#FF0000', null, 0],
+        'baru'      => ['berlinsansfb', 3.35, 0.70, 15.20, 7.50, 'left',   '#FF0000', null, 1.3],
+        'label_baru'=> ['arialnarrow', 3.30, 0.28, 15.25, 8.10, 'center', '#000000', null, 1.1],
+        'periode1'  => ['arialb',     2.70, 0.30, 4.15, 7.95, 'left',   '#000000', null, 1.1],
+        'periode2'  => ['arialb',     2.70, 0.30, 4.15, 8.30, 'left',   '#000000', null, 1.1],
+    ];
+    private const TGG_DISC_STRIKE = ['x1' => 14.55, 'y1' => 5.72, 'over' => 0.50, 'slope' => 0.0, 'thick' => 0.06];
 
     // Garis coret miring: x1,y1 = ujung KIRI-BAWAH; ujung kanan = akhir harga normal + over
     private const TGG_STRIKE = ['x1' => 4.14, 'y1' => 4.67, 'over' => 0.60, 'slope' => 0.212, 'thick' => 0.07];
@@ -226,7 +247,8 @@ class MpdfLibreTemplate
         $S = ['w' => self::TGG_BOX_W * 10, 'h' => self::TGG_BOX_H * 10, 'el' => []];
         foreach (self::TGG_EL as $key => $def) {
             [$fam, $w, $h, $x, $base, $align, $color, $outline, $maxRatio] = $def;
-            $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $maxRatio) + [
+            $scalingLimit = $key === 'nama' ? 0.0 : (float) $maxRatio;
+            $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, $scalingLimit) + [
                 'color' => $color, 'outline' => $outline,
             ];
         }
@@ -334,6 +356,51 @@ class MpdfLibreTemplate
         return $layout;
     }
 
+    /** Layout SVG khusus Tanggung Diskon Reguler, terpisah dari layout Turun Harga. */
+    private function buildTggDiscount(array $tag): array
+    {
+        $text = [
+            'pop'        => 'JUMLAH POP : 1',
+            'nama'       => mb_strtoupper(trim((string) ($tag['display_name'] ?? ''))),
+            'plu'        => '( PLU : ' . ($tag['sku_plu'] ?? '') . ' )',
+            'diskon'     => 'Diskon :',
+            'program'    => (string) round((float) ($tag['discount_percent'] ?? 0)),
+            'percent'    => '%',
+            'rp_lama'    => 'Rp',
+            'lama'       => number_format((float) ($tag['normal_price'] ?? 0), 0, ',', '.'),
+            'label_lama' => '( Harga Normal )',
+            'rp_baru'    => 'Rp',
+            'baru'       => number_format((float) ($tag['promo_price'] ?? 0), 0, ',', '.'),
+            'label_baru' => '( Harga Sesudah di Diskon )',
+            'periode1'   => 'Akhir Periode :',
+            'periode2'   => $this->tanggalPendek((string) ($tag['periode_display'] ?? '')),
+        ];
+
+        $S = ['w' => 210, 'h' => 297, 'el' => []];
+        foreach (self::TGG_DISC_EL as $key => $def) {
+            [$fam, $w, $h, $x, $base, $align, $color, $outline, $max] = $def;
+            $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $max)
+                + ['color' => $color, 'outline' => $outline];
+        }
+
+        $lama = $S['el']['lama'];
+        $x2 = ($lama['x'] + $lama['sx'] * $lama['w0']) / 10 + self::TGG_DISC_STRIKE['over'];
+        $left = self::TGG_DISC_STRIKE['x1'];
+        $width = max(1.5, $x2 - $left);
+        $L = ['strike' => [
+            'left' => $left,
+            'top' => self::TGG_DISC_STRIKE['y1'],
+            'w' => $width,
+            'h' => self::TGG_DISC_STRIKE['thick'],
+            'y1' => self::TGG_DISC_STRIKE['thick'] / 2,
+            'y2' => self::TGG_DISC_STRIKE['thick'] / 2,
+            'sw' => self::TGG_DISC_STRIKE['thick'],
+        ]];
+        $box = ['x' => 0.0, 'y' => 0.0, 'w' => 21.00, 'h' => 29.70];
+
+        return compact('S', 'L', 'box');
+    }
+
     /** Layout awal khusus DOCX Tanggung Allocation; tidak berbagi konstanta posisi dengan Reguler. */
     private function buildTggAllocation(array $tag): array
     {
@@ -356,7 +423,8 @@ class MpdfLibreTemplate
         $S = ['w' => 210, 'h' => 297, 'el' => []];
         foreach (self::TGG_ALLOC_EL as $key => $def) {
             [$fam, $w, $h, $x, $base, $align, $color, $outline, $max] = $def;
-            $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $max)
+            $scalingLimit = $key === 'nama' ? 0.0 : (float) $max;
+            $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, $scalingLimit)
                 + ['color' => $color, 'outline' => $outline];
         }
         foreach (['*Promo Berlaku', 'Selama Alokasi', 'Masih ada'] as $i => $line) {
@@ -377,6 +445,21 @@ class MpdfLibreTemplate
         $S['el']['small'] = $this->stretchEl('bookantiqua', (string) ($tag['promo_hundreds'] ?? ''), self::TGG_SMALL['w'], self::TGG_SMALL['h'], self::TGG_SMALL['x'], self::TGG_SMALL['base'] - 0.45, 'left', self::TGG_SMALL['max'])
             + ['color' => '#FF0000', 'outline' => '#FF0000 0.45pt'];
 
+        // Translasi vertikal khusus Allocation setelah seluruh layout dihitung.
+        // Kelompok A turun 0,20 cm; harga promo (Kelompok B) turun 0,40 cm total.
+        $groupAOffset = 0.20;
+        $groupBOffset = 0.40;
+        foreach (['nama', 'plu', 'rp_lama', 'lama', 'periode1', 'periode2', 'alokasi', 'note0', 'note1', 'note2'] as $key) {
+            if (isset($S['el'][$key])) {
+                $S['el'][$key]['y'] = round($S['el'][$key]['y'] + ($groupAOffset * 10), 2);
+            }
+        }
+        foreach (['rp_baru', 'big', 'small'] as $key) {
+            if (isset($S['el'][$key])) {
+                $S['el'][$key]['y'] = round($S['el'][$key]['y'] + ($groupBOffset * 10), 2);
+            }
+        }
+
         $lama = $S['el']['lama'];
         $x2 = ($lama['x'] + $lama['sx'] * $lama['w0']) / 10 + self::TGG_STRIKE['over'];
         $left = self::TGG_STRIKE['x1'];
@@ -389,6 +472,7 @@ class MpdfLibreTemplate
             'left' => $left, 'top' => $strikeY - $rise - $pad, 'w' => $width,
             'h' => $rise + 2 * $pad, 'y1' => $rise + $pad, 'y2' => $pad, 'sw' => $pad,
         ]];
+        $L['strike']['top'] = round($L['strike']['top'] + $groupAOffset, 3);
 
         return compact('S', 'L', 'box');
     }
