@@ -38,11 +38,35 @@
         .manual-entry-table .cell:focus { border-color: #f26b0f; box-shadow: 0 0 0 .2rem rgba(242,107,15,.18); }
         .manual-entry-table .cell.err { border-color: #dc3545; background: #fff5f5; }
         .manual-entry-table .cell.num { text-align: left; }
-        .manual-entry-table thead th { white-space: nowrap; font-size: 14px; }
+        .manual-entry-table thead th {
+            white-space: nowrap;
+            font-size: 14px;
+            vertical-align: top;
+        }
+        .manual-entry-table thead th:nth-child(7) {
+            white-space: normal;
+            overflow-wrap: anywhere;
+            line-height: 1.2;
+            vertical-align: middle;
+        }
+        .manual-entry-table thead th:nth-child(7) .promo-title { white-space: nowrap; }
+        .manual-entry-table thead th:nth-child(7) .promo-unit { display: inline-block; width: 100%; text-align: center; }
         .manual-entry-table thead th:nth-child(6) { min-width: 0; }
         .manual-entry-table th, .manual-entry-table td { overflow: hidden; }
         .manual-entry-table td:not(.row-number):not(.col-aksi) .cell { width: 100%; }
         .manual-entry-table { min-width: 1250px; }
+        .manual-horizontal-scrollbar {
+            display: none;
+            position: sticky;
+            bottom: 92px;
+            z-index: 1039;
+            height: 17px;
+            margin: 0 0 8px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            background: #fff;
+        }
+        .manual-horizontal-scrollbar-inner { height: 1px; }
     </style>
 </head>
 <body class="mk-body mk-manual-entry-page">
@@ -119,6 +143,7 @@
                 <div>
                     <h5 class="mk-history-title mb-1">Tambah Data Produk</h5>
                     <p class="text-primary mb-0">Klik sel untuk mengisi, atau copy dari Excel lalu paste (Ctrl+V) ke sel pertama. Tab/Enter/panah untuk pindah sel.</p>
+                    <p class="text-muted small mb-0">Gunakan tanda # untuk memisahkan nama produk dan varian. Contoh: INDOFOOD # BMB RCK 26G AYAM GRG</p>
                 </div>
             </div>
 
@@ -130,9 +155,9 @@
                             <th>Awal Periode</th>
                             <th>Akhir Periode</th>
                             <th>SKU / PLU</th>
-                            <th>Brand / Merk <span class="text-danger">*</span></th>
+                            <th>Nama Produk <span class="text-danger">*</span></th>
                             <th>Harga Normal</th>
-                            <th>Program Promo</th>
+                            <th><span class="promo-title">Program Promo</span><br><span class="promo-unit">( Rp / % )</span></th>
                             <th class="col-aksi">Aksi</th>
                         </tr>
                     </thead>
@@ -152,7 +177,7 @@
                             <td><div class="cell" contenteditable="true" data-field="start_period" data-tipe="tgl" data-ph="12-Jul-2026"><?= esc($tgl($row['start_period'] ?? '')) ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="end_period" data-tipe="tgl" data-ph="30-Jul-2026"><?= esc($tgl($row['end_period'] ?? '')) ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="sku_plu" data-tipe="teks" data-ph="023509"><?= esc($row['sku_plu'] ?? '') ?></div></td>
-                            <td><div class="cell" contenteditable="true" data-field="brand" data-tipe="teks" data-ph="Masukkan brand / merk"><?= esc($row['brand'] ?? '') ?></div></td>
+                            <td><div class="cell" contenteditable="true" data-field="brand" data-tipe="teks" data-ph="Masukkan nama produk"><?= esc($row['brand'] ?? '') ?></div></td>
                             <td><div class="cell num" contenteditable="true" data-field="normal_price" data-tipe="rp" data-ph="23.500"><?= $harga > 0 ? number_format($harga, 0, ',', '.') : '' ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="promo" data-tipe="teks" data-ph="Set 10%"><?= esc($row['promo'] ?? '') ?></div></td>
                             <td class="col-aksi"><button type="button" class="btn btn-danger btn-sm remove-row"><i class="bi bi-trash"></i></button></td>
@@ -160,6 +185,10 @@
                         <?php endfor; ?>
                     </tbody>
                 </table>
+            </div>
+
+            <div class="manual-horizontal-scrollbar" id="manualHorizontalScrollbar" aria-label="Geser tabel secara horizontal" tabindex="0">
+                <div class="manual-horizontal-scrollbar-inner" id="manualHorizontalScrollbarInner"></div>
             </div>
 
             <div class="d-flex align-items-center gap-3 border-top mt-3 pt-3 manual-actions-floating">
@@ -185,14 +214,43 @@
 (function () {
     const tb   = document.getElementById('manualRows');
     const form = document.getElementById('manualForm');
+    const tableViewport = document.querySelector('#manual-table .table-responsive');
+    const topScrollbar = document.getElementById('manualHorizontalScrollbar');
+    const topScrollbarInner = document.getElementById('manualHorizontalScrollbarInner');
     const awal = tb.innerHTML;                       // kondisi awal untuk tombol Reset
     const d2   = n => String(n).padStart(2, '0');
+
+    let tableInWorkArea = false;
+    let syncingHorizontalScroll = false;
+    const syncTopScrollbar = () => {
+        topScrollbarInner.style.width = tableViewport.scrollWidth + 'px';
+        topScrollbar.style.display = tableInWorkArea && tableViewport.scrollWidth > tableViewport.clientWidth ? 'block' : 'none';
+    };
+    topScrollbar.addEventListener('scroll', () => {
+        if (syncingHorizontalScroll) return;
+        syncingHorizontalScroll = true;
+        tableViewport.scrollLeft = topScrollbar.scrollLeft;
+        syncingHorizontalScroll = false;
+    });
+    tableViewport.addEventListener('scroll', () => {
+        if (syncingHorizontalScroll) return;
+        syncingHorizontalScroll = true;
+        topScrollbar.scrollLeft = tableViewport.scrollLeft;
+        syncingHorizontalScroll = false;
+    });
+    const tableAreaObserver = new IntersectionObserver(entries => {
+        tableInWorkArea = entries[0].isIntersecting;
+        syncTopScrollbar();
+    }, {threshold: 0});
+    tableAreaObserver.observe(tableViewport);
+    window.addEventListener('resize', syncTopScrollbar);
+    if (window.ResizeObserver) new ResizeObserver(syncTopScrollbar).observe(tableViewport);
 
     const COLS = [
         {field:'start_period', tipe:'tgl',  ph:'12-Jul-2026',   req:false},
         {field:'end_period',   tipe:'tgl',  ph:'30-Jul-2026',   req:false},
         {field:'sku_plu',      tipe:'teks', ph:'023509',        req:false},
-        {field:'brand',        tipe:'teks', ph:'Masukkan brand / merk', req:true},
+        {field:'brand',        tipe:'teks', ph:'Masukkan nama produk', req:true},
         {field:'normal_price', tipe:'rp',   ph:'23.500',        req:false},
         {field:'promo',        tipe:'teks', ph:'Set 10%',       req:false}
     ];
@@ -218,10 +276,11 @@
             const m = v.match(/^(\d{1,2})[-\/.]([A-Za-z]{3}|\d{1,2})[-\/.](\d{2}|\d{4})$/);
             let ok = false;
             if (m) {
-                const months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+                const months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Mei:5,Jun:6,Jul:7,Aug:8,Agu:8,Sep:9,Oct:10,Okt:10,Nov:11,Dec:12,Des:12};
+                const outputMonths = {1:'Jan',2:'Feb',3:'Mar',4:'Apr',5:'Mei',6:'Jun',7:'Jul',8:'Agu',9:'Sep',10:'Okt',11:'Nov',12:'Des'};
                 const d = +m[1], key = m[2].substring(0,1).toUpperCase() + m[2].substring(1).toLowerCase(), mo = isNaN(+m[2]) ? months[key] : +m[2], y = m[3].length === 2 ? 2000 + (+m[3]) : +m[3], x = new Date(y, mo - 1, d);
                 ok = x.getFullYear() === y && x.getMonth() === mo - 1 && x.getDate() === d;
-                if (ok) v = d2(d) + '-' + Object.keys(months).find(k => months[k] === mo) + '-' + String(y).slice(-2);
+                if (ok) v = d2(d) + '-' + outputMonths[mo] + '-' + String(y).slice(-2);
             }
             el.textContent = v;
             if (!ok) el.classList.add('err');
@@ -333,7 +392,7 @@
         data.forEach((v, i) => {
             COLS.forEach((c, j) => {
                 let val = v[j];
-                if (c.tipe === 'tgl' && val) { const p = val.split('-'), months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12}; val = '20' + p[2] + '-' + String(months[p[1]]).padStart(2,'0') + '-' + p[0]; }  // -> Y-m-d
+                if (c.tipe === 'tgl' && val) { const p = val.split('-'), months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Mei:5,Jun:6,Jul:7,Aug:8,Agu:8,Sep:9,Oct:10,Okt:10,Nov:11,Dec:12,Des:12}; val = '20' + p[2] + '-' + String(months[p[1]]).padStart(2,'0') + '-' + p[0]; }  // -> Y-m-d
                 if (c.tipe === 'rp')         val = val.replace(/\D/g, '');                                       // -> angka murni
                 const inp = document.createElement('input');
                 inp.type = 'hidden'; inp.className = 'gen';

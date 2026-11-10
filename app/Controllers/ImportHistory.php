@@ -16,7 +16,7 @@ class ImportHistory extends BaseController
         $page = max(1, (int) ($this->request->getGet('page') ?? 1));
         $role = (string) session()->get('role');
         $outletId = session()->get('outlet_id');
-        $mode = $this->request->getGet('mode') === 'manual' ? 'manual' : 'excel';
+        $mode = $this->request->getGet('mode') === 'excel' ? 'excel' : 'manual';
         $sourceType = $mode === 'manual' ? 1 : 0;
         $filters = [
             'outlet_id' => $this->request->getGet('outlet_id'),
@@ -152,6 +152,45 @@ class ImportHistory extends BaseController
         }
 
         $rows = json_decode($history['snapshot'] ?? '[]', true);
+        if (is_array($rows)) {
+            // Snapshot lama mungkin belum menyimpan alokasi. Ambil nilai terbaru
+            // dari price_tags agar alokasi tetap muncul saat form dibuka kembali.
+            $tagsById = [];
+            foreach ((new PriceTagModel())->where('import_id', $id)->findAll() as $tag) {
+                $tagsById[(int) $tag['id']] = $tag;
+            }
+            foreach ($rows as &$row) {
+                if (! is_array($row)) continue;
+
+                $tag = $tagsById[(int) ($row['price_tag_id'] ?? 0)] ?? null;
+                if ($tag && (int) ($row['allocation_pcs'] ?? 0) <= 0 && (int) ($tag['allocation_pcs'] ?? 0) > 0) {
+                    $row['allocation_pcs'] = (int) $tag['allocation_pcs'];
+                }
+
+                $brand   = trim((string) ($row['brand'] ?? ''));
+                $name    = trim((string) ($row['name'] ?? ''));
+                $variant = trim((string) ($row['variant'] ?? ''));
+
+                // Untuk tampilan manual, satukan nama dan varian tanpa
+                // mengubah snapshot asli yang tersimpan di database.
+                if ($name !== '' && $variant !== '') {
+                    $row['brand'] = $name . ' # ' . $variant;
+                } elseif ($brand !== '') {
+                    // Brand yang sudah berupa gabungan tetap digunakan apa adanya.
+                    $row['brand'] = $brand;
+                } else {
+                    $row['brand'] = $name;
+                }
+
+                // Pertahankan alokasi saat form manual dibuka kembali.
+                // Parser ProductTextParser akan membaca format ini saat disimpan ulang.
+                $allocation = (int) ($row['allocation_pcs'] ?? 0);
+                if ($allocation > 0 && ! preg_match('/(?:^|\s)(?:sisa\s+)?al(?:ok(?:asi)?)?\b[^=\r\n]*=\s*\d+/iu', $row['brand'])) {
+                    $row['brand'] = trim($row['brand']) . ' Alokasi = ' . $allocation;
+                }
+            }
+            unset($row);
+        }
         return view('import_history/manual', [
             'title' => 'Isi Data Manual',
             'history' => $history,
@@ -285,6 +324,11 @@ class ImportHistory extends BaseController
     private function normalizeManualDate($value): string
     {
         $value = trim((string) $value);
+        $value = preg_replace_callback('/[A-Za-z]{3}/', static function ($match) {
+            return [
+                'Mei' => 'May', 'Agu' => 'Aug', 'Okt' => 'Oct', 'Des' => 'Dec',
+            ][$match[0]] ?? $match[0];
+        }, $value) ?? $value;
         foreach (['Y-m-d', 'd-M-y', 'd-M-Y'] as $format) {
             $date = \DateTimeImmutable::createFromFormat($format, $value);
             if ($date && $date->format($format) === $value) return $date->format('Y-m-d');

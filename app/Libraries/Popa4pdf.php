@@ -143,9 +143,9 @@ class PopA4Pdf
         'nama_produk'   => ['bernardmt',  15.15, 3.37,   9.27,  7.57, 'center', '#101AE0', null],
         'variant'  => ['arialblack', 8.37, 1.05,   9.62,  9.45, 'center', '#000000', null],
         'rp_lama' => ['bookantiqua', 1.00, 1.12,   3.31, 12.77, 'left',  '#000000', null],
-        'lama'    => ['bookantiqua', 7.97, 1.91,   4.75, 12.82, 'left',  '#000000', '#000000 1pt'],
+        'lama'    => ['bookantiqua', 7.97, 1.91,   2.60, 12.82, 'left',  '#000000', '#000000 0.5pt'],
         'rp_baru' => ['bookantiqua', 1.40, 1.60,   1.80, 19.20, 'left',  '#000000', null],
-        'baru'    => ['arialblack', 12.55, 7.97,   4.19, 21.85, 'left',  '#FF0000', null],
+        'baru'    => ['arialblack', 12.55, 7.97,  17.34, 21.85, 'right', '#FF0000', null],
         // PLU dibuat satu elemen terpusat, sama seperti desain "special price".
         'plu'     => ['arialblack',  5.20, 0.66,   9.38, 23.32, 'center', '#000080', null],
     ];
@@ -201,7 +201,7 @@ class PopA4Pdf
         'periode'     => ['bahnschrift', 6.98, 0.60, 15.77,  2.03, 'right',  '#0000CC', null,              0],
         'alokasi'     => ['bahnschrift', 4.61, 0.60, 15.73,  2.82, 'right',  '#FF0000', '#FF0000 0.7pt',   0],
         'nama_produk' => ['bernardmt',  15.13, 2.59,  9.34,  7.00, 'center', '#0000FF', '#000000 0.03pt', 0.6],
-        'variant'     => ['berlinsans',  3.18, 0.85,  8.99,  8.33, 'center', '#000000', null,              0.8],
+        'variant'     => ['berlinsans',  8.37, 0.85,  8.99,  8.33, 'center', '#000000', null,              0.8],
         'label'       => ['MING',        5.98, 1.20,  1.89, 10.00, 'left',   '#FFFF00', '#000000 0.25pt', 0],
         'angka'       => ['arialblack',  9.92, 6.40,  4.19, 16.61, 'left',   '#FF0000', '#000000 0.02pt', 0.85],
         'persen'      => ['arialblack',  2.00, 1.85,  0.00, 12.29, 'left',   '#000000', '#000000 0.1pt',  0],   // x dihitung otomatis
@@ -299,26 +299,15 @@ class PopA4Pdf
      * Contoh: KAOS WANITA, DISC 50%, Rp 52.900 -> Rp 26.450. View: discount2-a5.php
      * ==========================================================================*/
 
-    // Jarak angka diskon ke tanda % (cm)
-    private const DS2_GAP_PERSEN = 0.73;
-
-    // x/base relatif ke pojok kiri-atas kartu (cm).
-    // teks           family         w      h      x      base    align     warna      outline           maxRatio
-    private const DS2_EL = [
-        'nama_produk' => ['arialblack',  13.45, 1.30,  9.87,  3.55, 'center', '#00B0F0', '#000000 0.08pt', 0.9],
-        'artikel'     => ['arialnarrow',  5.07, 0.92, 15.08,  4.77, 'center', '#000000', null,              0],
-        'label'       => ['berlinsans',   2.75, 0.62,  3.17,  5.99, 'left',   '#000000', null,              0],
-        'angka'       => ['bookantiqua',  5.90, 3.50,  6.83,  8.89, 'left',   '#FF0000', '#FF0000 0.3pt',   1.15],
-        'persen'      => ['berlinsans',   0.88, 1.26,  0.00,  6.53, 'left',   '#FF0000', null,              0],   // x dihitung otomatis
-        // Beri jarak cukup antara label Rp dan angka harga normal agar tidak bertumpuk.
-        'rp_lama'     => ['arialblack',   1.00, 0.38,  1.72,  9.69, 'left',   '#000000', null,              0],
-        'lama'        => ['bernardmt',    5.08, 1.41,  2.95, 11.07, 'left',   '#000000', '#000000 0.15pt',  1.4],
-        'rp_baru'     => ['arialblack',   1.60, 0.70,  9.00, 11.60, 'left',   '#000000', null,              0],
-        'baru'        => ['bernardmt',    6.18, 3.20, 11.45, 12.98, 'left',   '#FF0000', '#FF0000 0.08pt',  0.8],
-    ];
-
-    // Garis coret merah pada harga normal (cm, relatif kartu)
-    private const DS2_STRIKE = ['x1' => 2.93, 'y1' => 11.15, 'over' => 0.80, 'slope' => 0.26, 'thick' => 0.15];
+    // Frisian Flag HALF PRICE — konfigurasi eksklusif disc2.
+    // Dimensi desain sumber dan halaman khusus: 21.50 x 15.00 cm.
+    private const DS2_DESIGN_W = 21.00;
+    private const DS2_DESIGN_H = 15.00;
+    private const DS2_BOX_W = self::DS2_DESIGN_W;
+    private const DS2_BOX_H = self::DS2_DESIGN_H;
+    private const DS2_BOX_X = 0.00;
+    private const DS2_BOX_Y = 0.00;
+    private const DS2_IMG_FILE = self::DSC_IMG_FILE;
 
     /* ============================================================================
      * DESAIN 6d: "disc-a4" — kartu A4 POTRET "Diskon : 50%" + harga normal (dicoret) + harga sesudah diskon
@@ -531,10 +520,36 @@ class PopA4Pdf
             $fontDirs[] = 'C:\\Windows\\Fonts';
         }
 
-        $this->mpdf = new Mpdf([
+        $this->mpdf = $this->createMpdf('A4', 'P');
+    }
+
+    /**
+     * Membuat renderer mPDF. Ukuran khusus disc2 sengaja tidak dimasukkan ke
+     * konfigurasi global agar template lain tetap A4 portrait.
+     */
+    private function createMpdf(string|array $format, string $orientation = 'P'): Mpdf
+    {
+        $d  = (new ConfigVariables())->getDefaults();
+        $fd = (new FontVariables())->getDefaults();
+        $fontdata = self::A4_FONTS + self::SEG_FONTS + self::A5_FONTS + self::PTG_FONTS;
+        $fontdata['calibri'] = ['R' => $this->pilihFont(['calibrib.ttf', 'CALIBRIB.TTF', 'Calibrib.ttf'], 'arialbd.ttf')];
+        $fontdata['poppinsxb']    = ['R' => $this->pilihFont(['Poppins-ExtraBold.ttf', 'POPPINS-EXTRABOLD.TTF', 'Poppins-ExtraBold.TTF'], 'ariblk.ttf')];
+        $fontdata['calistoi']     = ['R' => $this->pilihFont(['CALISTI.TTF', 'calisti.ttf', 'Calisti.ttf'], 'CALIST.TTF')];
+        $fontdata['bookantiquai'] = ['R' => $this->pilihFont(['BOOKOSI.TTF', 'bookosi.ttf', 'Bookosi.ttf'], 'BOOKOS.TTF')];
+        $fontdata['a5bookantiqua']  = ['R' => 'BKANT.TTF'];
+        $fontdata['a5bookantiquab'] = ['R' => 'ANTQUAB.TTF'];
+        $fontdata['arialbi'] = ['R' => 'arialbi.ttf'];
+        if (self::DSK_PAKAI_MINGLIU && is_file(FCPATH . 'assets/fonts/mingliub.ttc')) {
+            $fontdata['mingliub'] = ['R' => 'mingliub.ttc', 'TTCfontID' => ['R' => 2]];
+            $this->diskonFont = 'mingliub';
+        }
+        $fontDirs = array_merge($d['fontDir'], [FCPATH . 'assets/fonts']);
+        if (is_dir('C:\\Windows\\Fonts')) $fontDirs[] = 'C:\\Windows\\Fonts';
+
+        return new Mpdf([
             'mode'          => 'utf-8',
-            'format'        => 'A4',
-            'orientation'   => 'P',
+            'format'        => $format,
+            'orientation'   => $orientation,
             'margin_left'   => 0, 'margin_right' => 0, 'margin_top' => 0, 'margin_bottom' => 0,
             'margin_header' => 0, 'margin_footer' => 0,
             'autoPageBreak' => false,
@@ -580,9 +595,7 @@ class PopA4Pdf
 
             $qty = max(1, (int) ($it['qty'] ?? 1));
             for ($i = 0; $i < $qty; $i++) {
-                if (! $first) {
-                    $this->mpdf->AddPage();
-                }
+                if (! $first) $this->mpdf->AddPage();
                 $this->mpdf->WriteHTML($html);
                 $first = false;
             }
@@ -591,6 +604,26 @@ class PopA4Pdf
         log_message('debug', '[print] PopA4Pdf render complete template={template} bytes={bytes}', ['template' => $template, 'bytes' => strlen($result)]);
         return $result;
     }
+
+    /* private function writeDiscPage(string $html, string $template, bool &$first): void
+    {
+        if ($template === 'disc2') {
+            $this->mpdf->AddPageByArray([
+                'orientation' => 'L',
+                'condition' => 'NEXT-ODD',
+                'newformat' => [215, 150],
+                'margin-left' => 0, 'margin-right' => 0,
+                'margin-top' => 0, 'margin-bottom' => 0,
+            ]);
+            if ($first) {
+                $this->mpdf->DeletePages(1, 1);
+            }
+        } elseif (! $first) {
+            $this->mpdf->AddPage();
+        }
+        $this->mpdf->WriteHTML($html);
+        $first = false;
+    } */
 
     /**
      * Render beberapa template mPDF dalam satu dokumen PDF.
@@ -946,13 +979,36 @@ class PopA4Pdf
             ];
         }
 
+        // Rp promo tetap berada di sebelah kiri nominal yang rata kanan,
+        // dengan jarak kecil yang mengikuti lebar nominal tiap jumlah digit.
+        $promo = $S['el']['baru'];
+        $rpPromo = $S['el']['rp_baru'];
+        $rpPromo['x'] = round($promo['x'] - ($rpPromo['sx'] * $rpPromo['w0']) - 2.5, 2);
+        $S['el']['rp_baru'] = $rpPromo;
+
         $lama = $S['el']['lama'];
+        $rpLama = $S['el']['rp_lama'];
+        $rpLama['x'] = round($lama['x'] - ($rpLama['sx'] * $rpLama['w0']) - 2.5, 2);
+        $S['el']['rp_lama'] = $rpLama;
+
+        // Gunakan titik kanan aman yang sudah ditentukan pada bounding box promo.
+        // Nilai ini adalah anchor kanan dalam satuan mm relatif terhadap viewBox.
+        $promo['x'] = round(
+            self::SEG_EL['baru'][3] * 10 - ($promo['sx'] * $promo['w0']),
+            2
+        );
+        $S['el']['baru'] = $promo;
+        $rpPromo['x'] = round($promo['x'] - ($rpPromo['sx'] * $rpPromo['w0']) - 2.5, 2);
+        $S['el']['rp_baru'] = $rpPromo;
+
+        // Garis coret dimulai dari posisi nominal aktual, bukan koordinat lama.
+        $strikeX1 = $lama['x'] / 10;
         $x2   = self::SEG_EL['lama'][3] + ($lama['sx'] * $lama['w0']) / 10 + self::SEG_STRIKE['over'];
-        $len  = $x2 - self::SEG_STRIKE['x1'];
+        $len  = $x2 - $strikeX1;
         $rise = $len * self::SEG_STRIKE['slope'];
         $pad  = self::SEG_STRIKE['thick'];
         $L = ['strike' => [
-            'left' => round(self::SEG_BOX_X + self::SEG_STRIKE['x1'], 3),
+            'left' => round(self::SEG_BOX_X + $strikeX1, 3),
             'top'  => round(self::SEG_BOX_Y + self::SEG_STRIKE['y1'] - $rise - $pad, 3),
             'w'    => round($len, 3), 'h' => round($rise + 2 * $pad, 3),
             'y1'   => round($rise + $pad, 3), 'y2' => round($pad, 3), 'sw' => $pad,
@@ -1046,6 +1102,11 @@ class PopA4Pdf
                 // tanda % menempel di kanan angka diskon, berapa pun lebar angkanya
                 $a = $S['el']['angka'];
                 $x = ($a['x'] + $a['sx'] * $a['w0']) / 10 + self::DSK_GAP_PERSEN;
+            }
+            // Nama produk menggunakan seluruh area lebarnya. Tinggi dan ukuran dasar
+            // font tetap, sehingga penyesuaian hanya dilakukan secara horizontal.
+            if ($key === 'nama_produk') {
+                $maxRatio = 0;
             }
             $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $maxRatio) + [
                 'color' => $color, 'outline' => $outline,
@@ -1206,8 +1267,6 @@ class PopA4Pdf
     {
         $promo  = (int) round((float) ($row['promo_price'] ?? 0));
         $normal = (int) round((float) ($row['normal_price'] ?? 0));
-
-        // Persen diskon: cari di beberapa kemungkinan nama kolom.
         $pct = 0;
         foreach (['discount_percent', 'discount_pct', 'disc_percent', 'diskon', 'discount', 'percent'] as $k) {
             if (isset($row[$k]) && $row[$k] !== '' && (float) $row[$k] > 0) {
@@ -1215,65 +1274,28 @@ class PopA4Pdf
                 break;
             }
         }
-        // Harga promo kosong tapi persen ada -> hitung dari harga normal.
         if ($promo <= 0 && $pct > 0 && $normal > 0) {
             $promo = (int) round($normal * (1 - $pct / 100));
         }
-        // Persen kosong tapi harga ada -> hitung dari harga.
         if ($pct <= 0 && $normal > 0 && $promo > 0) {
             $pct = (int) round((1 - $promo / $normal) * 100);
         }
-
-        $adaCoret = $normal > 0 && $normal !== $promo;
-        $variant  = mb_strtoupper(trim((string) ($row['variant'] ?? '')));
-
-        $text = [
-            'nama_produk' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
-            'artikel'     => $variant,
-            'label'       => self::DSC_TEKS_LABEL,
-            'angka'       => (string) $pct,
-            'persen'      => '%',
-            'rp_lama'     => $adaCoret ? 'Rp' : '',
-            'lama'        => $adaCoret ? number_format($normal, 0, ',', '.') : '',
-            'rp_baru'     => 'Rp',
-            'baru'        => number_format($promo, 0, ',', '.'),
+        $data = [
+            'name' => mb_strtoupper(trim((string) ($row['name'] ?? ''))),
+            'variant' => mb_strtoupper(trim((string) ($row['variant'] ?? ''))),
+            'normal' => $normal > 0 ? number_format($normal, 0, ',', '.') : '',
+            'promo' => number_format($promo, 0, ',', '.'),
+            'percent' => (string) $pct,
+            'strike' => $normal > 0 && $normal !== $promo,
+            'period' => $this->tanggal($row['end_period'] ?? ''),
+            'allocation' => (float) ($row['allocation_pcs'] ?? 0) > 0
+                ? number_format((float) $row['allocation_pcs'], 0, ',', '.') . ' Pcs' : '',
         ];
-
-        $S = ['w' => self::DSC_BOX_W * 10, 'h' => self::DSC_BOX_H * 10, 'el' => []];
-        foreach (self::DS2_EL as $key => $def) {
-            [$fam, $w, $h, $x, $base, $align, $color, $outline, $maxRatio] = $def;
-            if ($key === 'persen') {
-                // tanda % menempel di kanan angka diskon, berapa pun lebar angkanya
-                $a = $S['el']['angka'];
-                $x = ($a['x'] + $a['sx'] * $a['w0']) / 10 + self::DS2_GAP_PERSEN;
-            }
-            $S['el'][$key] = $this->stretchEl($fam, $text[$key], $w, $h, $x, $base, $align, (float) $maxRatio) + [
-                'color' => $color, 'outline' => $outline,
-            ];
-        }
-
-        // Garis coret merah pada harga normal (ikut lebar angkanya)
-        $L = ['strike' => null];
-        if ($adaCoret) {
-            $lama = $S['el']['lama'];
-            $x2   = ($lama['x'] + $lama['sx'] * $lama['w0']) / 10 + self::DS2_STRIKE['over'];
-            $len  = $x2 - self::DS2_STRIKE['x1'];
-            $rise = $len * self::DS2_STRIKE['slope'];
-            $pad  = self::DS2_STRIKE['thick'];
-            $L['strike'] = [
-                'left' => round(self::DSC_BOX_X + self::DS2_STRIKE['x1'], 3),
-                'top'  => round(self::DSC_BOX_Y + self::DS2_STRIKE['y1'] - $rise - $pad, 3),
-                'w'    => round($len, 3), 'h' => round($rise + 2 * $pad, 3),
-                'y1'   => round($rise + $pad, 3), 'y2' => round($pad, 3), 'sw' => $pad,
-            ];
-        }
-
-        $box   = ['x' => self::DSC_BOX_X, 'y' => self::DSC_BOX_Y, 'w' => self::DSC_BOX_W, 'h' => self::DSC_BOX_H];
-        $file  = FCPATH . self::DSC_IMG_FILE;
-        $img   = is_file($file) ? $file : null;
-        $frame = self::DSC_FRAME;
-
-        return view('pricetag/templates/discount2-a5', compact('S', 'L', 'box', 'img', 'frame'));
+        $box = ['x' => self::DS2_BOX_X, 'y' => self::DS2_BOX_Y,
+                'w' => self::DS2_BOX_W, 'h' => self::DS2_BOX_H];
+        $file = FCPATH . self::DS2_IMG_FILE;
+        $img = is_file($file) ? $file : null;
+        return view('pricetag/templates/discount2-a5', compact('data', 'box', 'img'));
     }
 
     /* ====================== DESAIN 6d: "disc-a4" & "disc-a4-allocation" ====================== */
