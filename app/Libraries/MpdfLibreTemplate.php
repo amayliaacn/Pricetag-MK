@@ -32,6 +32,7 @@ class MpdfLibreTemplate
     private const FONTS = [
         'arialblack'     => ['R' => 'ariblk.ttf'],
         'arialnarrow'    => ['R' => 'ARIALN.TTF', 'B' => 'ARIALNB.TTF', 'I' => 'ARIALNI.TTF', 'BI' => 'ARIALNBI.TTF'],
+        'arialnarrowb'   => ['R' => 'ARIALNB.TTF'],
         // Samakan dengan PopA4Pdf: A4 memakai BKANT regular untuk satu digit
         // dan ANTQUAB untuk angka besar multi-digit. BOOKOS adalah Bookman,
         // bukan Book Antiqua, sehingga tidak dipakai untuk angka promo.
@@ -39,6 +40,7 @@ class MpdfLibreTemplate
         'bookantiquab'   => ['R' => 'ANTQUAB.TTF'],
         'calistomt'      => ['R' => 'CALIST.TTF'],
         'berlinsansfb'   => ['R' => 'BRLNSB.TTF'],
+        'berlinsansfbregular' => ['R' => 'BRLNSR.TTF'],
         'arialb'         => ['R' => 'arialbd.ttf'],     // Arial Bold
         'centurygothicb' => ['R' => 'GOTHICB.TTF'],     // Century Gothic Bold
     ];
@@ -101,21 +103,22 @@ class MpdfLibreTemplate
     // Layout khusus Tanggung Diskon Reguler. Koordinat absolut halaman A4.
     private const TGG_DISC_EL = [
         'pop'       => ['arialnarrow', 2.10, 0.25, 14.55, 1.45, 'left',   '#000000', null, 0],
-        'nama'      => ['arialblack',  10.60, 0.61, 11.75, 4.10, 'center', '#00B0F0', '#000000 0.08pt', 0],
-        'plu'       => ['arialnarrow', 2.57, 0.28, 14.64, 4.55, 'left',   '#000000', null, 1.1],
-        'diskon'    => ['bookantiquab', 2.25, 0.55, 4.00, 4.85, 'left',   '#FF0000', null, 1.1],
-        'program'   => ['bookantiquab', 7.00, 3.25, 9.00, 8.00, 'center', '#FF0000', '#FF0000 0.25pt', 1.8],
-        'percent'   => ['calistomt',   1.00, 1.20, 12.60, 6.25, 'left',   '#FF0000', null, 0],
-        'rp_lama'   => ['calistomt',   0.60, 0.40, 14.00, 5.90, 'left',   '#FF0000', null, 0],
-        'lama'      => ['bookantiquab', 2.80, 0.80, 14.65, 5.98, 'left',   '#000000', null, 1.3],
-        'label_lama'=> ['arialnarrow', 2.80, 0.28, 15.05, 6.50, 'center', '#000000', null, 1.1],
-        'rp_baru'   => ['calistomt',   0.60, 0.40, 14.00, 7.15, 'left',   '#FF0000', null, 0],
-        'baru'      => ['berlinsansfb', 3.35, 0.70, 15.20, 7.50, 'left',   '#FF0000', null, 1.3],
-        'label_baru'=> ['arialnarrow', 3.30, 0.28, 15.25, 8.10, 'center', '#000000', null, 1.1],
-        'periode1'  => ['arialb',     2.70, 0.30, 4.15, 7.95, 'left',   '#000000', null, 1.1],
-        'periode2'  => ['arialb',     2.70, 0.30, 4.15, 8.30, 'left',   '#000000', null, 1.1],
+        // Lebar diperluas ke kiri dengan batas kanan tetap: 11.60 + 11.50/2 = 17.35 cm.
+        'nama'      => ['arialblack',  11.50, 0.61, 11.60, 3.40, 'center', '#00B0F0', '#000000 0.08pt', 0],
+        'plu'       => ['arialnarrow', 2.57, 0.28, 14.64, 4.05, 'left',   '#000000', null, 1.1],
+        'diskon'    => ['bookantiquab', 2.25, 0.55, 3.70, 4.40, 'left',   '#FF0000', null, 1.1],
+        'program'   => ['bookantiqua', 6.40, 3.30, 9.70, 6.90, 'center', '#FF0000', '#FF0000 0.15', 1.8],
+        'percent'   => ['calistomt',   0.72, 0.90, 12.60, 5.00, 'left',   '#FF0000', null, 0],
+        'rp_lama'   => ['calistomt',   0.414, 0.261, 14.205, 4.95, 'left',   '#FF0000', null, 0],
+        'lama'      => ['bookantiqua', 1.89, 0.486, 15.005, 5.03, 'left',   '#000000', null, 1.3],
+        'label_lama'=> ['arialnarrow', 1.9845, 0.189, 15.20, 5.44, 'center', '#000000', null, 1.1],
+        'rp_baru'   => ['calistomt',   0.58, 0.38, 14.35, 5.99, 'left',   '#FF0000', null, 0],
+        'baru'      => ['berlinsansfbregular', 3.35, 0.82, 15.10, 6.49, 'left',   '#FF0000', null, 1.3],
+        'label_baru'=> ['arialnarrow', 3.30, 0.24, 15.15, 6.89, 'center', '#000000', null, 1.1],
+        'periode1'  => ['arialnarrowb', 2.35, 0.23, 3.90, 6.50, 'left', '#000000', null, 1.1],
+        'periode2'  => ['arialnarrowb', 2.35, 0.23, 3.90, 6.77, 'left', '#000000', null, 1.1],
     ];
-    private const TGG_DISC_STRIKE = ['x1' => 14.55, 'y1' => 5.72, 'over' => 0.50, 'slope' => 0.0, 'thick' => 0.06];
+    private const TGG_DISC_STRIKE = ['x1' => 14.85, 'y1' => 5.40, 'over' => 0.32, 'slope' => 0.26, 'thick' => 0.06];
 
     // Garis coret miring: x1,y1 = ujung KIRI-BAWAH; ujung kanan = akhir harga normal + over
     private const TGG_STRIKE = ['x1' => 4.14, 'y1' => 4.67, 'over' => 0.60, 'slope' => 0.212, 'thick' => 0.07];
@@ -373,7 +376,7 @@ class MpdfLibreTemplate
             'baru'       => number_format((float) ($tag['promo_price'] ?? 0), 0, ',', '.'),
             'label_baru' => '( Harga Sesudah di Diskon )',
             'periode1'   => 'Akhir Periode :',
-            'periode2'   => $this->tanggalPendek((string) ($tag['periode_display'] ?? '')),
+            'periode2'   => $this->tanggalPendekDiscount((string) ($tag['periode_display'] ?? '')),
         ];
 
         $S = ['w' => 210, 'h' => 297, 'el' => []];
@@ -383,17 +386,72 @@ class MpdfLibreTemplate
                 + ['color' => $color, 'outline' => $outline];
         }
 
+        // Kompresi horizontal lokal periode setelah pergeseran X. Tinggi
+        // visual (sy), baseline, dan font tetap; tanggal memakai faktor sama.
+        $periodeWidth = $S['el']['periode1']['sx'] * $S['el']['periode1']['w0'];
+        $periodeScaleX = min(1.0, 19.8 / max(0.001, $periodeWidth));
+        foreach (['periode1', 'periode2'] as $periodeKey) {
+            $S['el'][$periodeKey]['sx'] = round(
+                $S['el'][$periodeKey]['sx'] * $periodeScaleX,
+                6
+            );
+        }
+
+        // Geser angka diskon secara horizontal hanya bila bounding box hasil
+        // scaling tidak menyisakan margin aman dari periode dan simbol %.
+        // Ukuran, tinggi, dan scaling angka tetap tidak berubah.
+        $program = $S['el']['program'];
+        $programWidth = $program['sx'] * $program['w0'];
+        $periodRight = max(
+            $S['el']['periode1']['x'] + ($S['el']['periode1']['sx'] * $S['el']['periode1']['w0']),
+            $S['el']['periode2']['x'] + ($S['el']['periode2']['sx'] * $S['el']['periode2']['w0'])
+        );
+        $safeLeft = $periodRight + 1.5;
+        $safeRight = $S['el']['percent']['x'] - 1.5;
+        $currentLeft = $program['x'];
+        if (($safeRight - $safeLeft) >= $programWidth) {
+            $newLeft = min(max($currentLeft, $safeLeft), $safeRight - $programWidth);
+            if ($newLeft !== $currentLeft) {
+                $program['x'] = round($newLeft, 2);
+                $S['el']['program'] = $program;
+            }
+        }
+
+        // Alignment lokal disc-reg-tgg berdasarkan lebar glyph hasil stretchEl().
+        // Nama tetap menjadi acuan kanan; tidak mengubah posisi atau scaling nama.
+        $nama = $S['el']['nama'];
+        $namaRight = $nama['x'] + ($nama['sx'] * $nama['w0']);
+        $baru = $S['el']['baru'];
+        // Rp promo diperkecil 10% secara lokal; font dan baseline tetap.
+        $S['el']['rp_baru']['sx'] = round($S['el']['rp_baru']['sx'] * 0.90, 4);
+        $S['el']['rp_baru']['sy'] = round($S['el']['rp_baru']['sy'] * 0.90, 4);
+        $baruWidth = $baru['sx'] * $baru['w0'];
+        $baruX = round($namaRight - $baruWidth, 2);
+        $promoShift = $baruX - $baru['x'];
+        $S['el']['baru']['x'] = $baruX;
+        $S['el']['rp_baru']['x'] = round($S['el']['rp_baru']['x'] + $promoShift, 2);
+        $promoLeft = $S['el']['rp_baru']['x'];
+        $promoRight = $baruX + $baruWidth;
+        $promoCenter = ($promoLeft + $promoRight) / 2;
+        $S['el']['label_baru']['x'] = round($promoCenter - (($S['el']['label_baru']['sx'] * $S['el']['label_baru']['w0']) / 2), 2);
+
         $lama = $S['el']['lama'];
+        $normalLeft = $lama['x'];
+        $normalRight = $lama['x'] + ($lama['sx'] * $lama['w0']);
+        $normalCenter = ($normalLeft + $normalRight) / 2;
+        $S['el']['label_lama']['x'] = round($normalCenter - (($S['el']['label_lama']['sx'] * $S['el']['label_lama']['w0']) / 2), 2);
+
         $x2 = ($lama['x'] + $lama['sx'] * $lama['w0']) / 10 + self::TGG_DISC_STRIKE['over'];
         $left = self::TGG_DISC_STRIKE['x1'];
         $width = max(1.5, $x2 - $left);
+        $strikeTop = ($lama['y'] / 10) - 0.35;
         $L = ['strike' => [
             'left' => $left,
-            'top' => self::TGG_DISC_STRIKE['y1'],
+            'top' => round($strikeTop, 3),
             'w' => $width,
-            'h' => self::TGG_DISC_STRIKE['thick'],
-            'y1' => self::TGG_DISC_STRIKE['thick'] / 2,
-            'y2' => self::TGG_DISC_STRIKE['thick'] / 2,
+            'h' => 0.35,
+            'y1' => 0.30,
+            'y2' => round(0.30 - self::TGG_DISC_STRIKE['slope'], 3),
             'sw' => self::TGG_DISC_STRIKE['thick'],
         ]];
         $box = ['x' => 0.0, 'y' => 0.0, 'w' => 21.00, 'h' => 29.70];
@@ -475,6 +533,18 @@ class MpdfLibreTemplate
         $L['strike']['top'] = round($L['strike']['top'] + $groupAOffset, 3);
 
         return compact('S', 'L', 'box');
+    }
+
+    /** "2026-09-15" -> "15 SEP 2026" (kalau bukan tanggal valid, dipakai apa adanya) */
+    private function tanggalPendekDiscount(string $ymd): string
+    {
+        $ts = strtotime($ymd);
+        if (! $ts) {
+            return mb_strtoupper(trim($ymd));
+        }
+
+        $months = [1 => 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+        return date('d', $ts) . ' ' . $months[(int) date('n', $ts)] . ' ' . date('y', $ts);
     }
 
     /** "2026-09-15" -> "15 SEP 2026" (kalau bukan tanggal valid, dipakai apa adanya) */

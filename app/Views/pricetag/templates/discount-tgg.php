@@ -8,7 +8,7 @@ $e = static fn($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 </style>
 
 <?php if (! empty($L['strike'])): $k = $L['strike']; ?>
-<div class="abs" style="left:<?= $k['left'] ?>cm;top:<?= $k['top'] ?>cm;width:<?= $k['w'] ?>cm;height:<?= $k['h'] ?>cm">
+<div class="abs" style="z-index:2;left:<?= $k['left'] ?>cm;top:<?= $k['top'] ?>cm;width:<?= $k['w'] ?>cm;height:<?= $k['h'] ?>cm">
     <svg xmlns="http://www.w3.org/2000/svg" width="<?= $k['w'] ?>cm" height="<?= $k['h'] ?>cm" viewBox="0 0 <?= $k['w'] ?> <?= $k['h'] ?>">
         <line x1="0" y1="<?= $k['y1'] ?>" x2="<?= $k['w'] ?>" y2="<?= $k['y2'] ?>" stroke="#FF0000" stroke-width="<?= $k['sw'] ?>"/>
     </svg>
