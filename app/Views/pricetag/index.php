@@ -547,8 +547,8 @@
                 const useDiscountTemplate = effectiveDiscount >= 10
                     || (effectiveDiscount > 0 && effectiveDiscount < 10 && product.discountMode === 'show');
                 if (product.allvar && product.allocation > 0) reasons.push(`${id}: allvar dengan alokasi=${product.allocation}`);
-                if (useDiscountTemplate && (product.allvar || product.allocation > 0)) {
-                    reasons.push(`${id}: Diskon Reguler Tanggung mPDF belum tersedia untuk All Varian/Allocation`);
+                if (useDiscountTemplate && product.allvar && product.allocation <= 0) {
+                    reasons.push(`${id}: Diskon Reguler Tanggung mPDF belum tersedia untuk All Varian`);
                 }
                 return product;
             });

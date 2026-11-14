@@ -24,6 +24,7 @@ class MpdfLibreTemplate
         'turun-harga-tgg-allvar'   => ['view' => 'turun-hrg-tgg-allvar-mpdf', 'size' => [210, 297], 'builder' => 'buildTggAllvar', 'pagePerTag' => true],
         'turun-harga-tgg-allocation' => ['view' => 'turun-hrg-tgg-allocation', 'size' => [210, 297], 'builder' => 'buildTggAllocation', 'pagePerTag' => true],
         'disc-reg-tgg'             => ['view' => 'discount-tgg', 'size' => [210, 297], 'builder' => 'buildTggDiscount', 'pagePerTag' => true],
+        'disc-reg-tgg-allocation'  => ['view' => 'discount-tgg-allocation', 'size' => [210, 297], 'builder' => 'buildTggDiscountAllocation', 'pagePerTag' => true],
         'disc-reg-kcl'             => ['view' => 'discount-reg-kcl', 'size' => [70, 45]],
         'disc-reg-kcl-allocation'  => ['view' => 'discount-reg-kcl-allocation', 'size' => [70, 45]],
     ];
@@ -456,6 +457,180 @@ class MpdfLibreTemplate
         ]];
         $box = ['x' => 0.0, 'y' => 0.0, 'w' => 21.00, 'h' => 29.70];
 
+        return compact('S', 'L', 'box');
+    }
+
+    /** Layout final POC untuk Diskon Reguler Tanggung Allocation. */
+    private function buildTggDiscountAllocation(array $tag): array
+    {
+        $text = [
+            'pop' => 'JUMLAH POP : ' . (string) ($tag['pop_count'] ?? 3),
+            'nama' => mb_strtoupper(trim((string) ($tag['display_name'] ?? ''))),
+            'plu' => '( PLU : ' . ($tag['sku_plu'] ?? '') . ' )',
+            'program' => (string) round((float) ($tag['discount_percent'] ?? 0)),
+            'percent' => '%', 'diskon' => 'Diskon :',
+            'lama' => number_format((float) ($tag['normal_price'] ?? 0), 0, ',', '.'),
+            'promo' => number_format((float) ($tag['promo_price'] ?? 0), 0, ',', '.'),
+            'allocation' => 'Alokasi : ' . (string) ($tag['allocation_pcs'] ?? 0) . 'Pcs',
+            'ap' => $this->tanggalPendekDiscount((string) ($tag['periode_display'] ?? '')),
+        ];
+
+        $S = ['w' => 210, 'h' => 297, 'el' => []];
+        $metric = function (string $family, string $value, float $w, float $h, float $x, float $base, string $align = 'left', float $max = 0) use (&$S): void {
+            $S['el'][] = $this->stretchEl($family, $value, $w, $h, $x, $base, $align, $max);
+        };
+        $named = function (string $key, string $family, string $value, float $w, float $h, float $x, float $base, string $align = 'left', float $max = 0) use (&$S): void {
+            $S['el'][$key] = $this->stretchEl($family, $value, $w, $h, $x, $base, $align, $max);
+            $S['el'][$key]['color'] = in_array($key, ['product', 'note0', 'note1', 'note2', 'ap'], true) ? ($key === 'product' || str_starts_with($key, 'note') || $key === 'ap' ? ($key === 'ap' ? '#00B0F0' : '#00B0F0') : '#000000') : (in_array($key, ['program', 'percent', 'diskon', 'normalRp', 'promoRp', 'promo', 'allocation'], true) ? '#FF0000' : '#000000');
+            $S['el'][$key]['outline'] = $key === 'program' ? '#FF0000 0.25pt' : null;
+        };
+
+        $named('product', 'arialblack', $text['nama'], 11.2, 0.7, 11.25, 35.2 / 10, 'center', 1.1);
+        $named('plu', 'arialnarrow', $text['plu'], 2.8, 0.32, 15.45, 41.3 / 10, 'center', 1.1);
+        $named('pop', 'arialnarrow', $text['pop'], 3.0, 0.32, 16.0, 19 / 10, 'center', 1.1);
+        // Harness memakai X=97 mm sebagai pusat dan menghasilkan batas kiri
+        // 65 mm. Di builder, nyatakan langsung batas kiri agar tidak bergeser.
+        // Varian C: Book Antiqua Regular, 64 x 31 mm, baseline tetap 69 mm.
+        $named('program', 'bookantiqua', $text['program'], 6.4, 3.1, 6.5, 69 / 10, 'left', 1.8);
+        $named('percent', 'calistomt', $text['percent'], 0.72, 0.9, 13.0, 50 / 10);
+        $named('diskon', 'bookantiqua', $text['diskon'], 1.8, 0.55, 3.9, 45 / 10, 'left', 1.1);
+        $named('note0', 'arialnarrowb', '*Promo Berlaku', 2.4, 0.36, 3.9, 54 / 10, 'left', 1.1);
+        $named('note1', 'arialnarrowb', 'Selama Alokasi', 2.4, 0.36, 3.9, 58 / 10, 'left', 1.1);
+        $named('note2', 'arialnarrowb', 'Masih Ada', 2.4, 0.36, 3.9, 62 / 10, 'left', 1.1);
+        $named('allocation', 'arialnarrowb', $text['allocation'], 2.2, 0.32, 3.9, 69.3 / 10, 'left', 1.1);
+        $named('ap', 'arialblack', 'AP : ' . $text['ap'], 2.3, 0.32, 16.85, 46.7 / 10, 'right', 1.1);
+        $named('normal', 'bookantiqua', $text['lama'], 1.805, 0.4617, 15.755, 54 / 10, 'center', 1.3);
+        $named('promo', 'berlinsansfbregular', $text['promo'], 3.5, 0.5, 15.345, 65 / 10, 'left', 1.9);
+        $named('normalRp', 'calistomt', 'Rp', 0.475, 0.266, 14.405, 52.5 / 10, 'center', 1.1);
+        $named('promoRp', 'calistomt', 'Rp', 0.5, 0.28, 13.44, 63.5 / 10, 'center', 1.1);
+
+        $productRight = $S['el']['product']['x'] + $S['el']['product']['sx'] * $S['el']['product']['w0'];
+        $promoWidth = $S['el']['promo']['sx'] * $S['el']['promo']['w0'];
+        $promoX = $productRight - $promoWidth;
+        $promoShift = $promoX - $S['el']['promo']['x'];
+        $S['el']['promo']['x'] = round($promoX, 2);
+        // Promo dan Rp diperlakukan sebagai satu kelompok. Pertahankan jarak
+        // relatif 1,2 mm ketika kelompok perlu digeser untuk label.
+        $promoRpRight = $S['el']['promo']['x'] - 1.2;
+        $promoRpWidth = $S['el']['promoRp']['sx'] * $S['el']['promoRp']['w0'];
+        $S['el']['promoRp']['x'] = round($promoRpRight - $promoRpWidth, 3);
+        $normalRpRight = $S['el']['normal']['x'] - 1.2;
+        $normalRpWidth = $S['el']['normalRp']['sx'] * $S['el']['normalRp']['w0'];
+        $S['el']['normalRp']['x'] = round($normalRpRight - $normalRpWidth, 3);
+
+        $label = function (string $family, string $value, float $size): float {
+            $this->pdf->SetFont($family, '', $size / 0.352778);
+            return $this->pdf->GetStringWidth($value);
+        };
+        $normalLabelW = $label('arialnarrow', '( Harga Normal )', 2.8);
+        $promoLabelW = $label('arialnarrow', '( Harga Sesudah di Diskon )', 2.8) * 1.225;
+        $normalPriceWidth = $S['el']['normal']['sx'] * $S['el']['normal']['w0'];
+        $normalGroupLeft = $S['el']['normalRp']['x'];
+        $normalGroupRight = $S['el']['normal']['x'] + $normalPriceWidth;
+        $normalCenter = ($normalGroupLeft + $normalGroupRight) / 2;
+        $promoCenter = $S['el']['promo']['x'] + $promoWidth / 2;
+        $groupLeft = $S['el']['promoRp']['x'];
+        $groupRight = $S['el']['promo']['x'] + $promoWidth;
+        $groupCenter = ($groupLeft + $groupRight) / 2;
+        $promoLabelX = $groupCenter - $promoLabelW / 2;
+        $groupShift = max(0, $promoLabelX + $promoLabelW - $productRight);
+        if ($groupShift > 0) {
+            $S['el']['promo']['x'] = round($S['el']['promo']['x'] - $groupShift, 2);
+            $S['el']['promoRp']['x'] = round($S['el']['promoRp']['x'] - $groupShift, 3);
+            $groupLeft -= $groupShift;
+            $groupRight -= $groupShift;
+            $groupCenter = ($groupLeft + $groupRight) / 2;
+            $promoLabelX = $groupCenter - $promoLabelW / 2;
+        }
+        log_message('debug', '[RP_REANCHOR_CHECK_V2][CHECKPOINT_A] promo_rp_x={promo_rp_x} promo_x={promo_x} promo_rp_width={promo_rp_width} promo_gap={promo_gap}', [
+            'promo_rp_x' => $S['el']['promoRp']['x'],
+            'promo_x' => $S['el']['promo']['x'],
+            'promo_rp_width' => round($promoRpWidth, 3),
+            'promo_gap' => round($S['el']['promo']['x'] - ($S['el']['promoRp']['x'] + $promoRpWidth), 3),
+        ]);
+        // Re-anchor terakhir setelah seluruh pergeseran grup. Ini mencegah
+        // anchor center awal promoRp tertinggal dari harga promo final.
+        $promoRpRight = $S['el']['promo']['x'] - 1.2;
+        $S['el']['promoRp']['x'] = round($promoRpRight - $promoRpWidth, 3);
+        $groupLeft = $S['el']['promoRp']['x'];
+        $groupRight = $S['el']['promo']['x'] + $promoWidth;
+        $groupCenter = ($groupLeft + $groupRight) / 2;
+        $promoLabelX = $groupCenter - $promoLabelW / 2;
+        log_message('debug', '[RP_REANCHOR_CHECK_V2][CHECKPOINT_B] promo_rp_x={promo_rp_x} promo_x={promo_x} promo_rp_width={promo_rp_width} promo_gap={promo_gap}', [
+            'promo_rp_x' => $S['el']['promoRp']['x'],
+            'promo_x' => $S['el']['promo']['x'],
+            'promo_rp_width' => round($promoRpWidth, 3),
+            'promo_gap' => round($S['el']['promo']['x'] - ($S['el']['promoRp']['x'] + $promoRpWidth), 3),
+        ]);
+        $S['el']['normalLabel'] = ['family' => 'Arial Narrow', 'fs' => 2.8, 'text' => '( Harga Normal )', 'x' => round($normalCenter - $normalLabelW / 2, 3), 'y' => 56.8, 'sx' => 1, 'sy' => 1, 'color' => '#000000', 'outline' => null, 'w0' => $normalLabelW];
+        $S['el']['promoLabel'] = ['family' => 'Arial Narrow', 'fs' => 2.8, 'text' => '( Harga Sesudah di Diskon )', 'x' => round($promoLabelX, 3), 'y' => 68, 'sx' => 1, 'sy' => 1, 'color' => '#000000', 'outline' => null, 'w0' => $promoLabelW];
+
+        log_message('debug', '[ENV_RUNTIME_CHECK] environment={env}', [
+            'env' => defined('CI_ENVIRONMENT') ? CI_ENVIRONMENT : 'undefined',
+        ]);
+        if (defined('CI_ENVIRONMENT') && CI_ENVIRONMENT === 'development') {
+            $promoRpFinalWidth = $S['el']['promoRp']['sx'] * $S['el']['promoRp']['w0'];
+            $promoFinalWidth = $S['el']['promo']['sx'] * $S['el']['promo']['w0'];
+            $promoLabelFinalWidth = $S['el']['promoLabel']['sx'] * $S['el']['promoLabel']['w0'];
+            $finalGroupLeft = $S['el']['promoRp']['x'];
+            $finalGroupRight = $S['el']['promo']['x'] + $promoFinalWidth;
+            $finalGroupCenter = ($finalGroupLeft + $finalGroupRight) / 2;
+            $finalLabelCenter = $S['el']['promoLabel']['x'] + ($promoLabelFinalWidth / 2);
+
+            $diagnosticData = [
+                'template' => 'disc-reg-tgg-allocation',
+                'plu' => (string) ($tag['sku_plu'] ?? ''),
+                'promo_value' => $text['promo'],
+                'promo_rp_x' => round($S['el']['promoRp']['x'], 3),
+                'promo_rp_width' => round($promoRpFinalWidth, 3),
+                'promo_x' => round($S['el']['promo']['x'], 3),
+                'promo_width' => round($promoFinalWidth, 3),
+                'group_left' => round($finalGroupLeft, 3),
+                'group_right' => round($finalGroupRight, 3),
+                'group_center' => round($finalGroupCenter, 3),
+                'promo_rp_gap' => round($S['el']['promo']['x'] - ($S['el']['promoRp']['x'] + $promoRpFinalWidth), 3),
+                'promo_label_x' => round($S['el']['promoLabel']['x'], 3),
+                'promo_label_width' => round($promoLabelFinalWidth, 3),
+                'promo_label_right' => round($S['el']['promoLabel']['x'] + $promoLabelFinalWidth, 3),
+                'promo_label_center' => round($finalLabelCenter, 3),
+                'center_delta' => round($finalLabelCenter - $finalGroupCenter, 3),
+                'shift_left' => round($groupShift, 3),
+                'product_right' => round($productRight, 3),
+            ];
+            log_message('debug', '[PROMO_LABEL_ALIGNMENT_DIAG] ' . json_encode($diagnosticData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        }
+
+        $lama = $S['el']['normal'];
+        $left = $lama['x'] / 10;
+        $right = ($lama['x'] + $lama['sx'] * $lama['w0']) / 10;
+        $width = max(1.5, $right - $left); $rise = $width * 0.212; $pad = 0.07;
+        $L = ['strike' => ['left' => $left, 'top' => 5.32 - $rise - $pad, 'w' => $width, 'h' => $rise + 2 * $pad, 'y1' => $rise + $pad, 'y2' => $pad, 'sw' => $pad]];
+        $runtimeRequestId = 'unavailable';
+        try {
+            $runtimeRequestId = service('request')->getHeaderLine('X-Request-Id') ?: 'unavailable';
+        } catch (\Throwable $e) {
+            // Builder juga dapat dipanggil dari CLI/POC tanpa request HTTP.
+        }
+        log_message('debug', '[mpdf-runtime] template=disc-reg-tgg-allocation function=buildTggDiscountAllocation request_id={request_id} file={file} sha256={sha256} normal_rp_x={normal_rp_x} normal_x={normal_x} promo_rp_x={promo_rp_x} promo_x={promo_x} normal_label_x={normal_label_x} promo_label_x={promo_label_x} normal_gap={normal_gap} promo_gap={promo_gap} product_right={product_right}', [
+            'request_id' => $runtimeRequestId,
+            'file' => __FILE__,
+            'sha256' => hash_file('sha256', __FILE__),
+            'normal_rp_x' => $S['el']['normalRp']['x'],
+            'normal_x' => $S['el']['normal']['x'],
+            'promo_rp_x' => $S['el']['promoRp']['x'],
+            'promo_x' => $S['el']['promo']['x'],
+            'normal_label_x' => $S['el']['normalLabel']['x'],
+            'promo_label_x' => $S['el']['promoLabel']['x'],
+            'normal_gap' => round($S['el']['normal']['x'] - ($S['el']['normalRp']['x'] + $S['el']['normalRp']['sx'] * $S['el']['normalRp']['w0']), 3),
+            'promo_gap' => round($S['el']['promo']['x'] - ($S['el']['promoRp']['x'] + $S['el']['promoRp']['sx'] * $S['el']['promoRp']['w0']), 3),
+            'product_right' => round($productRight, 3),
+        ]);
+        log_message('debug', '[RP_REANCHOR_CHECK_V2][CHECKPOINT_C] promo_rp_x={promo_rp_x} promo_x={promo_x} promo_gap={promo_gap}', [
+            'promo_rp_x' => $S['el']['promoRp']['x'],
+            'promo_x' => $S['el']['promo']['x'],
+            'promo_gap' => round($S['el']['promo']['x'] - ($S['el']['promoRp']['x'] + $S['el']['promoRp']['sx'] * $S['el']['promoRp']['w0']), 3),
+        ]);
+        $box = ['x' => 0, 'y' => 0, 'w' => 21, 'h' => 29.7];
         return compact('S', 'L', 'box');
     }
 

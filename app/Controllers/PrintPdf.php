@@ -117,7 +117,7 @@ class PrintPdf extends BaseController
 
             if ($useMpdf) {
                 $requestedRenderer = $renderer !== '' ? $renderer : 'libreoffice(default)';
-                $validationReason = in_array($templateKey, ['turun-harga-tgg', 'turun-harga-tgg-allvar', 'turun-harga-tgg-allocation', 'disc-reg-tgg'], true)
+                $validationReason = in_array($templateKey, ['turun-harga-tgg', 'turun-harga-tgg-allvar', 'turun-harga-tgg-allocation', 'disc-reg-tgg', 'disc-reg-tgg-allocation'], true)
                     ? 'accepted-template-key'
                     : 'unsupported-template-key-for-mpdf-dev';
                 log_message('debug', '[print:{id}] renderer diagnostic product_id={product_id} sku={sku} product_import_id={product_import_id} request_import_id={request_import_id} request_size={request_size} db_template_size={db_template_size} normal_price={normal_price} promo_price={promo_price} discount_percent={discount_percent} allocation_pcs={allocation_pcs} allvar={allvar} discount_mode={discount_mode} renderer={renderer} template_key={template_key} validation_reason={reason}', [
@@ -144,7 +144,7 @@ class PrintPdf extends BaseController
                 // Development renderer is deliberately allow-listed. The key is
                 // recomputed above from trusted product data and never accepted
                 // from the browser.
-                if (! in_array($templateKey, ['turun-harga-tgg', 'turun-harga-tgg-allvar', 'turun-harga-tgg-allocation', 'disc-reg-tgg'], true)) {
+                if (! in_array($templateKey, ['turun-harga-tgg', 'turun-harga-tgg-allvar', 'turun-harga-tgg-allocation', 'disc-reg-tgg', 'disc-reg-tgg-allocation'], true)) {
                     log_message('warning', '[print:{id}] renderer rejected product_id={product_id} sku={sku} template_key={template_key} reason=unsupported-template-key-for-mpdf-dev', [
                         'id' => $requestId,
                         'product_id' => (int) $tagId,
