@@ -542,14 +542,8 @@
                     allvar,
                     discountMode,
                 };
-                const effectiveDiscount = product.promo > 0 ? 0 : product.discount;
                 if (product.size !== 'tgg') reasons.push(`${id}: ukuran=${product.size || '(kosong)'}`);
-                const useDiscountTemplate = effectiveDiscount >= 10
-                    || (effectiveDiscount > 0 && effectiveDiscount < 10 && product.discountMode === 'show');
                 if (product.allvar && product.allocation > 0) reasons.push(`${id}: allvar dengan alokasi=${product.allocation}`);
-                if (useDiscountTemplate && product.allvar && product.allocation <= 0) {
-                    reasons.push(`${id}: Diskon Reguler Tanggung mPDF belum tersedia untuk All Varian`);
-                }
                 return product;
             });
             const eligible = selected.length > 0 && reasons.length === 0;

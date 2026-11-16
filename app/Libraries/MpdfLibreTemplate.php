@@ -24,6 +24,7 @@ class MpdfLibreTemplate
         'turun-harga-tgg-allvar'   => ['view' => 'turun-hrg-tgg-allvar-mpdf', 'size' => [210, 297], 'builder' => 'buildTggAllvar', 'pagePerTag' => true],
         'turun-harga-tgg-allocation' => ['view' => 'turun-hrg-tgg-allocation', 'size' => [210, 297], 'builder' => 'buildTggAllocation', 'pagePerTag' => true],
         'disc-reg-tgg'             => ['view' => 'discount-tgg', 'size' => [210, 297], 'builder' => 'buildTggDiscount', 'pagePerTag' => true],
+        'disc-reg-tgg-allvar'      => ['view' => 'discount-tgg', 'size' => [210, 297], 'builder' => 'buildTggDiscountAllvar', 'pagePerTag' => true],
         'disc-reg-tgg-allocation'  => ['view' => 'discount-tgg-allocation', 'size' => [210, 297], 'builder' => 'buildTggDiscountAllocation', 'pagePerTag' => true],
         'disc-reg-kcl'             => ['view' => 'discount-reg-kcl', 'size' => [70, 45]],
         'disc-reg-kcl-allocation'  => ['view' => 'discount-reg-kcl-allocation', 'size' => [70, 45]],
@@ -458,6 +459,56 @@ class MpdfLibreTemplate
         $box = ['x' => 0.0, 'y' => 0.0, 'w' => 21.00, 'h' => 29.70];
 
         return compact('S', 'L', 'box');
+    }
+
+    /** Diskon Reguler Tanggung All Varian memakai geometri reguler; hanya identitas PLU diganti. */
+    private function buildTggDiscountAllvar(array $tag): array
+    {
+        $layout = $this->buildTggDiscount($tag);
+        $product = $layout['S']['el']['nama'];
+        $productRight = $product['x'] + ($product['sx'] * $product['w0']);
+        $targetWidthMm = 28.575;
+        $allVariantHeight = 9 * 0.352778;
+        $allVariant = $this->stretchEl(
+            'arialnarrow', 'All Variant', $targetWidthMm / 10, $allVariantHeight / 10,
+            ($productRight - $targetWidthMm) / 10, $layout['S']['el']['plu']['y'] / 10,
+            'left', 1.1
+        );
+        // stretchEl membatasi sx melalui maxRatio; untuk All Variant gunakan
+        // lebar shape penuh secara lokal tanpa mengubah helper global.
+        $allVariant['sx'] = round($targetWidthMm / max(0.001, $allVariant['w0']), 4);
+        $allVariant['x'] = round($productRight - ($allVariant['sx'] * $allVariant['w0']) - 2.0, 2);
+        $layout['S']['el']['plu'] = $allVariant + ['color' => '#000000', 'outline' => null];
+
+        if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+            $requestId = 'unavailable';
+            try {
+                $requestId = service('request')->getHeaderLine('X-Request-Id') ?: 'unavailable';
+            } catch (\Throwable $e) {
+                // Builder juga dapat dipanggil dari CLI tanpa request HTTP.
+            }
+            $effectiveWidth = $allVariant['sx'] * $allVariant['w0'];
+            log_message('debug', '[ALLVARIANT_RENDER_DIAG] ' . json_encode([
+                'request_id' => $requestId,
+                'template' => 'disc-reg-tgg-allvar',
+                'file' => __FILE__,
+                'sha256' => hash_file('sha256', __FILE__),
+                'family' => $allVariant['family'],
+                'fs' => $allVariant['fs'],
+                'w0' => $allVariant['w0'],
+                'sx' => $allVariant['sx'],
+                'sy' => $allVariant['sy'],
+                'x' => $allVariant['x'],
+                'y' => $allVariant['y'],
+                'effective_width' => round($effectiveWidth, 3),
+                'right' => round($allVariant['x'] + $effectiveWidth, 3),
+                'product_right' => round($productRight, 3),
+                'target_width' => round($targetWidthMm, 3),
+                'target_height' => round($allVariantHeight, 3),
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        }
+
+        return $layout;
     }
 
     /** Layout final POC untuk Diskon Reguler Tanggung Allocation. */
