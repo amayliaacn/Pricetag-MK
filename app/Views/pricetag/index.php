@@ -542,8 +542,10 @@
                     allvar,
                     discountMode,
                 };
-                if (product.size !== 'tgg') reasons.push(`${id}: ukuran=${product.size || '(kosong)'}`);
-                if (product.allvar && product.allocation > 0) reasons.push(`${id}: allvar dengan alokasi=${product.allocation}`);
+                if (!['tgg', 'kcl'].includes(product.size)) reasons.push(`${id}: ukuran=${product.size || '(kosong)'}`);
+                if (product.size === 'kcl' && product.allocation > 0) reasons.push(`${id}: KCL dengan alokasi=${product.allocation}`);
+                if (product.size === 'kcl' && product.allvar) reasons.push(`${id}: KCL All Varian tidak didukung`);
+                if (product.size === 'tgg' && product.allvar && product.allocation > 0) reasons.push(`${id}: allvar dengan alokasi=${product.allocation}`);
                 return product;
             });
             const eligible = selected.length > 0 && reasons.length === 0;
@@ -681,7 +683,7 @@
             const libreRadio = document.querySelector('input[name="renderer"][value="libreoffice"]');
             const eligibility = getMpdfDevEligibility(document.getElementById('formCetak'));
             const canUseMpdfDev = !hasMpdf && eligibility.eligible;
-            rendererPicker.classList.toggle('d-none', hasMpdf || !sizes.length || !sizes.every(size => size === 'tgg'));
+            rendererPicker.classList.toggle('d-none', hasMpdf || !sizes.length || !sizes.every(size => ['tgg', 'kcl'].includes(size)));
             mpdfRendererOption.classList.toggle('d-none', !canUseMpdfDev);
             mpdfRadio.disabled = !canUseMpdfDev;
             if (!canUseMpdfDev) libreRadio.checked = true;
@@ -722,7 +724,7 @@
             const eligibility = getMpdfDevEligibility(this);
             if (renderer === 'mpdf-dev' && (hasMpdf || !eligibility.eligible)) {
                 const reason = eligibility.reasons.length ? ` (${eligibility.reasons.join('; ')})` : '';
-                tampilkanErrorCetak(`mPDF Pengembangan hanya tersedia untuk template Tanggung yang sudah dimigrasikan.${reason}`);
+                tampilkanErrorCetak(`mPDF Pengembangan tidak tersedia untuk kombinasi template ini.${reason}`);
                 return;
             }
             this.action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';

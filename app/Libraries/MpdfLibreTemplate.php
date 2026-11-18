@@ -19,7 +19,7 @@ use RuntimeException;
 class MpdfLibreTemplate
 {
     private const TEMPLATES = [
-        'turun-harga-kcl'          => ['view' => 'turun-hrg-kcl', 'size' => [70, 45]],
+        'turun-harga-kcl'          => ['view' => 'turun-hrg-kcl-mpdf', 'size' => [210, 297], 'builder' => 'buildKcl', 'pagePerTag' => true],
         'turun-harga-tgg'          => ['view' => 'turun-hrg-tgg', 'size' => [210, 297], 'builder' => 'buildTgg', 'pagePerTag' => true],
         'turun-harga-tgg-allvar'   => ['view' => 'turun-hrg-tgg-allvar-mpdf', 'size' => [210, 297], 'builder' => 'buildTggAllvar', 'pagePerTag' => true],
         'turun-harga-tgg-allocation' => ['view' => 'turun-hrg-tgg-allocation', 'size' => [210, 297], 'builder' => 'buildTggAllocation', 'pagePerTag' => true],
@@ -42,9 +42,11 @@ class MpdfLibreTemplate
         'bookantiquab'   => ['R' => 'ANTQUAB.TTF'],
         'calistomt'      => ['R' => 'CALIST.TTF'],
         'berlinsansfb'   => ['R' => 'BRLNSB.TTF'],
+        'berlinsansfbkcl' => ['R' => 'BRLNSDB.TTF'],
         'berlinsansfbregular' => ['R' => 'BRLNSR.TTF'],
         'arialb'         => ['R' => 'arialbd.ttf'],     // Arial Bold
         'centurygothicb' => ['R' => 'GOTHICB.TTF'],     // Century Gothic Bold
+        'centurygothic'  => ['R' => 'GOTHIC.TTF', 'B' => 'GOTHICB.TTF', 'I' => 'GOTHICI.TTF', 'BI' => 'GOTHICBI.TTF'],
     ];
 
     /* ============================================================================
@@ -322,6 +324,98 @@ class MpdfLibreTemplate
         $box = ['x' => self::TGG_BOX_X, 'y' => self::TGG_BOX_Y, 'w' => self::TGG_BOX_W, 'h' => self::TGG_BOX_H];
 
         return compact('S', 'L', 'box');
+    }
+
+    /**
+     * Layout awal Turun Harga Kecil pada halaman A4.
+     * Geometri ini dipisahkan dari seluruh builder Tanggung; koordinatnya
+     * mengikuti area WordArt A4 pada DOCX Kecil.
+     */
+    private function buildKcl(array $tag): array
+    {
+        $S = ['w' => 210, 'h' => 297, 'el' => []];
+        $periodInput = trim((string) ($tag['end_period'] ?? ''));
+        $periodTs = strtotime($periodInput);
+        $periodDisplay = $periodTs
+            ? date('d', $periodTs) . ' ' . ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'][(int) date('n', $periodTs) - 1] . ' ' . date('y', $periodTs)
+            : mb_strtoupper($periodInput);
+
+        $text = [
+            'pop'      => 'JUMLAH POP : 1',
+            'nama'     => mb_strtoupper(trim((string) ($tag['name'] ?? ''))),
+            'variant'  => mb_strtoupper(trim((string) ($tag['variant'] ?? '')), 'UTF-8'),
+            'plu'      => '( PLU : ' . ($tag['sku_plu'] ?? '') . ' )',
+            'normal'   => number_format((float) ($tag['normal_price'] ?? 0), 0, ',', '.'),
+            'promo'    => number_format((float) ($tag['promo_price'] ?? 0), 0, ',', '.'),
+            'rp'       => 'Rp',
+            'periode'  => 'Akhir Periode :',
+            'tanggal'  => $periodDisplay,
+            'note'     => '" TANPA ALOKASI "',
+        ];
+
+        // Posisi dalam cm dari kiri-atas halaman A4. Ukuran kotak berasal dari
+        // shape DOCX; stretchEl menghitung font metrics dan scaling aktual.
+        $defs = [
+            'pop'     => ['arialnarrow', $text['pop'],     2.54, 0.32, 12.20, 1.35, 'left',   '#000000', null, 0],
+            'nama'    => ['berlinsansfbkcl', $text['nama'], 5.82, 0.64, 11.35, 3.15, 'center', '#00B0F0', '#000000 0.15pt', 0],
+            'variant' => ['centurygothic', $text['variant'], 7.95, 0.32, 10.70, 3.80, 'center', '#000000', null, 0],
+            'plu'     => ['centurygothic', $text['plu'],  1.75, 0.45, 14.25, 4.375, 'right',  '#000000', null, 0],
+            'normal'  => ['bookantiqua', $text['normal'], 2.33, 0.64, 7.10, 4.75, 'left',  '#000000', null, 0],
+            'promo'   => ['bookantiquab', $text['promo'],  4.27, 2.16, 10.40, 6.60, 'left',   '#FF0000', '#FF0000 0.25pt', 0],
+            'periode' => ['arialblack', $text['periode'], 1.92, 0.40, 6.75, 5.50, 'left', '#000000', null, 0],
+            'tanggal' => ['arialblack', $text['tanggal'],  1.55, 0.32, 6.75, 6.10, 'left', '#000000', null, 0],
+            'note'    => ['arialb', $text['note'],        2.59, 0.32, 6.45, 6.70, 'left', '#FF0000', null, 0],
+        ];
+
+        foreach ($defs as $key => [$family, $value, $w, $h, $x, $base, $align, $color, $outline, $max]) {
+            if ($value === '') {
+                continue;
+            }
+            $S['el'][$key] = $this->stretchEl($family, $value, $w, $h, $x, $base, $align, $max) + [
+                'color' => $color,
+                'outline' => $outline,
+            ];
+        }
+
+        $S['el']['rp_normal'] = $this->stretchEl('bookantiqua', $text['rp'], 0.45, 0.28, 6.45, 4.35, 'left') + [
+            'color' => '#FF0000', 'outline' => null,
+        ];
+        // X 94 mm sesuai estimasi visual akan menimpa harga (lebar simbol
+        // sekitar 12,3 mm dan harga dimulai sekitar 102 mm); gunakan posisi
+        // aman tepat di sebelah kiri harga tanpa mengubah ukuran/scaling.
+        $S['el']['rp_promo'] = $this->stretchEl('bookantiqua', $text['rp'], 0.50, 0.24, 9.55, 5.42, 'left') + [
+            'color' => '#FF0000', 'outline' => null,
+        ];
+
+        // Tahap 12: pendekkan bentuk angka promo tanpa mengubah lebarnya.
+        $S['el']['promo']['sy'] = round($S['el']['promo']['sy'] * 0.92, 4);
+
+        $normal = $S['el']['normal'];
+        $strikeLeft = $normal['x'] / 10 - 0.10;
+        $strikeRight = ($normal['x'] + $normal['sx'] * $normal['w0']) / 10 + 0.10;
+        $strikeLength = max(0.1, $strikeRight - $strikeLeft);
+        $strikeRise = $strikeLength * 0.146;
+        $S['strike'] = [
+            'left' => round($strikeLeft, 3),
+            'top' => round(4.73 - $strikeRise - 0.05, 3),
+            'w' => round($strikeLength, 3),
+            'h' => round($strikeRise + 0.10, 3),
+            'y1' => round($strikeRise + 0.05, 3),
+            'y2' => 0.05,
+            'sw' => 0.05,
+        ];
+
+        // Offset vertikal lokal KCL reguler: semua elemen dan garis coret
+        // turun seragam 1 mm tanpa mengubah koordinat X, ukuran, atau scaling.
+        $kclYOffsetMm = 1.0;
+        foreach ($S['el'] as &$element) {
+            $element['y'] = round($element['y'] + $kclYOffsetMm, 4);
+        }
+        unset($element);
+        $S['strike']['top'] = round($S['strike']['top'] + ($kclYOffsetMm / 10), 4);
+
+        $box = ['x' => 0, 'y' => 0, 'w' => 21, 'h' => 29.7];
+        return compact('S', 'box');
     }
 
     /**
@@ -715,7 +809,7 @@ class MpdfLibreTemplate
             return mb_strtoupper(trim($ymd));
         }
         $b = [1 => 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
-        return date('j', $ts) . ' ' . $b[(int) date('n', $ts)] . ' ' . date('Y', $ts);
+        return date('d', $ts) . ' ' . $b[(int) date('n', $ts)] . ' ' . date('Y', $ts);
     }
 
     /* ---------- util regang teks (sama dengan PopA4Pdf::stretchEl / stretchBox) ---------- */
