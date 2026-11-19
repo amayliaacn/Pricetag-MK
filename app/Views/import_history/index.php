@@ -6,7 +6,7 @@
     <title><?= esc($title) ?></title>
     <link href="<?= base_url('assets/vendor/bootstrap/css/bootstrap.min.css') ?>" rel="stylesheet">
     <link href="<?= base_url('assets/vendor/bootstrap-icons/bootstrap-icons.min.css') ?>" rel="stylesheet">
-    <link href="<?= base_url('assets/css/admin-theme.css') ?>" rel="stylesheet">
+    <link href="<?= base_url('assets/css/admin-theme.css') ?>?v=<?= filemtime(FCPATH . 'assets/css/admin-theme.css') ?>" rel="stylesheet">
 </head>
 <body class="mk-body">
 <nav class="navbar navbar-expand-lg mk-topbar">

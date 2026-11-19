@@ -750,7 +750,7 @@ body.mk-dashboard-page > .container {
     border-bottom: 1px solid #dbe5f0;
 }
 
-.mk-mode-tabs-single { border-bottom: 0; }
+.mk-mode-tabs.mk-mode-tabs-single { border-bottom: 0; }
 
 .mk-mode-tab {
     display: flex;
