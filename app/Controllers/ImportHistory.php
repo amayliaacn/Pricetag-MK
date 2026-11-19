@@ -17,6 +17,10 @@ class ImportHistory extends BaseController
         $role = (string) session()->get('role');
         $outletId = session()->get('outlet_id');
         $mode = $this->request->getGet('mode') === 'excel' ? 'excel' : 'manual';
+        if ($mode === 'excel' && ! config('Feature')->enableExcelImport) {
+            return redirect()->to(base_url('import-history?mode=manual'))
+                ->with('error', 'Fitur Import File Excel sedang dinonaktifkan.');
+        }
         $sourceType = $mode === 'manual' ? 1 : 0;
         $filters = [
             'outlet_id' => $this->request->getGet('outlet_id'),

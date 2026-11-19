@@ -45,8 +45,8 @@
         <a href="<?= base_url('dashboard') ?>" class="btn btn-primary btn-sm mk-icon-link" style="min-width:190px; justify-content:center;"><i class="bi bi-speedometer2"></i><span>Kembali ke Dashboard</span></a>
     </div>
 
-    <div class="mk-mode-tabs mb-3" role="tablist">
-        <a class="mk-mode-tab mk-excel-tab <?= $mode === 'excel' ? 'active' : '' ?>" href="<?= base_url('import-history?mode=excel') ?>"><span class="mk-tab-icon mk-excel-tab-icon"><i class="bi bi-file-earmark-excel-fill"></i><i class="bi bi-plus-circle-fill mk-tab-plus"></i></span><span>Import File Excel</span></a>
+    <div class="mk-mode-tabs <?= ! config('Feature')->enableExcelImport ? 'mk-mode-tabs-single' : '' ?> mb-3" role="tablist">
+        <?php if (config('Feature')->enableExcelImport): ?><a class="mk-mode-tab mk-excel-tab <?= $mode === 'excel' ? 'active' : '' ?>" href="<?= base_url('import-history?mode=excel') ?>"><span class="mk-tab-icon mk-excel-tab-icon"><i class="bi bi-file-earmark-excel-fill"></i><i class="bi bi-plus-circle-fill mk-tab-plus"></i></span><span>Import File Excel</span></a><?php endif; ?>
         <a class="mk-mode-tab mk-manual-tab <?= $mode === 'manual' ? 'active' : '' ?>" href="<?= base_url('import-history?mode=manual') ?>"><span class="mk-tab-icon"><i class="bi bi-file-earmark-text"></i><i class="bi bi-plus-circle-fill mk-tab-plus"></i></span><span>Input Data Manual</span></a>
     </div>
 

@@ -10,6 +10,14 @@ use CodeIgniter\Config\BaseConfig;
 class Feature extends BaseConfig
 {
     /**
+     * Enable the legacy Excel import workflow.
+     *
+     * Kept here as a single switch so the original implementation can be
+     * re-enabled without changing the import code.
+     */
+    public bool $enableExcelImport = false;
+
+    /**
      * Use improved new auto routing instead of the legacy version.
      */
     public bool $autoRoutesImproved = true;

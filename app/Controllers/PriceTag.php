@@ -116,6 +116,12 @@ class PriceTag extends BaseController
 
     public function import()
     {
+        if (! config('Feature')->enableExcelImport) {
+            return $this->response
+                ->setStatusCode(403)
+                ->setBody('Fitur Import File Excel sedang dinonaktifkan.');
+        }
+
         $returnToHistory = $this->request->getPost('return_to') === 'import-history';
         $redirectPath = '/import-history';
         $outletId = session()->get('outlet_id');
