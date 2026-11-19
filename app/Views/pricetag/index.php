@@ -543,7 +543,6 @@
                     discountMode,
                 };
                 if (!['tgg', 'kcl'].includes(product.size)) reasons.push(`${id}: ukuran=${product.size || '(kosong)'}`);
-                if (product.size === 'kcl' && product.allocation > 0) reasons.push(`${id}: KCL dengan alokasi=${product.allocation}`);
                 if (product.size === 'kcl' && product.allvar) reasons.push(`${id}: KCL All Varian tidak didukung`);
                 if (product.size === 'tgg' && product.allvar && product.allocation > 0) reasons.push(`${id}: allvar dengan alokasi=${product.allocation}`);
                 return product;

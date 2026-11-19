@@ -20,6 +20,7 @@ class MpdfLibreTemplate
 {
     private const TEMPLATES = [
         'turun-harga-kcl'          => ['view' => 'turun-hrg-kcl-mpdf', 'size' => [210, 297], 'builder' => 'buildKcl', 'pagePerTag' => true],
+        'turun-harga-kcl-allocation' => ['view' => 'turun-hrg-kcl-mpdf', 'size' => [210, 297], 'builder' => 'buildKclAllocation', 'pagePerTag' => true],
         'turun-harga-tgg'          => ['view' => 'turun-hrg-tgg', 'size' => [210, 297], 'builder' => 'buildTgg', 'pagePerTag' => true],
         'turun-harga-tgg-allvar'   => ['view' => 'turun-hrg-tgg-allvar-mpdf', 'size' => [210, 297], 'builder' => 'buildTggAllvar', 'pagePerTag' => true],
         'turun-harga-tgg-allocation' => ['view' => 'turun-hrg-tgg-allocation', 'size' => [210, 297], 'builder' => 'buildTggAllocation', 'pagePerTag' => true],
@@ -416,6 +417,87 @@ class MpdfLibreTemplate
 
         $box = ['x' => 0, 'y' => 0, 'w' => 21, 'h' => 29.7];
         return compact('S', 'box');
+    }
+
+    /** KCL Turun Harga Allocation: geometri tahap 21, dengan data aplikasi dinamis. */
+    private function buildKclAllocation(array $tag): array
+    {
+        $periodTs = strtotime((string) ($tag['end_period'] ?? ''));
+        $months = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+        $period = $periodTs
+            ? date('d', $periodTs) . ' ' . $months[(int) date('n', $periodTs) - 1] . ' ' . date('y', $periodTs)
+            : mb_strtoupper((string) ($tag['end_period'] ?? ''), 'UTF-8');
+
+        $S = ['w' => 210, 'h' => 297, 'el' => []];
+        $name = mb_strtoupper(trim((string) ($tag['name'] ?? '')), 'UTF-8');
+        $variant = mb_strtoupper(trim((string) ($tag['variant'] ?? '')), 'UTF-8');
+        $normalText = number_format((float) ($tag['normal_price'] ?? 0), 0, ',', '.');
+        $promoText = number_format((float) ($tag['promo_price'] ?? 0), 0, ',', '.');
+        $allocation = (string) ($tag['allocation_pcs'] ?? '');
+
+        $add = static function (array &$target, string $key, array $el, string $color, ?string $outline = null): void {
+            $target[$key] = $el + ['color' => $color, 'outline' => $outline];
+        };
+
+        $add($S['el'], 'name', $this->stretchEl('berlinsansfbkcl', $name, 5.82, 0.64, 11.35, 3.15, 'center'), '#00B0F0', '#000000 0.15pt');
+        $add($S['el'], 'variant', $this->stretchEl('centurygothic', $variant, 7.95, 0.32, 10.70, 3.80, 'center'), '#000000');
+        $add($S['el'], 'normal', $this->stretchEl('bookantiqua', $normalText, 2.33, 0.64, 7.10, 4.75, 'left'), '#000000');
+        $add($S['el'], 'promo', $this->stretchEl('bookantiquab', $promoText, 4.27, 2.16, 10.40, 6.60, 'left'), '#FF0000', '#FF0000 0.25pt');
+        $S['el']['promo']['sy'] = round($S['el']['promo']['sy'] * 0.92, 4);
+
+        $promoRightMm = $S['el']['promo']['x'] + ($S['el']['promo']['sx'] * $S['el']['promo']['w0']);
+        $add($S['el'], 'plu', $this->stretchEl('centurygothic', '( PLU : ' . ($tag['sku_plu'] ?? '') . ' )', 2.10, 0.36, $promoRightMm / 10, 4.375, 'right'), '#000000');
+        $add($S['el'], 'rpNormal', $this->stretchEl('bookantiqua', 'Rp', 0.45, 0.28, 6.45, 4.35, 'left'), '#FF0000');
+        $add($S['el'], 'rpPromo', $this->stretchEl('bookantiqua', 'Rp', 0.50, 0.24, 9.55, 5.42, 'left'), '#FF0000');
+
+        $normalGroupX = 4.5;
+        $S['el']['normal']['x'] = round($S['el']['normal']['x'] + $normalGroupX, 2);
+        $S['el']['rpNormal']['x'] = round($S['el']['rpNormal']['x'] + $normalGroupX, 2);
+        $S['el']['promo']['y'] = round($S['el']['promo']['y'] + 2.0, 2);
+        $S['el']['rpPromo']['y'] = round($S['el']['rpPromo']['y'] - 2.0, 2);
+        $S['el']['rpPromo']['x'] = round($S['el']['rpPromo']['x'] + 2.0, 2);
+        $S['el']['name']['y'] = round($S['el']['name']['y'] + 1.0, 2);
+
+        $allocationCenterMm = 84.5;
+        foreach ([
+            'promoNote' => ['*Promo berlaku selama alokasi', 82.5 * 25.4 / 72 / 10, 8 * 25.4 / 72 / 10, 5.8, '#00B0F0'],
+            'still' => ['Masih Ada', 27 * 25.4 / 72 / 10, 8 * 25.4 / 72 / 10, 6.3, '#00B0F0'],
+            'allocation' => ['Alokasi : ' . $allocation . ' Pcs', 55 * 25.4 / 72 / 10, 9 * 25.4 / 72 / 10, 6.8, '#FF0000'],
+        ] as $key => [$value, $w, $h, $base, $color]) {
+            $add($S['el'], $key, $this->stretchEl('centurygothicb', $value, $w, $h, $allocationCenterMm / 10, $base, 'center'), $color);
+        }
+        $ap = $this->stretchEl('arialblack', 'AP : ' . $period, 46 * 25.4 / 72 / 10, 10.7 * 25.4 / 72 / 10, 7.45, 5.4, 'left');
+        $ap['x'] = round($allocationCenterMm - (($ap['sx'] * $ap['w0']) / 2), 2);
+        $add($S['el'], 'ap', $ap, '#000000');
+
+        // Satu offset X grup tahap 21: seluruh desain, kecuali Jumlah POP, -2 mm.
+        foreach ($S['el'] as $key => &$element) {
+            if ($key !== 'pop') {
+                $element['x'] = round($element['x'] - 2.0, 4);
+            }
+        }
+        unset($element);
+
+        // Jumlah POP berada di area header dan tidak termasuk grup desain tahap 21.
+        $add($S['el'], 'pop', $this->stretchEl('arialnarrow', 'JUMLAH POP : 1', 2.54, 0.32, 12.20, 1.35, 'left'), '#000000');
+
+        $normal = $S['el']['normal'];
+        $strikeLeft = $normal['x'] / 10 - 0.10;
+        $strikeRight = ($normal['x'] + ($normal['sx'] * $normal['w0'])) / 10 + 0.10;
+        $strikeLength = max(0.1, $strikeRight - $strikeLeft);
+        $strikeRise = $strikeLength * 0.25;
+        $strikeY1 = 4.73;
+        $S['strike'] = [
+            'left' => round($strikeLeft, 3),
+            'top' => round($strikeY1 - $strikeRise, 3),
+            'w' => round($strikeLength, 3),
+            'h' => round($strikeRise + 0.02, 3),
+            'y1' => round($strikeRise, 3),
+            'y2' => 0.0,
+            'sw' => 0.075,
+        ];
+
+        return ['S' => $S, 'box' => ['x' => 0, 'y' => 0, 'w' => 21, 'h' => 29.7]];
     }
 
     /**
