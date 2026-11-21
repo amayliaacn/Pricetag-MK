@@ -89,9 +89,30 @@
             border-radius: 999px;
         }
         .detail-table-card .table-responsive::-webkit-scrollbar-track { background: #f1f3f5; }
-        @media (max-width: 767.98px) {
-            .detail-table-card .px-3.pt-3 { flex-wrap: wrap; }
+        .detail-table-header { align-items: center; }
+        .detail-table-title { min-width: 0; }
+        .detail-table-title h4 { white-space: nowrap; }
+        .detail-table-title p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bulk-template-control { min-width: 0; flex: 0 0 auto; flex-wrap: nowrap !important; }
+        .bulk-template-control .bulk-template-count { white-space: nowrap; background: #fff0e6; border: 0; border-radius: 999px; color: #f06416; font-size: .75rem; font-weight: 600; line-height: 1.25; padding: .38rem .72rem; }
+        .bulk-template-divider { width: 1px; height: 34px; margin: 0 2px; background: #e5e7eb; }
+        .bulk-template-group { display: flex; align-items: center; gap: 10px; padding: 7px 9px; background: #fff7f1; border-radius: 11px; }
+        .bulk-template-control .bulk-template-label { color: #111827; font-size: .875rem; font-weight: 700; white-space: nowrap; }
+        .bulk-template-control .bulk-template-label i { color: #ff6900; font-size: 1.6rem; line-height: 1; vertical-align: middle; }
+        .bulk-template-control .bulk-template-select { width: 108px; min-width: 105px; max-width: 110px; height: 35px; padding: .25rem 1.85rem .25rem .65rem; background-color: #fff; border: 1px solid #e1e5eb; border-radius: 8px; box-shadow: 0 1px 2px rgba(17, 24, 39, .05); }
+        .bulk-template-control .btn-apply-template { height: 35px; padding: .25rem .8rem; background-color: #ff6900; border-color: #ff6900; border-radius: 8px; color: #fff; font-weight: 600; }
+        .bulk-template-control .btn-apply-template:disabled { background-color: #fdba8c; border-color: #fdba8c; color: #fff; opacity: 1; cursor: not-allowed; }
+        .bulk-template-control .btn-apply-template:hover,
+        .bulk-template-control .btn-apply-template:focus { background-color: #d96500; border-color: #d96500; color: #fff; }
+        @media (max-width: 991.98px) {
+            .detail-table-card .px-3.pt-3 { flex-wrap: wrap; align-items: flex-start; }
             .detail-table-card .px-3.pt-3 > div { min-width: 0; }
+            .detail-table-title { flex: 1 1 100%; }
+            .detail-table-title h4,
+            .detail-table-title p { white-space: normal; }
+            .bulk-template-control { flex: 1 1 100%; justify-content: flex-start !important; flex-wrap: wrap !important; }
+            .bulk-template-divider { display: none; }
+            .bulk-template-group { flex-wrap: wrap; }
         }
         @media (min-width: 1400px) {
             .detail-table-card { width: calc(100vw - 66px); margin-left: 0; position: relative; left: 50%; transform: translateX(-50%); }
@@ -199,7 +220,7 @@
 
         <div id="product-table-header" class="card shadow-sm detail-table-card">
             <div class="card-body p-0">
-                <div class="px-3 pt-3 d-flex justify-content-between align-items-start gap-3"><div><h4 class="mb-1"><i class="bi bi-database text-warning me-2"></i>Data Produk</h4><p class="text-muted mb-3"><?= $isManualDetail ? 'Daftar produk yang diinput manual dari file ' . esc($history['file_name']) . '.' : 'Daftar produk yang diimport dari file Excel.' ?></p></div><?php if ($isManualDetail): ?><a class="btn btn-primary btn-sm text-nowrap" href="<?= base_url('import-history/manual/' . (int) $history['id']) ?>"><i class="bi bi-plus-lg me-1"></i>Tambah Produk</a><?php else: ?><button type="button" class="btn btn-primary btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalTambah"><i class="bi bi-plus-lg me-1"></i>Tambah Produk</button><?php endif; ?></div>
+                <div class="px-3 pt-3 d-flex justify-content-between gap-3 detail-table-header"><div class="detail-table-title"><h4 class="mb-1"><i class="bi bi-database text-warning me-2"></i>Data Produk</h4><p class="text-muted mb-0"><?= $isManualDetail ? 'Daftar produk yang diinput manual dari file ' . esc($history['file_name']) . '.' : 'Daftar produk yang diimport dari file Excel.' ?></p></div><div class="d-flex align-items-center justify-content-end gap-2 bulk-template-control"><span id="bulkTemplateCount" class="badge bulk-template-count">0 produk dipilih</span><span class="bulk-template-divider" aria-hidden="true"></span><div class="bulk-template-group"><span class="bulk-template-label"><i class="bi bi-layers-fill me-1"></i>Atur Template</span><select id="bulkTemplateSize" class="form-select form-select-sm bulk-template-select" aria-label="Ukuran template untuk produk terpilih"><option value="">Pilih ukuran</option><option value="kcl">Kecil</option><option value="tgg">Tanggung</option><option value="mpdf">A4</option><option value="pricetag">Price Tag</option><option value="a5">A5</option><option value="segitiga">Segitiga</option><option value="fresh">Butcher</option><option value="curah">Vegetable</option></select><button type="button" id="btnApplyTemplate" class="btn btn-apply-template btn-sm text-nowrap" disabled><i class="bi bi-check-lg me-1"></i>Terapkan</button></div><?php if ($isManualDetail): ?><a class="btn btn-primary btn-sm text-nowrap" href="<?= base_url('import-history/manual/' . (int) $history['id']) ?>"><i class="bi bi-plus-lg me-1"></i>Tambah Produk</a><?php else: ?><button type="button" class="btn btn-primary btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalTambah"><i class="bi bi-plus-lg me-1"></i>Tambah Produk</button><?php endif; ?></div></div>
                 <div class="table-responsive">
                 <table id="tabelProdukDetail" class="table table-striped table-hover m-0 align-middle">
                     <colgroup>
@@ -407,6 +428,9 @@
         const searchProduk   = document.getElementById('searchProduk');
         const filterUkuran   = document.getElementById('filterUkuran');
         const productRows    = document.querySelectorAll('#tabelProdukDetail tbody tr');
+        const bulkTemplateCount = document.getElementById('bulkTemplateCount');
+        const bulkTemplateSize = document.getElementById('bulkTemplateSize');
+        const btnApplyTemplate = document.getElementById('btnApplyTemplate');
         const editModal      = new bootstrap.Modal(document.getElementById('modalEdit'));
         const formEdit       = document.getElementById('formEdit');
 
@@ -506,24 +530,114 @@
             return document.querySelectorAll('.product-check:checked');
         }
 
+        function getVisibleProductChecks() {
+            return [...productRows]
+                .filter(row => row.style.display === '')
+                .map(row => row.querySelector('.product-check'))
+                .filter(Boolean);
+        }
+
         function updateTombolCetak() {
             const jumlah = getChecked().length;
             jumlahTerpilih.textContent = jumlah;
             btnCetak.disabled = jumlah === 0;
-
-            // Sinkronisasi status checkAll
-            if (productChecks.length > 0) {
-                checkAll.checked = (jumlah === productChecks.length);
+            bulkTemplateCount.textContent = `${jumlah} produk dipilih`;
+            if (!btnApplyTemplate.dataset.running) {
+                btnApplyTemplate.disabled = jumlah === 0 || bulkTemplateSize.value === '';
             }
+
+            // Check All hanya mencerminkan produk yang sedang terlihat.
+            const visibleChecks = getVisibleProductChecks();
+            const visibleChecked = visibleChecks.filter(cb => cb.checked).length;
+            checkAll.disabled = visibleChecks.length === 0;
+            checkAll.checked = visibleChecks.length > 0 && visibleChecked === visibleChecks.length;
+            checkAll.indeterminate = visibleChecked > 0 && visibleChecked < visibleChecks.length;
         }
 
         checkAll.addEventListener('change', function () {
-            productChecks.forEach(cb => cb.checked = checkAll.checked);
+            getVisibleProductChecks().forEach(checkbox => checkbox.checked = checkAll.checked);
             updateTombolCetak();
         });
 
         productChecks.forEach(cb => {
             cb.addEventListener('change', updateTombolCetak);
+        });
+
+        bulkTemplateSize.addEventListener('change', updateTombolCetak);
+
+        btnApplyTemplate.addEventListener('click', async function () {
+            const checkedProducts = [...getChecked()];
+            const size = bulkTemplateSize.value;
+            if (checkedProducts.length === 0 || size === '' || this.dataset.running) {
+                updateTombolCetak();
+                return;
+            }
+
+            this.dataset.running = '1';
+            this.disabled = true;
+            let successCount = 0;
+            let failedCount = 0;
+            const failures = [];
+
+            for (const productCheck of checkedProducts) {
+                const id = productCheck.dataset.id;
+                const row = productCheck.closest('tr');
+                const select = row?.querySelector('.template-size');
+                const form = row?.querySelector('.template-size-form');
+                const wrapper = row?.querySelector('.template-size-wrapper');
+                const warning = row?.querySelector('.template-size-warning');
+
+                // Endpoint lama untuk data manual ID 0 mencari berdasarkan SKU.
+                // Karena SKU dapat duplikat, jangan mengirim request yang berisiko
+                // mengubah produk lain yang tidak dipilih.
+                if (!id || id === '0' || !form || !select) {
+                    failedCount++;
+                    failures.push(productCheck.dataset.sku || 'Produk tanpa ID');
+                    continue;
+                }
+
+                const formData = new FormData(form);
+                formData.set('template_size', size);
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: formData,
+                    });
+                    const contentType = response.headers.get('content-type') || '';
+                    if (!response.ok || !contentType.includes('application/json')) {
+                        throw new Error('Gagal menyimpan ukuran template.');
+                    }
+                    const result = await response.json();
+                    if (result.success !== true) {
+                        throw new Error(result?.message || 'Gagal menyimpan ukuran template.');
+                    }
+
+                    select.value = size;
+                    productCheck.dataset.size = size;
+                    wrapper?.classList.toggle('is-required', size === '');
+                    warning?.classList.toggle('d-none', size !== '');
+                    successCount++;
+                } catch (error) {
+                    failedCount++;
+                    failures.push(productCheck.dataset.sku || `ID ${id}`);
+                }
+            }
+
+            delete this.dataset.running;
+            updateTombolCetak();
+            let message = `${successCount} produk berhasil diperbarui`;
+            if (failedCount > 0) message += `, ${failedCount} gagal`;
+            templateToast.className = failedCount > 0
+                ? 'alert alert-warning shadow-sm py-2 px-3 mb-0'
+                : 'alert alert-success shadow-sm py-2 px-3 mb-0';
+            templateToast.textContent = message + (failures.length ? `. Tidak diubah: ${failures.join(', ')}` : '.');
+            templateToast.style.display = 'block';
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                templateToast.style.display = 'none';
+                templateToast.className = 'alert alert-success shadow-sm py-2 px-3 mb-0';
+            }, 5000);
         });
 
         document.querySelectorAll('.btn-edit').forEach(button => button.addEventListener('click', function () {
