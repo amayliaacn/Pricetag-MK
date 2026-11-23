@@ -22,12 +22,13 @@ use Mpdf\Mpdf;
  *   - 'pricetag' -> label rak kecil 8 x 3,5 cm (nama, PLU, harga; hitam-putih), banyak per halaman A4, view: price-tag.php
  *   - 'fresh'    -> 6 kartu per halaman A4 (2 x 3) "Manna Kampus FRESH" /100gr, view: butcher.php
  *   - 'curah'    -> 6 kartu per halaman A4 (2 x 3) "BAWANG KATING CURAH" + harga coret, view: curah-6up.php
+ *   - 'vegetable_tgg' -> satu produk per halaman A4, renderer vektor Vegetable Tanggung
  * Tiap desain punya konstanta sendiri (A4_*, SEG_*, SPC_*, DSK_*, A5_*, DSC_*, DS2_*, DCA_*, PTG_*, FRS_*, CRH_*) supaya tidak saling bentrok.
  *
  * Pemakaian (controller):
  *   $pdf = (new \App\Libraries\PopA4Pdf())->render([
  *       ['row' => $rowDb, 'qty' => 3],
- *   ], 'disc-a4');   // 'a4' (default) | 'a4-allocation' | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'disc-a4' | 'disc-a4-allocation' | 'pricetag' | 'fresh' | 'curah'
+ *   ], 'disc-a4');   // 'a4' (default) | 'a4-allocation' | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'disc-a4' | 'disc-a4-allocation' | 'pricetag' | 'fresh' | 'curah' | 'vegetable_tgg'
  *   return $this->response->setContentType('application/pdf')->setBody($pdf);
  */
 class PopA4Pdf
@@ -562,7 +563,7 @@ class PopA4Pdf
 
     /**
      * @param array<int,array{row:array,qty?:int}> $items
-     * @param string $template 'a4' (default) | 'a4-allocation' | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'disc-a4' | 'disc-a4-allocation' | 'pricetag' | 'fresh' | 'curah'
+     * @param string $template 'a4' (default) | 'a4-allocation' | 'segitiga' | 'special' | 'diskon' | 'a5' | 'disc' | 'disc2' | 'disc-a4' | 'disc-a4-allocation' | 'pricetag' | 'fresh' | 'curah' | 'vegetable_tgg'
      */
     public function render(array $items, string $template = 'a4'): string
     {
@@ -576,6 +577,11 @@ class PopA4Pdf
         }
         if ($template === 'pricetag') {
             return $this->renderPriceTag($items);
+        }
+        if ($template === 'vegetable_tgg') {
+            $first = true;
+            $this->renderVegetableTanggungPages($items, $first);
+            return $this->mpdf->Output('', 'S');
         }
 
         $first = true;
@@ -649,6 +655,15 @@ class PopA4Pdf
                 continue;
             }
 
+            // Vegetable Tanggung memakai renderer vektor POC pada instance
+            // mPDF yang sama. Satu item/qty selalu satu halaman A4 portrait.
+            // AddPage dilakukan di helper, termasuk untuk item pertama, agar
+            // buffer awal mPDF tidak menjadi halaman kosong/tertimpa.
+            if ($template === 'vegetable_tgg') {
+                $this->renderVegetableTanggungPages($items, $first);
+                continue;
+            }
+
             // Butcher/Curah: gabungkan seluruh item dalam grup terlebih dahulu,
             // kemudian bagi ke halaman sesuai kapasitas kartu. Jika pemisahan
             // dilakukan per item, setiap produk akan selalu memulai halaman baru.
@@ -695,6 +710,30 @@ class PopA4Pdf
         $result = $this->mpdf->Output('', 'S');
         log_message('debug', '[print] PopA4Pdf renderMixed complete bytes={bytes}', ['bytes' => strlen($result)]);
         return $result;
+    }
+
+    /**
+     * Render Vegetable Tanggung langsung ke instance mPDF milik PopA4Pdf.
+     * @param array<int,array{row:array,qty?:int}> $items
+     */
+    private function renderVegetableTanggungPages(array $items, bool &$first): void
+    {
+        $renderer = new VegetableTanggungRenderer();
+        foreach ($items as $it) {
+            $row = (array) ($it['row'] ?? []);
+            $product = [
+                'name' => (string) ($row['name'] ?? ''),
+                'sku_plu' => (string) ($row['sku_plu'] ?? ''),
+                'price' => (int) ($row['price'] ?? $row['normal_price'] ?? 0),
+                'unit' => '/100gr',
+            ];
+            $qty = max(1, (int) ($it['qty'] ?? 1));
+            for ($i = 0; $i < $qty; $i++) {
+                $this->mpdf->AddPage();
+                $renderer->renderOnPage($this->mpdf, $product);
+                $first = false;
+            }
+        }
     }
 
     /* ====================== DESAIN 1: "a4" (reguler, tanpa baris Alokasi) ====================== */

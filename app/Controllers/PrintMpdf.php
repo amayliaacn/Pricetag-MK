@@ -55,9 +55,33 @@ class PrintMpdf extends BaseController
                 continue;
             }
             $size = (string) ($sizes[$tagId] ?? '');
-            if (! in_array($size, ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga'], true)) {
+            if (! in_array($size, ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga', 'vegetable_tgg'], true)) {
                 return redirect()->back()->with('error', 'Pastikan produk sudah memilih ukuran template.');
             }
+
+            // Vegetable Tanggung adalah template non-promo: selalu gunakan
+            // normal_price dan jangan masuk ke validasi/mapping diskon.
+            if ($size === 'vegetable_tgg') {
+                $normalPrice = $tag['normal_price'] ?? null;
+                if (! is_numeric($normalPrice) || (float) $normalPrice <= 0) {
+                    log_message('debug', '[print:{id}] vegetable_tgg rejected invalid normal_price tag_id={tagId}', [
+                        'id' => $requestId,
+                        'tagId' => (int) $tagId,
+                    ]);
+                    return redirect()->back()->with('error', 'Vegetable Tanggung memerlukan Harga Normal yang valid.');
+                }
+
+                // PLU tetap string agar nol di depan tidak hilang. Field price
+                // sengaja dipetakan dari normal_price, bukan promo_price.
+                $tag['sku_plu'] = (string) ($tag['sku_plu'] ?? '');
+                $tag['price'] = (int) $normalPrice;
+                $groups['vegetable_tgg'][] = [
+                    'row' => $tag,
+                    'qty' => max(1, (int) ($qtyMap[$tagId] ?? 1)),
+                ];
+                continue;
+            }
+
             if ($size === 'a5' && (float) ($tag['promo_price'] ?? 0) <= 0 && (float) ($tag['discount_percent'] ?? 0) <= 0) {
                 return redirect()->back()->with('error', 'A5 Discount/Turun Harga memerlukan Diskon atau Harga Promo.');
             }
