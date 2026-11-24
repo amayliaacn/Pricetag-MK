@@ -719,7 +719,25 @@ class PopA4Pdf
     private function renderVegetableTanggungPages(array $items, bool &$first): void
     {
         $renderer = new VegetableTanggungRenderer();
+        $twoProductRenderer = new VegetableTanggungTwoProductRenderer();
         foreach ($items as $it) {
+            if (($it['type'] ?? null) === 'pair') {
+                $top = $it['top'] ?? null;
+                $bottom = $it['bottom'] ?? null;
+                if (! is_array($top) || ! is_array($bottom)) {
+                    throw new \InvalidArgumentException('Item pasangan Vegetable Tanggung harus memiliki produk top dan bottom.');
+                }
+                $qty = $it['qty'] ?? null;
+                if (! is_int($qty) || $qty <= 0) {
+                    throw new \InvalidArgumentException('Qty pasangan Vegetable Tanggung harus berupa integer positif.');
+                }
+                for ($i = 0; $i < $qty; $i++) {
+                    $this->mpdf->AddPage();
+                    $twoProductRenderer->renderOnPage($this->mpdf, $top, $bottom);
+                    $first = false;
+                }
+                continue;
+            }
             $row = (array) ($it['row'] ?? []);
             $product = [
                 'name' => (string) ($row['name'] ?? ''),

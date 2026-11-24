@@ -67,6 +67,53 @@
             overflow-y: auto;
         }
         #modalCetak .modal-footer { flex-shrink: 0; background: #fff; }
+        #modalCetak { --pop-orange:#E88719; --pop-green:#198754; --pop-border:#E5E7EB; }
+        #modalCetak .modal-header { border-bottom:1px solid var(--pop-border); padding:16px 18px; }
+        #modalCetak .modal-title { color:#171717; font-size:18px; font-weight:600; }
+        #modalCetak .modal-title i { color:var(--pop-orange); font-size:22px; margin-right:8px; }
+        #modalCetak .modal-body { padding:16px 18px; }
+        #modalCetak .pop-section { background:#fff; border:1px solid var(--pop-border); border-radius:9px; padding:16px; }
+        #modalCetak .pop-section-title, #modalCetak .pop-preview-title { color:#171717; font-weight:600; }
+        #modalCetak .pop-section-title { font-size:16px; }
+        #modalCetak .pop-section-desc { color:#6B7280; font-size:13px; margin:4px 0 10px; }
+        #modalCetak .vegetable-pair-candidate { min-height:60px; display:flex; align-items:center; gap:10px; }
+        #modalCetak .vegetable-pair-candidate + .vegetable-pair-candidate { margin-top:2px; }
+        #modalCetak .vegetable-pair-candidate input { appearance:none; width:21px; height:21px; flex:0 0 21px; border:1px solid #CBD0D5; border-radius:50%; background:#fff; position:relative; }
+        #modalCetak .vegetable-pair-candidate input:checked { background:var(--pop-green); border-color:var(--pop-green); }
+        #modalCetak .vegetable-pair-candidate input:checked::after { content:'✓'; color:#fff; position:absolute; inset:0; display:grid; place-items:center; font-size:14px; font-weight:700; }
+        #modalCetak .vegetable-pair-candidate input:disabled { background:#F3F4F6; border-color:#BFC5CC; cursor:not-allowed; }
+        #modalCetak .vegetable-pair-candidate.is-paired .vegetable-candidate-text { color:#6B7280; }
+        #modalCetak .vegetable-pair-candidate.is-paired:hover input:disabled { border-color:#DC3545; box-shadow:0 0 0 2px rgba(220,53,69,.16); }
+        #modalCetak .vegetable-pair-candidate.is-paired:hover { cursor:not-allowed; }
+        #modalCetak .vegetable-candidate-text { color:#171717; font-size:14px; font-weight:600; line-height:1.25; flex:1; }
+        #modalCetak .vegetable-candidate-plu { display:block; color:#6B7280; font-size:13px; font-weight:400; margin-top:4px; }
+        #modalCetak .vegetable-candidate-status { display:inline-flex; align-items:center; justify-content:center; width:82px; padding:5px 8px; border-radius:5px; background:#F0F1F3; color:#6B7280; font-size:11px; font-weight:600; line-height:1.2; white-space:nowrap; }
+        #modalCetak .vegetable-candidate-status.is-paired { background:#E8F5ED; color:var(--pop-green); }
+        #modalCetak #btnGabungkanVegetable { width:100%; height:44px; border:0; border-radius:999px; background:#E9ECEF; color:#9299A1; font-weight:600; margin-top:10px; }
+        #modalCetak #btnGabungkanVegetable:not(:disabled) { background:var(--pop-green); color:#fff; cursor:pointer; }
+        #modalCetak #btnGabungkanVegetable:not(:disabled):hover { background:#157347; }
+        #modalCetak .pop-preview-title { font-size:15px; margin:20px 0 12px; }
+        #modalCetak .pop-preview-table { margin-bottom:0; }
+        #modalCetak .pop-preview-table thead th { background:#F5F6F8; color:#212529; font-weight:600; border-bottom:1px solid var(--pop-border); }
+        #modalCetak .pop-preview-table td { color:#212529; border-bottom:1px solid var(--pop-border); padding:12px 10px; vertical-align:middle; }
+        #modalCetak .pair-product-group { border-left:3px solid var(--pop-green); padding-left:8px; }
+        #modalCetak .pair-product-group > div + div { margin-top:5px; }
+        #modalCetak .pair-template-group { display:inline-flex; align-items:center; gap:8px; }
+        #modalCetak .pair-marker { display:inline-flex; align-items:center; gap:4px; padding:5px 8px; margin-top:0; border-radius:5px; background:#E8F5ED; color:var(--pop-green); font-size:11px; font-weight:600; }
+        #modalCetak .split-pair { display:inline-flex; align-items:center; gap:6px; min-height:32px; margin-top:10px; padding:7px 13px; border:1px solid #DC3545; border-radius:6px; background:#FFF0F1; color:#C82333; font-size:12px; font-weight:600; }
+        #modalCetak .split-pair:hover { background:#DC3545; color:#fff; }
+        #modalCetak .qty-stepper { display:inline-flex; align-items:center; justify-content:center; gap:5px; }
+        #modalCetak .qty-stepper button { width:30px; height:30px; padding:0; border:0; border-radius:50%; display:grid; place-items:center; background:#FFF0DF; color:var(--pop-orange); }
+        #modalCetak .qty-stepper button:hover:not(:disabled) { background:#FFE0B9; }
+        #modalCetak .qty-stepper button:disabled { background:#F3F4F6; color:#B5B5B5; cursor:not-allowed; }
+        #modalCetak .qty-stepper input { width:43px; height:30px; padding:0; border:1px solid transparent; border-radius:5px; background:transparent; color:#212529; font-size:14px; font-weight:600; text-align:center; font-variant-numeric:tabular-nums; }
+        #modalCetak .qty-stepper input:focus { border-color:var(--pop-orange); outline:0; }
+        #modalCetak .qty-stepper input::-webkit-outer-spin-button, #modalCetak .qty-stepper input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+        #modalCetak .qty-stepper input[type=number] { -moz-appearance:textfield; }
+        #modalCetak .pop-summary { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:16px; padding:14px; border-radius:6px; background:#F5F6F8; color:#212529; font-size:13px; }
+        #modalCetak .pop-summary-lines { display:flex; flex-direction:column; gap:8px; }
+        #modalCetak .pop-summary-total { font-size:14px; font-weight:600; white-space:nowrap; }
+        @media (max-width:576px) { #modalCetak .modal-body { padding:12px; } #modalCetak .pop-preview-table { min-width:620px; } #modalCetak .pop-summary { align-items:flex-start; } }
         .search-print-card .card-body { padding: 12px 16px; }
         .search-print-card .control-label { display: block; font-size: .875rem; font-weight: 700; color: #202124; margin-bottom: 4px; }
         .search-print-card .search-group { flex: 1 1 480px; min-width: 300px; }
@@ -389,13 +436,22 @@
                         <input type="hidden" name="import_id" value="<?= (int) $history['id'] ?>">
                     <?php endif; ?>
                     <div class="modal-header">
-                        <h5 class="modal-title">Cetak POP Price Tag</h5>
+                        <h5 class="modal-title"><i class="bi bi-printer"></i>Cetak POP Price Tag</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="alert alert-info py-2 mb-3">Produk Tanggung dapat dipilih menggunakan template All Varian secara terpisah.</div>
+                        <div id="allvarPrintAlert" class="alert alert-info py-2 mb-3 d-none">Produk Tanggung dapat dipilih menggunakan template All Varian secara terpisah.</div>
 
-                        <table class="table table-sm align-middle">
+                        <div id="vegetablePairPanel" class="pop-section mb-3 d-none">
+                            <div class="pop-section-title">Pengaturan Vegetable Tanggung</div>
+                            <div class="pop-section-desc">Centang 2 produk untuk digabungkan dalam 1 kertas POP.</div>
+                            <div id="vegetablePairCandidates" class="small"></div>
+                            <button type="button" id="btnGabungkanVegetable" disabled>Gabungkan 2 Produk</button>
+                        </div>
+
+                        <div id="vegetablePreviewHeader" class="pop-preview-title d-none">Preview Hasil Cetak</div>
+
+                        <table class="table table-sm align-middle pop-preview-table">
                             <thead>
                                 <tr>
                                     <th>SKU</th>
@@ -408,6 +464,7 @@
                                 <!-- Diisi otomatis via JS -->
                             </tbody>
                         </table>
+                        <div id="vegetablePrintTotals" class="pop-summary d-none"></div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -694,55 +751,145 @@
         });
         filterRows();
 
-        // Bangun isi modal setiap kali tombol Cetak ditekan
+        let modalProducts = [];
+        let vegetablePairs = [];
+        let pairingSelectionOrder = [];
+        let modalQty = new Map();
+        let modalHasVegetable = false;
+        const pairPanel = document.getElementById('vegetablePairPanel');
+        const pairCandidates = document.getElementById('vegetablePairCandidates');
+        const btnGabungkan = document.getElementById('btnGabungkanVegetable');
+        const printTotals = document.getElementById('vegetablePrintTotals');
+        const printSummary = document.getElementById('vegetablePrintSummary');
+        const allvarPrintAlert = document.getElementById('allvarPrintAlert');
+        const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[char]));
+        const isVegetable = product => product.size === 'vegetable_tgg';
+        const pairedIds = () => new Set(vegetablePairs.flatMap(pair => [pair.top.id, pair.bottom.id]));
+        const pairingSelectedIds = () => pairingSelectionOrder.slice(0, 2);
+
+        function templateLabel(size) {
+            return {mpdf:'A4', pricetag:'Price Tag', a5:'A5', fresh:'Butcher', curah:'Vegetable', segitiga:'Segitiga', vegetable_tgg:'Vegetable Tanggung'}[size] || 'Kecil';
+        }
+
+        function discountFields(product) {
+            const {id, size, allocation, discount} = product;
+            const canAllvar = size === 'tgg' && Number(allocation || 0) === 0;
+            const isA4 = size === 'mpdf';
+            const hasDiscountTemplate = ['kcl', 'tgg', 'a5', 'segitiga'].includes(size);
+            const showDiscountInfo = Number(discount || 0) > 0 && Number(discount || 0) < 10;
+            const canChooseDiscount = showDiscountInfo && hasDiscountTemplate && !isA4;
+            const showA4DiscountInfo = showDiscountInfo && isA4;
+            if (isVegetable(product)) return '';
+            if (canChooseDiscount) return `<div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="auto" checked> Turun harga</label><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="show"> Tampil diskon</label></div>`;
+            if (showA4DiscountInfo) return `<input type="hidden" name="discount_mode[${id}]" value="show"><div class="mt-2 small"><div class="text-muted mb-1">Diskon persen A4</div><span class="text-success">Otomatis menggunakan template Disc A4</span></div>`;
+            return `<input type="hidden" name="discount_mode[${id}]" value="auto">`;
+        }
+
+        function formatQty(value) {
+            const number = Math.max(1, parseInt(value, 10) || 1);
+            return number < 10 ? `0${number}` : String(number);
+        }
+
+        function qtyStepper(value, className, dataAttribute, hiddenName = '') {
+            const hidden = hiddenName ? `<input type="hidden" name="${hiddenName}" value="${Math.max(1, parseInt(value, 10) || 1)}">` : '';
+            return `${hidden}<span class="qty-stepper"><button type="button" class="qty-minus" ${dataAttribute} aria-label="Kurangi qty"><i class="bi bi-dash"></i></button><input type="number" value="${formatQty(value)}" min="1" step="1" class="${className}" ${dataAttribute} aria-label="Qty cetak"><button type="button" class="qty-plus" ${dataAttribute} aria-label="Tambah qty"><i class="bi bi-plus"></i></button></span>`;
+        }
+
+        function updateStepperStates() {
+            tabelBody.querySelectorAll('.qty-stepper').forEach(stepper => {
+                const input = stepper.querySelector('input[type="number"]');
+                const minus = stepper.querySelector('.qty-minus');
+                if (input && minus) minus.disabled = Number(input.value) <= 1;
+            });
+        }
+
+        function productRow(product) {
+            const id = product.id;
+            const canAllvar = product.size === 'tgg' && Number(product.allocation || 0) === 0;
+            const row = document.createElement('tr');
+            const vegetableLabel = modalHasVegetable && isVegetable(product) ? '<div class="small text-muted">POP 1 Produk</div>' : '';
+            const templateText = product.size === 'kcl' ? '<span class="text-muted">Kecil</span>' : `<span>${templateLabel(product.size)}</span>`;
+            row.innerHTML = `<td>${escapeHtml(product.sku)}<input type="hidden" name="tag_ids[]" value="${escapeHtml(id)}"></td><td>${escapeHtml(product.name)}${product.variant ? ' - ' + escapeHtml(product.variant) : ''}${vegetableLabel}</td><td><input type="hidden" name="size[${escapeHtml(id)}]" value="${escapeHtml(product.size)}">${product.size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${escapeHtml(id)}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : templateText}${discountFields(product)}</td><td class="text-center">${qtyStepper(modalQty.get(id) || 1, 'modal-qty', `data-product-id="${escapeHtml(id)}"`, `qty[${escapeHtml(id)}]` )}</td>`;
+            return row;
+        }
+
+        function pairRow(pair, pairIndex) {
+            const row = document.createElement('tr');
+            const top = pair.top, bottom = pair.bottom;
+            row.innerHTML = `<td>${escapeHtml(top.sku)}<br>${escapeHtml(bottom.sku)}<input type="hidden" name="tag_ids[]" value="${escapeHtml(top.id)}"><input type="hidden" name="tag_ids[]" value="${escapeHtml(bottom.id)}"><input type="hidden" name="size[${escapeHtml(top.id)}]" value="vegetable_tgg"><input type="hidden" name="size[${escapeHtml(bottom.id)}]" value="vegetable_tgg"></td><td><div class="pair-product-group"><div>${escapeHtml(top.name)}</div><div>${escapeHtml(bottom.name)}</div><button type="button" class="split-pair" data-pair-index="${pairIndex}"><i class="bi bi-link-45deg"></i><span>Pisahkan</span></button></div></td><td><span class="pair-template-group"><span>Vegetable Tanggung</span><span class="pair-marker"><i class="bi bi-layers"></i>2 Produk / POP</span></span><input type="hidden" name="vegetable_pairs[${pairIndex}][top_id]" value="${escapeHtml(top.id)}"><input type="hidden" name="vegetable_pairs[${pairIndex}][bottom_id]" value="${escapeHtml(bottom.id)}"><input type="hidden" name="vegetable_pairs[${pairIndex}][qty]" value="${escapeHtml(pair.qty)}"></td><td class="text-center">${qtyStepper(pair.qty, 'modal-pair-qty', `data-pair-index="${pairIndex}"`)}</td>`;
+            return row;
+        }
+
+        function renderPairCandidates() {
+            const vegProducts = modalProducts.filter(isVegetable);
+            pairPanel.classList.toggle('d-none', vegProducts.length < 2);
+            const used = pairedIds();
+            pairCandidates.innerHTML = vegProducts.length < 2 ? '' : vegProducts.map(product => `<label class="vegetable-pair-candidate ${used.has(product.id) ? 'is-paired' : ''}"><input type="checkbox" class="vegetable-pair-check" value="${escapeHtml(product.id)}" ${used.has(product.id) ? 'disabled' : ''}><span class="vegetable-candidate-text">${escapeHtml(product.name)}<span class="vegetable-candidate-plu">PLU: ${escapeHtml(product.sku)}</span></span><span class="vegetable-candidate-status ${used.has(product.id) ? 'is-paired' : ''}">${used.has(product.id) ? '2 Produk' : '1 Produk'}</span></label>`).join('');
+            document.querySelectorAll('.vegetable-pair-check').forEach(input => input.addEventListener('change', () => {
+                const id = String(input.value);
+                pairingSelectionOrder = pairingSelectionOrder.filter(selectedId => String(selectedId) !== id);
+                if (input.checked) pairingSelectionOrder.push(id);
+                updatePairButton();
+            }));
+            updatePairButton();
+        }
+
+        function updatePairButton() {
+            btnGabungkan.disabled = pairingSelectionOrder.length !== 2;
+        }
+
+        function renderPreview() {
+            tabelBody.innerHTML = '';
+            document.getElementById('vegetablePreviewHeader').classList.toggle('d-none', modalProducts.length === 0);
+            printTotals.classList.toggle('d-none', modalProducts.length === 0);
+            printTotals.classList.toggle('border-top', modalHasVegetable);
+            const used = pairedIds();
+            modalProducts.forEach(product => {
+                const pairIndex = vegetablePairs.findIndex(pair => pair.top.id === product.id);
+                if (pairIndex >= 0) { const pair = vegetablePairs[pairIndex]; tabelBody.appendChild(pairRow(pair, pairIndex)); return; }
+                if (used.has(product.id)) return;
+                tabelBody.appendChild(productRow(product));
+            });
+            renderPairCandidates();
+            const singleCount = modalProducts.filter(product => !used.has(product.id)).reduce((total, product) => total + Number(modalQty.get(product.id) || 1), 0);
+            const pairCount = vegetablePairs.reduce((total, pair) => total + Number(pair.qty || 0), 0);
+            printTotals.innerHTML = modalHasVegetable ? `<div class="pop-summary-lines"><div>POP 1 Produk: <strong>${singleCount} lembar</strong></div><div>POP 2 Produk: <strong>${pairCount} lembar</strong></div></div><div class="pop-summary-total">Total: ${singleCount + pairCount} lembar</div>` : `<div>Produk Terpilih: <strong>${modalProducts.length}</strong> produk</div><div class="pop-summary-total">Total Qty Cetak: ${singleCount + pairCount} POP</div>`;
+            printTotals.classList.remove('d-none');
+            tabelBody.querySelectorAll('.modal-qty').forEach(input => input.addEventListener('change', () => { const value = Number(input.value); if (Number.isInteger(value) && value > 0) modalQty.set(input.dataset.productId, value); else modalQty.set(input.dataset.productId, 1); renderPreview(); }));
+            tabelBody.querySelectorAll('.modal-pair-qty').forEach(input => input.addEventListener('change', () => { const value = Number(input.value); const index = Number(input.dataset.pairIndex); if (Number.isInteger(value) && value > 0) vegetablePairs[index].qty = value; else vegetablePairs[index].qty = 1; renderPreview(); }));
+            tabelBody.querySelectorAll('.qty-plus, .qty-minus').forEach(button => button.addEventListener('click', () => { const input = button.parentElement.querySelector('input[type="number"]'); const value = Math.max(1, (parseInt(input.value, 10) || 1) + (button.classList.contains('qty-plus') ? 1 : -1)); input.value = formatQty(value); input.dispatchEvent(new Event('change', {bubbles:true})); }));
+            tabelBody.querySelectorAll('.qty-stepper input').forEach(input => { const value = Number(input.value); input.value = Number.isInteger(value) && value > 0 ? formatQty(value) : '01'; input.addEventListener('focus', () => input.select()); input.addEventListener('blur', () => { if (!/^\d+$/.test(input.value) || Number(input.value) < 1) { input.value = '01'; input.dispatchEvent(new Event('change', {bubbles:true})); } }); });
+            tabelBody.querySelectorAll('.split-pair').forEach(button => button.addEventListener('click', () => { const index = Number(button.dataset.pairIndex); const pair = vegetablePairs[index]; modalQty.set(pair.top.id, pair.topQty); modalQty.set(pair.bottom.id, pair.bottomQty); vegetablePairs.splice(index, 1); renderPreview(); }));
+            updateStepperStates();
+        }
+
+        btnGabungkan.addEventListener('click', () => {
+            const selected = pairingSelectedIds();
+            if (selected.length !== 2) return;
+            const top = modalProducts.find(product => String(product.id) === String(selected[0]));
+            const bottom = modalProducts.find(product => String(product.id) === String(selected[1]));
+            if (!top || !bottom || !isVegetable(top) || !isVegetable(bottom) || top.id === bottom.id) { tampilkanErrorCetak('Pilih tepat dua produk Vegetable Tanggung yang belum berpasangan.'); return; }
+            const pair = {top, bottom, topQty: Number(modalQty.get(top.id) || 1), bottomQty: Number(modalQty.get(bottom.id) || 1), qty: 1};
+            vegetablePairs.push(pair);
+            pairingSelectionOrder = [];
+            renderPreview();
+        });
+
+        // Bangun isi modal setiap kali tombol Cetak ditekan.
         btnCetak.addEventListener('click', function () {
             const checkedProducts = [...getChecked()];
-            const hasUnselectedTemplate = checkedProducts.some(cb => !cb.dataset.size);
-            if (hasUnselectedTemplate) {
-                tampilkanErrorCetak('Pastikan produk sudah memilih ukuran template.');
-                return;
-            }
-            tabelBody.innerHTML = '';
-
-            checkedProducts.forEach(cb => {
-                const id      = cb.dataset.id;
-                const sku     = cb.dataset.sku;
-                const name    = cb.dataset.name;
-                const variant = cb.dataset.variant;
-                const size = cb.dataset.size;
-                const allocation = Number(cb.dataset.allocation || 0);
-                const discount = Number(cb.dataset.discount || 0);
-                const canAllvar = size === 'tgg' && allocation === 0;
-                const isA4 = size === 'mpdf';
-                const isVegetableTanggung = size === 'vegetable_tgg';
-                const hasDiscountTemplate = ['kcl', 'tgg', 'a5', 'segitiga'].includes(size);
-                const showDiscountInfo = discount > 0 && discount < 10;
-                const canChooseDiscount = showDiscountInfo && hasDiscountTemplate && !isA4;
-                const showA4DiscountInfo = showDiscountInfo && isA4;
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>
-                        ${sku}
-                        <input type="hidden" name="tag_ids[]" value="${id}">
-                    </td>
-                    <td>${name}${variant ? ' - ' + variant : ''}</td>
-                    <td>
-                        <input type="hidden" name="size[${id}]" value="${size}">
-                        ${size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${id}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : ((size === 'mpdf' || size === 'pricetag' || size === 'a5' || size === 'fresh' || size === 'curah' || size === 'segitiga' || size === 'vegetable_tgg') ? `${size === 'pricetag' ? 'Price Tag' : (size === 'curah' ? 'Vegetable' : (size === 'vegetable_tgg' ? 'Vegetable Tanggung' : (size === 'fresh' ? 'Butcher' : (size === 'a5' ? 'A5' : (size === 'segitiga' ? 'Segitiga' : 'A4')))))}` : '<span class="text-muted">Kecil</span>')}
-                        ${isVegetableTanggung ? '' : (canChooseDiscount ? `<div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="auto" checked> Turun harga</label><label class="d-block"><input type="radio" name="discount_mode[${id}]" value="show"> Tampil diskon</label></div>` : (showA4DiscountInfo ? `<input type="hidden" name="discount_mode[${id}]" value="show"><div class="mt-2 small"><div class="text-muted mb-1">Diskon persen A4</div><span class="text-success">Otomatis menggunakan template Disc A4</span></div>` : (showDiscountInfo ? `<input type="hidden" name="discount_mode[${id}]" value="auto"><div class="mt-2 small"><div class="text-muted mb-1">Diskon &lt; 10%</div><label class="d-block"><input type="radio" checked disabled> Turun harga</label><label class="d-block text-muted"><input type="radio" disabled> Tampil diskon <span class="fst-italic">(tidak tersedia untuk ukuran ini)</span></label></div>` : `<input type="hidden" name="discount_mode[${id}]" value="auto">`)))}
-                    </td>
-                    <td>
-                        <input type="number" name="qty[${id}]" value="1" min="1" class="form-control form-control-sm" required>
-                    </td>
-                `;
-                tabelBody.appendChild(row);
-            });
-            const sizes = [...getChecked()].map(cb => cb.dataset.size);
+            if (checkedProducts.some(cb => !cb.dataset.size)) { tampilkanErrorCetak('Pastikan produk sudah memilih ukuran template.'); return; }
+            modalProducts = checkedProducts.map(cb => ({id: cb.dataset.id, sku: cb.dataset.sku, name: cb.dataset.name, variant: cb.dataset.variant, size: cb.dataset.size, allocation: cb.dataset.allocation, discount: cb.dataset.discount}));
+            vegetablePairs = [];
+            pairingSelectionOrder = [];
+            modalQty = new Map(modalProducts.map(product => [product.id, 1]));
+            modalHasVegetable = modalProducts.some(isVegetable);
+            allvarPrintAlert.classList.toggle('d-none', !modalProducts.some(product => product.size === 'tgg' && Number(product.allocation || 0) === 0));
+            document.getElementById('vegetablePreviewHeader').classList.toggle('d-none', modalProducts.length === 0);
+            renderPreview();
+            const sizes = modalProducts.map(product => product.size);
             const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga', 'vegetable_tgg'].includes(size));
-            document.getElementById('formCetak').action = hasMpdf
-                ? '<?= base_url('print-mpdf') ?>'
-                : '<?= base_url('print-pdf') ?>';
+            document.getElementById('formCetak').action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCetak')).show();
         });
 
@@ -764,6 +911,23 @@
             const sizes = [...this.querySelectorAll('input[name^="size["]')].map(input => input.value);
             if (sizes.some(size => !size)) {
                 tampilkanErrorCetak('Pastikan produk sudah memilih ukuran template.');
+                return;
+            }
+            const qtyInputs = [...this.querySelectorAll('input[type="number"]')];
+            if (qtyInputs.some(input => !/^\d+$/.test(input.value) || Number(input.value) < 1)) {
+                tampilkanErrorCetak('Qty Cetak harus berupa bilangan bulat positif.');
+                return;
+            }
+            const submittedIds = [...this.querySelectorAll('input[name="tag_ids[]"]')].map(input => input.value);
+            if (new Set(submittedIds).size !== submittedIds.length) {
+                tampilkanErrorCetak('Ada produk yang tercetak lebih dari satu kali.');
+                return;
+            }
+            const pairTopIds = [...this.querySelectorAll('input[name^="vegetable_pairs["][name$="][top_id]"]')].map(input => input.value);
+            const pairBottomIds = [...this.querySelectorAll('input[name^="vegetable_pairs["][name$="][bottom_id]"]')].map(input => input.value);
+            const pairIds = [...pairTopIds, ...pairBottomIds];
+            if (new Set(pairIds).size !== pairIds.length || pairTopIds.length !== pairBottomIds.length) {
+                tampilkanErrorCetak('Data pasangan Vegetable Tanggung tidak lengkap atau berulang.');
                 return;
             }
             const uniqueSizes = [...new Set(sizes.filter(Boolean))];
