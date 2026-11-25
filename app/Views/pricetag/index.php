@@ -49,6 +49,7 @@
             pointer-events: none;
         }
         #templateToast { position: fixed; top: 24px; right: 24px; z-index: 1080; min-width: 260px; display: none; }
+        #templateToast.print-discount-error { max-width: min(36rem, calc(100vw - 48px)); max-height: 65vh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
         /* Batasi tinggi modal dan scroll hanya pada daftar produk. Form harus
            menjadi flex container agar footer tetap terlihat di bawah modal. */
         #modalCetak .modal-content {
@@ -260,7 +261,7 @@
 
         <?php if (session()->getFlashdata('error')): ?>
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?= session()->getFlashdata('error') ?>
+                <?= nl2br(esc(session()->getFlashdata('error'))) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         <?php endif; ?>
@@ -375,16 +376,30 @@
     </main>
     <div id="templateToast" class="alert alert-success shadow-sm py-2 px-3 mb-0">Ukuran template produk berhasil disimpan.</div>
 
+    <?php
+    $discountForm = session()->getFlashdata('discount_form');
+    $discountFormFields = ['sku_plu', 'name', 'variant', 'normal_price', 'discount_percent', 'promo_price', 'allocation_pcs', 'start_period', 'end_period'];
+    $discountFormValues = [];
+    if ($discountForm !== null) {
+        foreach ($discountFormFields as $field) {
+            $value = old($field, '', false);
+            $discountFormValues[$field] = is_scalar($value) ? (string) $value : '';
+        }
+    }
+    ?>
     <div class="modal fade" id="modalEdit" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg"><div class="modal-content">
             <form method="post" id="formEdit">
                 <div class="modal-header"><h5 class="modal-title">Edit Produk</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <?php if (is_int($discountForm)): ?>
+                    <div class="alert alert-danger mx-3 mt-3 mb-0" role="alert"><?= esc(session()->getFlashdata('error')) ?></div>
+                <?php endif; ?>
                 <div class="modal-body"><div class="row g-3">
                     <div class="col-md-6"><label class="form-label">PLU</label><input name="sku_plu" id="editSku" class="form-control" required></div>
                     <div class="col-md-6"><label class="form-label">Nama Produk</label><input name="name" id="editName" class="form-control" required></div>
                     <div class="col-md-6"><label class="form-label">Varian</label><input name="variant" id="editVariant" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Harga Normal</label><input type="number" name="normal_price" id="editPrice" class="form-control"></div>
-                    <div class="col-md-4"><label class="form-label">Diskon (%)</label><input type="number" step="0.01" min="0" name="discount_percent" id="editDiscount" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label">Diskon (%)</label><input type="text" inputmode="decimal" pattern="\s*(?:\+?0*[1-9][0-9]?(?:[.,]0+)?\s*)?" title="Persentase bulat 1–99 atau kosong" name="discount_percent" id="editDiscount" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Harga Promo</label><input type="number" min="0" name="promo_price" id="editPromo" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Alokasi (Pcs)</label><input type="number" min="0" name="allocation_pcs" id="editAllocation" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Awal Periode</label><input type="date" name="start_period" id="editStart" class="form-control"></div>
@@ -405,12 +420,15 @@
             <form method="post" action="<?= base_url('pricetag/create') ?>">
                 <?php if (!empty($history['id'])): ?><input type="hidden" name="import_id" value="<?= (int) $history['id'] ?>"><?php endif; ?>
                 <div class="modal-header"><h5 class="modal-title">Tambah Produk</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <?php if ($discountForm === 'create'): ?>
+                    <div class="alert alert-danger mx-3 mt-3 mb-0" role="alert"><?= esc(session()->getFlashdata('error')) ?></div>
+                <?php endif; ?>
                 <div class="modal-body"><div class="row g-3">
                     <div class="col-md-6"><label class="form-label">SKU/PLU <small class="text-muted"></small></label><input name="sku_plu" class="form-control"></div>
                     <div class="col-md-6"><label class="form-label">Nama Produk</label><input name="name" class="form-control" required></div>
                     <div class="col-md-6"><label class="form-label">Varian</label><input name="variant" class="form-control"></div>
                     <div class="col-md-6"><label class="form-label">Harga Normal</label><input type="number" name="normal_price" class="form-control" min="0"></div>
-                    <div class="col-md-4"><label class="form-label">Diskon (%)</label><input type="number" step="0.01" name="discount_percent" class="form-control" min="0"></div>
+                    <div class="col-md-4"><label class="form-label">Diskon (%)</label><input type="text" inputmode="decimal" pattern="\s*(?:\+?0*[1-9][0-9]?(?:[.,]0+)?\s*)?" title="Persentase bulat 1–99 atau kosong" name="discount_percent" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Harga Promo</label><input type="number" name="promo_price" class="form-control" min="0"></div>
                     <div class="col-md-4"><label class="form-label">Alokasi (Pcs)</label><input type="number" name="allocation_pcs" class="form-control" min="0"></div>
                     <div class="col-md-6"><label class="form-label">Awal Periode</label><input type="date" name="start_period" class="form-control"></div>
@@ -493,17 +511,39 @@
 
         // Diskon dan Harga Promo adalah dua cara alternatif untuk menentukan harga akhir.
         // Saat salah satunya diisi, kosongkan yang lain agar data tidak bertentangan.
+        const discountMessages = <?= json_encode(\App\Libraries\DiscountValidator::MESSAGES, JSON_HEX_TAG) ?>;
         document.querySelectorAll('#formEdit, #modalTambah form').forEach(form => {
             const discount = form.querySelector('[name="discount_percent"]');
             const promo = form.querySelector('[name="promo_price"]');
             if (!discount || !promo) return;
             discount.addEventListener('input', () => {
-                if (discount.value !== '') promo.value = '';
+                discount.setCustomValidity('');
+                if (discount.value.trim() !== '') promo.value = '';
+            });
+            discount.addEventListener('invalid', () => {
+                const value = discount.value.trim().replace('−', '-').replace(',', '.');
+                const numeric = /^[+-]?[0-9]+(?:\.[0-9]+)?$/.test(value);
+                const amount = Number(value);
+                const reason = !numeric ? 'malformed' : amount === 0 ? 'zero'
+                    : amount < 0 || amount >= 100 ? 'out_of_range' : 'fraction';
+                discount.setCustomValidity(discountMessages[reason]);
             });
             promo.addEventListener('input', () => {
                 if (promo.value !== '') discount.value = '';
+                discount.setCustomValidity('');
             });
         });
+
+        <?php if ($discountForm !== null): ?>
+        {
+            const isCreate = <?= $discountForm === 'create' ? 'true' : 'false' ?>;
+            const form = isCreate ? document.querySelector('#modalTambah form') : formEdit;
+            const values = <?= json_encode($discountFormValues, JSON_HEX_TAG | JSON_INVALID_UTF8_SUBSTITUTE) ?>;
+            if (!isCreate) form.action = <?= json_encode(base_url('pricetag/update/' . (int) $discountForm), JSON_HEX_TAG) ?>;
+            Object.entries(values).forEach(([name, value]) => { form.elements.namedItem(name).value = value; });
+            bootstrap.Modal.getOrCreateInstance(form.closest('.modal')).show();
+        }
+        <?php endif; ?>
 
         const templateToast = document.getElementById('templateToast');
         let toastTimer;
@@ -709,6 +749,7 @@
             document.getElementById('editVariant').value = d.variant;
             document.getElementById('editPrice').value = d.price;
             document.getElementById('editDiscount').value = d.discount;
+            document.getElementById('editDiscount').setCustomValidity('');
             document.getElementById('editPromo').value = d.promo;
             document.getElementById('editAllocation').value = d.allocation;
             document.getElementById('editStart').value = d.start;
@@ -893,21 +934,32 @@
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCetak')).show();
         });
 
-        function tampilkanErrorCetak(message) {
+        function tampilkanErrorCetak(message, detailed = false) {
             templateToast.className = 'alert alert-danger shadow-sm py-2 px-3 mb-0';
+            templateToast.classList.toggle('print-discount-error', detailed);
             templateToast.textContent = message;
             templateToast.style.display = 'block';
             clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => {
-                templateToast.style.display = 'none';
-                templateToast.className = 'alert alert-success shadow-sm py-2 px-3 mb-0';
-            }, 4000);
+            if (!detailed) {
+                toastTimer = setTimeout(() => {
+                    templateToast.style.display = 'none';
+                    templateToast.className = 'alert alert-success shadow-sm py-2 px-3 mb-0';
+                }, 4000);
+            }
         }
+
+        function sembunyikanErrorDiskonCetak() {
+            if (templateToast.classList.contains('print-discount-error')) {
+                templateToast.style.display = 'none';
+            }
+        }
+        document.getElementById('modalCetak').addEventListener('hidden.bs.modal', sembunyikanErrorDiskonCetak);
 
         // Validasi di halaman ini agar error tidak ikut terbuka di target _blank.
         // Target tersebut tetap dipakai untuk hasil PDF yang berhasil dibuat.
         document.getElementById('formCetak').addEventListener('submit', async function (event) {
             event.preventDefault();
+            sembunyikanErrorDiskonCetak();
             const sizes = [...this.querySelectorAll('input[name^="size["]')].map(input => input.value);
             if (sizes.some(size => !size)) {
                 tampilkanErrorCetak('Pastikan produk sudah memilih ukuran template.');
@@ -947,6 +999,16 @@
                     body: new FormData(this),
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 });
+                if (response.status === 422 && response.headers.get('Content-Type')?.includes('application/json')) {
+                    const error = await response.json().catch(() => null);
+                    if (error?.code === 'invalid_print_discount' && Array.isArray(error.products)) {
+                        const products = error.products.map(product =>
+                            `ID: ${product.id} | PLU: ${product.plu}\nProduk: ${product.name}\nDiskon: ${product.discount_percent}%\n${product.reason}`
+                        );
+                        tampilkanErrorCetak([error.message, ...products, error.guidance].join('\n\n'), true);
+                        return;
+                    }
+                }
                 const isPdfResult = /\/print-(pdf|mpdf)\/[a-f0-9]{32}(?:$|\?)/i.test(response.url);
                 if (response.ok && isPdfResult) {
                     window.open(response.url, '_blank');

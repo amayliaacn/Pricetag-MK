@@ -36,11 +36,22 @@ class PrintMixed extends BaseController
         $libreGroups = [];
         $mergers = [];
         try {
-            foreach ($ids as $id) {
+            $productsById = [];
+            foreach (array_unique(array_map('intval', $ids)) as $id) {
                 $query = $model->where('id', (int) $id);
                 if ($importId > 0) $query->where('import_id', $importId);
                 else $query->where('uploaded_by', (int) session()->get('id'))->where('import_date', date('Y-m-d'));
                 $row = $query->first();
+                if ($row) {
+                    $productsById[$id] = $row;
+                }
+            }
+            if ($rejection = $this->rejectInvalidPrintDiscounts($productsById)) {
+                return $rejection;
+            }
+
+            foreach ($ids as $id) {
+                $row = $productsById[(int) $id] ?? null;
                 if (!$row) continue;
                 $size = (string) ($sizes[$id] ?? '');
                 $count = max(1, (int) ($qty[$id] ?? 1));

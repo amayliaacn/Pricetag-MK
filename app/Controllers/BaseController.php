@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\DiscountValidator;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -41,5 +42,46 @@ abstract class BaseController extends Controller
 
         // Preload any models, libraries, etc, here.
         // $this->session = service('session');
+    }
+    protected function rejectInvalidPrintDiscounts(array $products): ?ResponseInterface
+    {
+        $errors = [];
+        foreach ($products as $product) {
+            $discount = $product['discount_percent'] ?? null;
+            $result = DiscountValidator::forPrinting($discount);
+            if (!$result['valid']) {
+                $errors[] = [
+                    'id' => (int) $product['id'],
+                    'plu' => (string) $product['sku_plu'],
+                    'name' => (string) $product['name'],
+                    'discount_percent' => $discount,
+                    'reason' => $result['message'],
+                ];
+            }
+        }
+        if ($errors === []) {
+            return null;
+        }
+
+        $message = 'Gagal mencetak. Terdapat produk dengan diskon tidak valid.';
+        $guidance = 'Silakan perbaiki diskon produk sebelum mencetak kembali. Diskon harus berupa bilangan bulat antara 1% dan 99%.';
+        if ($this->request->isAJAX()) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'code' => 'invalid_print_discount',
+                'message' => $message,
+                'products' => $errors,
+                'guidance' => $guidance,
+            ]);
+        }
+
+        $details = array_map(static fn (array $error): string => sprintf(
+            'ID: %d | PLU: %s | Produk: %s | Diskon: %s | %s',
+            $error['id'],
+            $error['plu'],
+            $error['name'],
+            (string) $error['discount_percent'],
+            $error['reason']
+        ), $errors);
+        return redirect()->back()->with('error', implode("\n", [$message, ...$details, $guidance]));
     }
 }

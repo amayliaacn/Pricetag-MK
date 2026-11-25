@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\ImportHistoryModel;
 use App\Models\OutletModel;
 use App\Libraries\ProductTextParser;
+use App\Libraries\DiscountValidator;
 use App\Models\PriceTagModel;
 
 class ImportHistory extends BaseController
@@ -210,28 +211,54 @@ class ImportHistory extends BaseController
         }
 
         $rows = $this->request->getPost('rows');
-        $rows = is_array($rows) ? array_values($rows) : [];
+        $rows = is_array($rows) ? $rows : [];
         $cleanRows = [];
+        $discountErrors = [];
         $parser = new ProductTextParser();
-        foreach ($rows as $row) {
+        foreach ($rows as $rowIndex => $row) {
             if (! is_array($row)) continue;
+            $sku = trim((string) ($row['sku_plu'] ?? ''));
             $brandText = trim((string) ($row['brand'] ?? ''));
             $parsedProduct = $parser->parse($brandText);
+            $rawPromo = $row['promo'] ?? '';
+            $promo = is_scalar($rawPromo) ? trim((string) $rawPromo) : '';
+            $discount = is_string($rawPromo) ? DiscountValidator::fromPromotionText($promo)
+                : (is_int($rawPromo) || is_float($rawPromo) ? null : DiscountValidator::forStorage($rawPromo));
+            if ($discount !== null && !$discount['valid']) {
+                $discountErrors[$rowIndex] = sprintf(
+                    'Baris %d | PLU %s | %s | Diskon "%s". %s',
+                    (int) $rowIndex + 1,
+                    $sku === '' ? '(kosong)' : $sku,
+                    $parsedProduct['name'] === '' ? '(nama kosong)' : $parsedProduct['name'],
+                    is_scalar($rawPromo) ? (string) $rawPromo : get_debug_type($rawPromo),
+                    $discount['message']
+                );
+                continue;
+            }
+            $promoPrice = null;
+            if ($discount === null && preg_match('/\d/', $promo)) {
+                $promoPrice = (int) preg_replace('/[^0-9]/', '', $promo);
+            }
             $clean = [
                 'price_tag_id'  => (int) ($row['price_tag_id'] ?? 0),
                 'start_period' => $this->normalizeManualDate($row['start_period'] ?? ''),
                 'end_period'   => $this->normalizeManualDate($row['end_period'] ?? ''),
-                'sku_plu'      => trim((string) ($row['sku_plu'] ?? '')),
+                'sku_plu'      => $sku,
                 'brand'        => trim((string) ($row['brand'] ?? '')),
                 'name'         => $parsedProduct['name'],
                 'variant'      => $parsedProduct['variant'],
                 'allocation_pcs' => $parsedProduct['allocation_pcs'],
                 'normal_price' => (float) ($row['normal_price'] ?? 0),
-                'promo'        => trim((string) ($row['promo'] ?? '')),
+                'promo'        => $promo,
             ];
             if (implode('', [$clean['start_period'], $clean['end_period'], $clean['sku_plu'], $clean['brand'], $clean['promo']]) !== '' || $clean['normal_price'] > 0) {
-                $cleanRows[] = $clean;
+                $cleanRows[] = ['row' => $clean, 'discount' => $discount['value'] ?? null, 'promo_price' => $promoPrice];
             }
+        }
+
+        if ($discountErrors !== []) {
+            return redirect()->to(base_url('import-history/manual/' . $id))->withInput()
+                ->with('manual_discount_errors', $discountErrors);
         }
 
         // Sinkronkan produk manual ke price_tags agar setiap produk memiliki
@@ -244,7 +271,8 @@ class ImportHistory extends BaseController
         }
         $usedIds = [];
         $savedRows = [];
-        foreach ($cleanRows as $row) {
+        foreach ($cleanRows as $prepared) {
+            $row = $prepared['row'];
             $sku = $row['sku_plu'];
             // Setiap baris manual adalah record tersendiri. SKU/PLU boleh sama,
             // sehingga identitas saat edit harus menggunakan price_tag_id.
@@ -257,18 +285,6 @@ class ImportHistory extends BaseController
             if ($sku === '') {
                 $sku = 'AUTO-MANUAL-' . date('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
             }
-            $promo = trim((string) ($row['promo'] ?? ''));
-            $discount = null;
-            if (preg_match('/(\d+(?:[.,]\d+)?)\s*%/', $promo, $promoMatch)) {
-                $discount = (float) str_replace(',', '.', $promoMatch[1]);
-            }
-            $promoPrice = null;
-            if ($discount === null && preg_match('/\d/', $promo)) {
-                // Nilai nominal seperti "11.900" atau "Rp 11.900"
-                // disimpan sebagai harga promo, bukan diskon.
-                $promoDigits = preg_replace('/[^0-9]/', '', $promo);
-                $promoPrice = $promoDigits !== '' ? (int) $promoDigits : null;
-            }
             $data = [
                 'sku_plu'          => $sku,
                 'name'             => $row['name'],
@@ -277,8 +293,8 @@ class ImportHistory extends BaseController
                 // sudah diedit melalui detail produk.
                 'variant'          => $row['variant'] ?? ($existing['variant'] ?? null),
                 'normal_price'     => (float) $row['normal_price'],
-                'discount_percent' => $discount,
-                'promo_price'      => $promoPrice,
+                'discount_percent' => $prepared['discount'],
+                'promo_price'      => $prepared['promo_price'],
                 'allocation_pcs'   => $row['allocation_pcs'],
                 'start_period'     => $row['start_period'] ?: null,
                 'end_period'       => $row['end_period'] ?: null,

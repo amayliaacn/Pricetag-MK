@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\PriceTagModel;
 use App\Models\ImportHistoryModel;
 use App\Libraries\ProductTextParser;
+use App\Libraries\DiscountValidator;
 use App\Libraries\PriceTagTemplates;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
@@ -167,6 +168,7 @@ class PriceTag extends BaseController
             $importDate = date('Y-m-d');
             $jumlahData = 0;
             $importRows = [];
+            $discountErrors = [];
 
             // CATATAN: tidak lagi truncate() semua data. Sekarang tiap baris
             // di-upsert per (user, tanggal hari ini, sku_plu):
@@ -175,8 +177,9 @@ class PriceTag extends BaseController
             //   - Data tanggal SEBELUMNYA tidak disentuh sama sekali (riwayat aman)
             $autoSkuCounter = 0;
             $autoSkuPrefix = 'AUTO-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
-            foreach (array_slice($sheetData, $headerMap['row'] + 1) as $row) {
+            foreach (array_slice($sheetData, $headerMap['row'] + 1, null, true) as $rowIndex => $row) {
                 $sku = trim((string) ($row[$headerMap['sku_plu']] ?? ''));
+                $sourceSku = $sku;
                 if ($sku === '') {
                     $autoSkuCounter++;
                     $sku = $autoSkuPrefix . '-' . str_pad((string) $autoSkuCounter, 4, '0', STR_PAD_LEFT);
@@ -187,10 +190,23 @@ class PriceTag extends BaseController
                 $parsedProduct = (new ProductTextParser())->parse(
                     (string) ($row[$headerMap['name']] ?? '')
                 );
-                $promotionSource = $this->valueFromRow($row, $headerMap, 'discount_percent')
-                    ?? $this->valueFromRow($row, $headerMap, 'promo_price');
-                $hasPromotionSource = $promotionSource !== null;
-                $parsedPromotion = $this->parsePromotionText($promotionSource ?? '');
+                $promotionField = $this->valueFromRow($row, $headerMap, 'discount_percent') !== null
+                    ? 'discount_percent'
+                    : 'promo_price';
+                $promotionSource = (string) ($row[$headerMap[$promotionField] ?? -1] ?? '');
+                $parsedPromotion = $this->parsePromotionText($promotionSource);
+                if ($parsedPromotion['discount_error'] !== null) {
+                    $discountErrors[] = sprintf(
+                        'Baris %d | PLU %s | %s | Diskon "%s". %s',
+                        $rowIndex + 1,
+                        $sourceSku === '' ? '(kosong)' : $sourceSku,
+                        $parsedProduct['name'] === '' ? '(nama kosong)' : $parsedProduct['name'],
+                        $promotionSource,
+                        $parsedPromotion['discount_error']
+                    );
+                    continue;
+                }
+                if ($parsedProduct['name'] === '') continue;
 
                 $dataInsert = [
                     'sku_plu'          => $sku,
@@ -199,12 +215,8 @@ class PriceTag extends BaseController
                         ?? $this->valueFromRow($row, $headerMap, 'variant'),
                     'template_size'   => null,
                     'normal_price'     => $this->priceFromRow($row, $headerMap, 'normal_price'),
-                    'discount_percent' => $hasPromotionSource
-                        ? $parsedPromotion['discount_percent']
-                        : $this->percentFromRow($row, $headerMap, 'discount_percent'),
-                    'promo_price'      => $hasPromotionSource
-                        ? $parsedPromotion['promo_price']
-                        : $this->priceFromRow($row, $headerMap, 'promo_price'),
+                    'discount_percent' => $parsedPromotion['discount_percent'],
+                    'promo_price'      => $parsedPromotion['promo_price'],
                     'allocation_pcs'   => $parsedProduct['allocation_pcs']
                         ?? $this->intFromRow($row, $headerMap, 'allocation_pcs'),
                     'start_period'     => $this->dateFromRow($row, $headerMap, 'start_period'),
@@ -213,7 +225,6 @@ class PriceTag extends BaseController
                     'import_date'      => $importDate,
                 ];
 
-                if ($dataInsert['name'] === '') continue;
                 // Pengecualian: A5 Discount dapat hanya berisi persentase
                 // diskon tanpa Harga Normal. Database memakai 0 sebagai
                 // penanda bahwa Harga Normal memang tidak tersedia.
@@ -224,6 +235,11 @@ class PriceTag extends BaseController
 
                 $importRows[] = $dataInsert;
                 $jumlahData++;
+            }
+
+            if ($discountErrors !== []) {
+                unlink($filePath);
+                return redirect()->to($redirectPath)->with('error', implode("\n", $discountErrors));
             }
 
             if ($jumlahData > 0 && $outletId !== null) {
@@ -341,24 +357,30 @@ class PriceTag extends BaseController
         $tag = $model->find($id);
         if (! $tag) return redirect()->back()->with('error', 'Produk tidak ditemukan.');
 
+        $promoInput = $this->request->getPost('promo_price');
+        $discount = DiscountValidator::forStorage(service('superglobals')->getPostArray()['discount_percent'] ?? null);
+        if ($discount['reason'] !== 'empty' && $promoInput !== null && $promoInput !== '') {
+            return redirect()->back()->withInput()->with('discount_form', $id)
+                ->with('error', 'Isi Diskon atau Harga Promo saja, tidak boleh keduanya.');
+        }
+        if (!$discount['valid']) {
+            return redirect()->back()->withInput()->with('discount_form', $id)
+                ->with('error', $discount['message']);
+        }
+
         $data = [
             'sku_plu' => trim((string) $this->request->getPost('sku_plu')),
             'name' => trim((string) $this->request->getPost('name')),
             'variant' => trim((string) $this->request->getPost('variant')) ?: null,
             'normal_price' => (int) $this->request->getPost('normal_price'),
-            'discount_percent' => $this->request->getPost('discount_percent') === '' ? null : (float) $this->request->getPost('discount_percent'),
-            'promo_price' => $this->request->getPost('promo_price') === '' ? null : (int) $this->request->getPost('promo_price'),
+            'discount_percent' => $discount['value'],
+            'promo_price' => $promoInput === '' ? null : (int) $promoInput,
             'allocation_pcs' => $this->request->getPost('allocation_pcs') === '' ? null : (int) $this->request->getPost('allocation_pcs'),
             'start_period' => $this->request->getPost('start_period') ?: null,
             'end_period' => $this->request->getPost('end_period') ?: null,
         ];
-        if ($this->request->getPost('discount_percent') !== ''
-            && $this->request->getPost('promo_price') !== '') {
-            return redirect()->back()->withInput()
-                ->with('error', 'Isi Diskon atau Harga Promo saja, tidak boleh keduanya.');
-        }
         if ($data['sku_plu'] === '' || $data['name'] === ''
-            || ($this->request->getPost('normal_price') === '' && $this->request->getPost('discount_percent') === '')) {
+            || ($this->request->getPost('normal_price') === '' && $discount['value'] === null)) {
             return redirect()->back()->with('error', 'PLU, nama produk, dan Harga Normal wajib diisi.');
         }
         $model->update($id, $data);
@@ -380,7 +402,7 @@ class PriceTag extends BaseController
                     $row['start_period'] = $data['start_period'];
                     $row['end_period'] = $data['end_period'];
                     $row['promo'] = $data['discount_percent'] !== null
-                        ? rtrim(rtrim((string) $data['discount_percent'], '0'), '.') . '%'
+                        ? $data['discount_percent'] . '%'
                         : ($data['promo_price'] !== null ? (string) $data['promo_price'] : '');
                     break;
                 }
@@ -404,13 +426,17 @@ class PriceTag extends BaseController
             $sku = 'AUTO-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
         }
         if ($name === '') return redirect()->back()->with('error', 'Nama produk wajib diisi.');
-        $discountInput = trim((string) $this->request->getPost('discount_percent'));
-        if ($normalInput === '' && $discountInput === '') {
+        $discount = DiscountValidator::forStorage(service('superglobals')->getPostArray()['discount_percent'] ?? null);
+        if ($normalInput === '' && $discount['reason'] === 'empty') {
             return redirect()->back()->with('error', 'Harga Normal wajib diisi.');
         }
-        if ($discountInput !== '' && $promoInput !== '') {
-            return redirect()->back()->withInput()
+        if ($discount['reason'] !== 'empty' && $promoInput !== '') {
+            return redirect()->back()->withInput()->with('discount_form', 'create')
                 ->with('error', 'Isi Diskon atau Harga Promo saja, tidak boleh keduanya.');
+        }
+        if (!$discount['valid']) {
+            return redirect()->back()->withInput()->with('discount_form', 'create')
+                ->with('error', $discount['message']);
         }
 
         $data = [
@@ -418,7 +444,7 @@ class PriceTag extends BaseController
             'name' => $name,
             'variant' => trim((string) $this->request->getPost('variant')) ?: null,
             'normal_price' => $normalInput === '' ? 0 : (int) $normalInput,
-            'discount_percent' => $discountInput === '' ? null : (float) $discountInput,
+            'discount_percent' => $discount['value'],
             'promo_price' => $promoInput === '' ? null : (int) $promoInput,
             'allocation_pcs' => $this->request->getPost('allocation_pcs') === '' ? null : (int) $this->request->getPost('allocation_pcs'),
             'start_period' => $this->request->getPost('start_period') ?: null,
@@ -437,7 +463,7 @@ class PriceTag extends BaseController
             if ($history && (int) ($history['source_type'] ?? 0) === 1) {
                 $snapshot = json_decode($history['snapshot'] ?? '[]', true) ?: [];
                 $promo = $data['discount_percent'] !== null
-                    ? rtrim(rtrim((string) $data['discount_percent'], '0'), '.') . '%'
+                    ? $data['discount_percent'] . '%'
                     : ($data['promo_price'] !== null ? (string) $data['promo_price'] : '');
                 $snapshot[] = [
                     'price_tag_id' => $tagId,
@@ -591,17 +617,17 @@ class PriceTag extends BaseController
         $result = [
             'discount_percent' => null,
             'promo_price'      => null,
+            'discount_error'   => null,
         ];
 
         if ($text === '' || $text === '-') {
             return $result;
         }
 
-        if (str_contains($text, '%')) {
-            if (preg_match('/(\d+(?:[.,]\d+)?)\s*%/u', $text, $discount)) {
-                $result['discount_percent'] = (float) str_replace(',', '.', $discount[1]);
-            }
-
+        $discount = DiscountValidator::fromPromotionText($text);
+        if ($discount !== null) {
+            $result['discount_percent'] = $discount['value'];
+            $result['discount_error'] = $discount['message'];
             return $result;
         }
 
@@ -633,16 +659,6 @@ class PriceTag extends BaseController
     }
 
     private function intFromRow(array $row, array $headerMap, string $field): ?int
-    {
-        if (!isset($headerMap[$field])) return null;
-
-        $value = trim((string) ($row[$headerMap[$field]] ?? ''));
-        if ($value === '' || $value === '-') return null;
-
-        return (int) preg_replace('/[^0-9]/', '', $value);
-    }
-
-    private function percentFromRow(array $row, array $headerMap, string $field): ?int
     {
         if (!isset($headerMap[$field])) return null;
 

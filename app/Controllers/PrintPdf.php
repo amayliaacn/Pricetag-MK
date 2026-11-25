@@ -77,6 +77,9 @@ class PrintPdf extends BaseController
         foreach ($productQuery->findAll() as $product) {
             $productsById[(int) $product['id']] = $product;
         }
+        if ($rejection = $this->rejectInvalidPrintDiscounts($productsById)) {
+            return $rejection;
+        }
 
         // Kelompokkan produk berdasarkan template yang sesuai dengan datanya.
         $groups = [];

@@ -117,6 +117,23 @@
     <?php if (session()->getFlashdata('success')): ?>
         <div class="alert alert-success"><?= esc(session()->getFlashdata('success')) ?></div>
     <?php endif; ?>
+    <?php
+    $discountErrors = session()->getFlashdata('manual_discount_errors') ?? [];
+    $retryRows = $discountErrors !== [] ? old('rows', null, false) : null;
+    if (is_array($retryRows)) {
+        $rows = array_map(static fn ($row) => is_array($row) ? $row : [], $retryRows);
+    }
+    $rowKeys = array_keys($rows);
+    ?>
+    <?php if ($discountErrors !== []): ?>
+        <div class="alert alert-danger" role="alert">
+            <ul class="mb-0">
+                <?php foreach ($discountErrors as $message): ?>
+                    <li><?= esc($message) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
 
     <section class="mk-template-banner mb-3">
         <div class="mk-template-icon mk-manual-banner-icon">
@@ -169,8 +186,10 @@
                             return $date ? $date->format('d-M-y') : (string) $v;
                         };
                         $initialRows = max(50, count($rows)); for ($i = 0; $i < $initialRows; $i++):
-                            $row   = $rows[$i] ?? [];
+                            $rowKey = $rowKeys[$i] ?? null;
+                            $row = array_map(static fn ($value) => is_scalar($value) ? (string) $value : '', $rows[$rowKey] ?? []);
                             $harga = (float) ($row['normal_price'] ?? 0);
+                            $promoError = isset($discountErrors[$rowKey]);
                         ?>
                         <tr data-price-tag-id="<?= (int) ($row['price_tag_id'] ?? 0) ?>">
                             <td class="row-number"><?= $i + 1 ?></td>
@@ -178,8 +197,8 @@
                             <td><div class="cell" contenteditable="true" data-field="end_period" data-tipe="tgl" data-ph="30-Jul-2026"><?= esc($tgl($row['end_period'] ?? '')) ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="sku_plu" data-tipe="teks" data-ph="023509"><?= esc($row['sku_plu'] ?? '') ?></div></td>
                             <td><div class="cell" contenteditable="true" data-field="brand" data-tipe="teks" data-ph="Masukkan nama produk"><?= esc($row['brand'] ?? '') ?></div></td>
-                            <td><div class="cell num" contenteditable="true" data-field="normal_price" data-tipe="rp" data-ph="23.500"><?= $harga > 0 ? number_format($harga, 0, ',', '.') : '' ?></div></td>
-                            <td><div class="cell" contenteditable="true" data-field="promo" data-tipe="teks" data-ph="Set 10%"><?= esc($row['promo'] ?? '') ?></div></td>
+                            <td><div class="cell num" contenteditable="true" data-field="normal_price" data-tipe="rp" data-ph="23.500"><?= is_array($retryRows) ? esc($row['normal_price'] ?? '') : ($harga > 0 ? number_format($harga, 0, ',', '.') : '') ?></div></td>
+                            <td><div class="cell<?= $promoError ? ' err' : '' ?>" contenteditable="true" data-field="promo" data-tipe="teks" data-ph="Set 10%"><?= esc($row['promo'] ?? '') ?></div></td>
                             <td class="col-aksi"><button type="button" class="btn btn-danger btn-sm remove-row"><i class="bi bi-trash"></i></button></td>
                         </tr>
                         <?php endfor; ?>
@@ -268,6 +287,7 @@
 
     // ---------- format & validasi ----------
     function fmt(el) {
+        if (el.dataset.field === 'promo') return; // Keep the signed promo text for server validation.
         const t = el.dataset.tipe;
         let v = el.textContent.trim();
         el.classList.remove('err');
@@ -374,22 +394,29 @@
         const rowIds = [];
         let salah = 0;
 
-        [...tb.rows].forEach(tr => {
+        [...tb.rows].forEach((tr, index) => {
             const cs = cells(tr), v = cs.map(c => c.textContent.trim());
             if (v.every(x => !x)) return;                        // lewati baris kosong
             cs.forEach((c, i) => {
                 fmt(c);
                 if (COLS[i].req && !v[i]) c.classList.add('err');
-                if (c.classList.contains('err')) salah++;
+                if (c.dataset.field !== 'promo' && c.classList.contains('err')) salah++;
             });
-            data.push(v);
-            rowIds.push(parseInt(tr.dataset.priceTagId || '0', 10));
+            data[index] = v;
+            rowIds[index] = parseInt(tr.dataset.priceTagId || '0', 10);
         });
 
         if (!data.length) { e.preventDefault(); alert('Belum ada data yang diisi.'); return; }
         if (salah)        { e.preventDefault(); alert('Ada ' + salah + ' kolom yang belum diisi atau formatnya salah (ditandai merah).'); return; }
 
-        data.forEach((v, i) => {
+        Array.from(data).forEach((v, i) => {
+            if (!v) {
+                const placeholder = document.createElement('input');
+                placeholder.type = 'hidden'; placeholder.className = 'gen';
+                placeholder.name = 'rows[' + i + ']'; placeholder.value = '';
+                form.appendChild(placeholder);
+                return;
+            }
             COLS.forEach((c, j) => {
                 let val = v[j];
                 if (c.tipe === 'tgl' && val) { const p = val.split('-'), months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Mei:5,Jun:6,Jul:7,Aug:8,Agu:8,Sep:9,Oct:10,Okt:10,Nov:11,Dec:12,Des:12}; val = '20' + p[2] + '-' + String(months[p[1]]).padStart(2,'0') + '-' + p[0]; }  // -> Y-m-d

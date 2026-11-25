@@ -42,6 +42,24 @@ class PrintMpdf extends BaseController
             return redirect()->back()->with('error', 'Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');
         }
         log_message('debug', '[print:{id}] mPDF size validation passed sizes={sizes}', ['id' => $requestId, 'sizes' => json_encode($selectedSizes)]);
+        $productsById = [];
+        foreach (array_unique(array_map('intval', $tagIds)) as $tagId) {
+            $query = $model->where('id', $tagId);
+            if ($importId > 0) {
+                $query->where('import_id', $importId);
+            } else {
+                $query->where('uploaded_by', (int) session()->get('id'))
+                      ->where('import_date', date('Y-m-d'));
+            }
+            $tag = $query->first();
+            if ($tag !== null) {
+                $productsById[$tagId] = $tag;
+            }
+        }
+        if ($rejection = $this->rejectInvalidPrintDiscounts($productsById)) {
+            return $rejection;
+        }
+
         $pairItemsByTopId = [];
         $pairedIds = [];
         $rawPairs = $this->request->getPost('vegetable_pairs');
@@ -49,17 +67,6 @@ class PrintMpdf extends BaseController
             if (! is_array($rawPairs)) {
                 return redirect()->back()->with('error', 'Format pasangan Vegetable Tanggung tidak valid.');
             }
-            $findAccessibleTag = static function (MpdfPriceTagModel $model, int $id, int $importId): ?array {
-                $query = $model->where('id', $id);
-                if ($importId > 0) {
-                    $query->where('import_id', $importId);
-                } else {
-                    $query->where('uploaded_by', (int) session()->get('id'))
-                        ->where('import_date', date('Y-m-d'));
-                }
-                $tag = $query->first();
-                return is_array($tag) ? $tag : null;
-            };
             foreach ($rawPairs as $pair) {
                 if (! is_array($pair)) {
                     return redirect()->back()->with('error', 'Pasangan Vegetable Tanggung tidak lengkap.');
@@ -83,8 +90,8 @@ class PrintMpdf extends BaseController
                 if (! ctype_digit((string) $qty) || (int) $qty <= 0) {
                     return redirect()->back()->with('error', 'Qty pasangan Vegetable Tanggung harus berupa integer positif.');
                 }
-                $top = $findAccessibleTag($model, $topId, $importId);
-                $bottom = $findAccessibleTag($model, $bottomId, $importId);
+                $top = $productsById[$topId] ?? null;
+                $bottom = $productsById[$bottomId] ?? null;
                 if ($top === null || $bottom === null) {
                     return redirect()->back()->with('error', 'Produk pasangan tidak ditemukan atau tidak dapat diakses.');
                 }
@@ -123,14 +130,7 @@ class PrintMpdf extends BaseController
             if (isset($pairedIds[(int) $tagId])) {
                 continue;
             }
-            $query = $model->where('id', (int) $tagId);
-            if ($importId > 0) {
-                $query->where('import_id', $importId);
-            } else {
-                $query->where('uploaded_by', (int) session()->get('id'))
-                      ->where('import_date', date('Y-m-d'));
-            }
-            $tag = $query->first();
+            $tag = $productsById[(int) $tagId] ?? null;
             if ($tag === null) {
                 continue;
             }
@@ -140,7 +140,7 @@ class PrintMpdf extends BaseController
             }
 
             // Vegetable Tanggung adalah template non-promo: selalu gunakan
-            // normal_price dan jangan masuk ke validasi/mapping diskon.
+            // normal_price untuk menentukan harga yang dirender.
             if ($size === 'vegetable_tgg') {
                 $normalPrice = $tag['normal_price'] ?? null;
                 if (! is_numeric($normalPrice) || (float) $normalPrice <= 0) {
