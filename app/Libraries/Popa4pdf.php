@@ -481,10 +481,37 @@ class PopA4Pdf
     private array $bulanPendek = [1 => 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL',
                                   'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
 
+    private ?SegitigaKecilDiskonRenderer $smallTriangleRenderer = null;
+
     public function __construct(string $template = 'a4')
     {
         $d  = (new ConfigVariables())->getDefaults();
         $fd = (new FontVariables())->getDefaults();
+
+        if ($template === 'segitiga_kecil_diskon') {
+            $fontDir = FCPATH . 'assets/fonts/';
+            $fontPaths = [
+                'calibri' => $fontDir . 'calibrib.ttf',
+                'poppins' => $fontDir . 'Poppins-SemiBold.ttf',
+                'extra' => $fontDir . 'Poppins-ExtraBold.ttf',
+                'century' => $fontDir . 'CENTURY.TTF',
+            ];
+            // fontConfig() registers the families returned by fontAliases().
+            $fontConfig = SegitigaKecilDiskonRenderer::fontConfig($fontPaths);
+            $this->smallTriangleRenderer = new SegitigaKecilDiskonRenderer(
+                $fontPaths,
+                FCPATH . 'assets/img/Picture3-ketinggian.png'
+            );
+            $this->mpdf = new Mpdf([
+                'mode' => 'utf-8', 'format' => 'A4', 'orientation' => 'L',
+                'margin_left' => 0, 'margin_right' => 0, 'margin_top' => 0, 'margin_bottom' => 0,
+                'autoPageBreak' => false, 'tempDir' => WRITEPATH . 'mpdf',
+                'fontDir' => array_values(array_unique(array_merge($d['fontDir'], $fontConfig['fontDir']))),
+                'fontdata' => array_merge($fd['fontdata'], $fontConfig['fontdata']),
+                'default_font' => 'arial',
+            ]);
+            return;
+        }
 
         // Font semua desain digabung di sini supaya bisa dipakai mPDF.
         $fontdata = self::A4_FONTS + self::SEG_FONTS + self::A5_FONTS + self::PTG_FONTS;
@@ -637,6 +664,19 @@ class PopA4Pdf
      */
     public function renderMixed(array $groups): string
     {
+        if (isset($groups['segitiga_kecil_diskon'])) {
+            if ($this->smallTriangleRenderer === null || count($groups) !== 1) {
+                throw new \InvalidArgumentException('Segitiga Kecil memerlukan pekerjaan cetak tersendiri.');
+            }
+            foreach ($groups['segitiga_kecil_diskon'] as $item) {
+                for ($page = 0; $page < $item['qty']; $page++) {
+                    $this->mpdf->AddPage('L');
+                    $this->smallTriangleRenderer->renderOnPage($this->mpdf, $item['row']);
+                }
+            }
+            return $this->mpdf->Output('', 'S');
+        }
+
         log_message('debug', '[print] PopA4Pdf renderMixed groups={groups} items={items}', ['groups' => count($groups), 'items' => array_sum(array_map('count', $groups))]);
         $first = true;
         foreach ($groups as $template => $items) {

@@ -3,7 +3,10 @@
 namespace App\Controllers;
 
 use App\Models\MpdfPriceTagModel;
+use App\Models\ImportHistoryModel;
 use App\Libraries\PopA4Pdf;
+use DateTimeImmutable;
+use InvalidArgumentException;
 
 class PrintMpdf extends BaseController
 {
@@ -23,6 +26,13 @@ class PrintMpdf extends BaseController
         $model = new MpdfPriceTagModel();
         $groups = [];
         $sizes  = (array) $this->request->getPost('size');
+        if (in_array('segitiga_kecil', $sizes, true)) {
+            foreach ($tagIds as $id) {
+                if ($this->positiveInteger($id) === null) {
+                    return $this->rejectSmallTriangle('ID produk Segitiga Kecil tidak valid.');
+                }
+            }
+        }
         $matchedSizes = array_intersect_key($sizes, array_flip($tagIds));
         log_message('debug', '[print:{id}] mPDF size payload tag_ids={ids} size_keys={keys} size_values={values} matched={matched}', [
             'id' => $requestId,
@@ -40,6 +50,21 @@ class PrintMpdf extends BaseController
         if (count($selectedSizes) > 1) {
             log_message('debug', '[print:{id}] mPDF validation rejected mixed sizes={sizes}', ['id' => $requestId, 'sizes' => json_encode($selectedSizes)]);
             return redirect()->back()->with('error', 'Tidak dapat mencetak beberapa ukuran template sekaligus. Silakan pilih produk dengan ukuran template yang sama.');
+        }
+        $isSmallTriangle = $selectedSizes === ['segitiga_kecil'];
+        if ($isSmallTriangle) {
+            $requestedImport = $this->positiveInteger($this->request->getPost('import_id'));
+            $outletId = session()->get('outlet_id');
+            if ($requestedImport === null || !(new ImportHistoryModel())->findVisibleImport(
+                $requestedImport,
+                (string) session()->get('role'),
+                $outletId === null ? null : (int) $outletId
+            )) {
+                return $this->rejectSmallTriangle('Riwayat produk Segitiga Kecil tidak ditemukan atau tidak dapat diakses.');
+            }
+            if (count(array_unique(array_map('intval', $tagIds))) !== count($tagIds)) {
+                return $this->rejectSmallTriangle('Produk Segitiga Kecil yang sama tidak boleh dipilih lebih dari sekali.');
+            }
         }
         log_message('debug', '[print:{id}] mPDF size validation passed sizes={sizes}', ['id' => $requestId, 'sizes' => json_encode($selectedSizes)]);
         $productsById = [];
@@ -63,6 +88,9 @@ class PrintMpdf extends BaseController
         $pairItemsByTopId = [];
         $pairedIds = [];
         $rawPairs = $this->request->getPost('vegetable_pairs');
+        if ($isSmallTriangle && $rawPairs !== null && $rawPairs !== []) {
+            return $this->rejectSmallTriangle('Segitiga Kecil tidak mendukung pasangan Vegetable Tanggung.');
+        }
         if ($rawPairs !== null) {
             if (! is_array($rawPairs)) {
                 return redirect()->back()->with('error', 'Format pasangan Vegetable Tanggung tidak valid.');
@@ -131,6 +159,31 @@ class PrintMpdf extends BaseController
                 continue;
             }
             $tag = $productsById[(int) $tagId] ?? null;
+            if ($isSmallTriangle) {
+                if ($tag === null) {
+                    return $this->rejectSmallTriangle("Produk ID {$tagId} tidak ditemukan pada riwayat yang dipilih.");
+                }
+                if (($tag['template_size'] ?? null) !== 'segitiga_kecil' || ($sizes[$tagId] ?? null) !== 'segitiga_kecil') {
+                    return $this->rejectSmallTriangle('Ukuran produk harus Segitiga Kecil dan sesuai dengan permintaan.', $tag);
+                }
+                if ((int) ($tag['discount_percent'] ?? 0) === 0) {
+                    return $this->rejectSmallTriangle(
+                        'Segitiga Kecil saat ini hanya mendukung produk dengan diskon 1–99%.',
+                        $tag,
+                        true
+                    );
+                }
+                $qty = $this->positiveInteger($qtyMap[$tagId] ?? null);
+                if ($qty === null) {
+                    return $this->rejectSmallTriangle('Qty Cetak harus berupa bilangan bulat positif.', $tag);
+                }
+                try {
+                    $groups['segitiga_kecil_diskon'][] = ['row' => $this->smallTriangleProduct($tag), 'qty' => $qty];
+                } catch (InvalidArgumentException $e) {
+                    return $this->rejectSmallTriangle($e->getMessage(), $tag);
+                }
+                continue;
+            }
             if ($tag === null) {
                 continue;
             }
@@ -203,7 +256,7 @@ class PrintMpdf extends BaseController
         }
 
         try {
-            $contents = (new PopA4Pdf())->renderMixed($groups);
+            $contents = (new PopA4Pdf($isSmallTriangle ? 'segitiga_kecil_diskon' : 'a4'))->renderMixed($groups);
             log_message('debug', '[print:{id}] mPDF rendered groups={groups} bytes={bytes}', ['id' => $requestId, 'groups' => count($groups), 'bytes' => strlen($contents)]);
             $token = bin2hex(random_bytes(16));
             $dir = WRITEPATH . 'pricetag_downloads/';
@@ -226,6 +279,81 @@ class PrintMpdf extends BaseController
             log_message('error', '[print:{id}] PrintMpdf failed: {message} at {file}:{line}', ['id' => $requestId, 'message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
             return redirect()->back()->with('error', 'Gagal membuat PDF. Silakan periksa pilihan template dan coba lagi.');
         }
+    }
+
+    private function positiveInteger(mixed $input): ?int
+    {
+        if ((!is_int($input) && !is_string($input)) || !ctype_digit((string) $input)) {
+            return null;
+        }
+        $value = filter_var(ltrim((string) $input, '0'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        return $value === false ? null : $value;
+    }
+
+    private function smallTriangleProduct(array $tag): array
+    {
+        $normal = $this->positiveInteger($tag['normal_price'] ?? null);
+        if ($normal === null) {
+            throw new InvalidArgumentException('Harga Normal harus berupa bilangan bulat positif.');
+        }
+        $plu = (string) ($tag['sku_plu'] ?? '');
+        if (!ctype_digit($plu)) {
+            throw new InvalidArgumentException('PLU harus berisi angka.');
+        }
+        $brand = trim((string) ($tag['name'] ?? ''));
+        $variant = trim((string) ($tag['variant'] ?? ''));
+        if (preg_match('/\A\s*\z/u', $variant) === 1) {
+            $variant = '';
+        }
+        if ($brand === '' || preg_match('/[\p{C}\p{Zl}\p{Zp}]/u', $brand . $variant) !== 0
+            || trim(str_replace("\u{00A0}", ' ', $brand)) === '') {
+            throw new InvalidArgumentException('Nama produk wajib diisi dan nama serta varian harus berupa teks satu baris.');
+        }
+        $end = (string) ($tag['end_period'] ?? '');
+        $date = preg_match('/\A[0-9]{4}-[0-9]{2}-[0-9]{2}\z/', $end)
+            ? DateTimeImmutable::createFromFormat('!Y-m-d', $end)
+            : false;
+        if ($date === false || $date->format('Y-m-d') !== $end || (int) $date->format('Y') < 1) {
+            throw new InvalidArgumentException('Akhir Periode harus berupa tanggal yang valid.');
+        }
+        $months = [1 => 'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
+            'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
+        $discount = (int) $tag['discount_percent']; // Already validated by the global print guard.
+
+        return [
+            'brand' => $brand,
+            'variant' => $variant,
+            'plu' => $plu,
+            'normal' => $normal,
+            'promo' => (int) round($normal * (1 - $discount / 100)),
+            'discount' => $discount,
+            'period' => $date->format('j') . ' ' . $months[(int) $date->format('n')] . ' ' . $date->format('Y'),
+            'allocation' => $tag['allocation_pcs'] ?? null,
+        ];
+    }
+
+    private function rejectSmallTriangle(string $message, ?array $tag = null, bool $discountRequired = false)
+    {
+        $products = $tag === null ? [] : [[
+            'id' => (int) $tag['id'],
+            'plu' => (string) $tag['sku_plu'],
+            'name' => (string) $tag['name'],
+            'discount_percent' => $tag['discount_percent'],
+            'reason' => $message,
+        ]];
+        if ($this->request->isAJAX()) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'code' => $discountRequired ? 'invalid_print_discount' : 'invalid_small_triangle_print',
+                'message' => $message,
+                'products' => $products,
+                'guidance' => 'Periksa data produk dan pilihan cetak sebelum mencoba kembali.',
+            ]);
+        }
+
+        if ($tag !== null) {
+            $message .= ' PLU ' . $tag['sku_plu'] . ' | ' . $tag['name'] . '.';
+        }
+        return redirect()->back()->with('error', $message);
     }
 
     public function download(string $token)

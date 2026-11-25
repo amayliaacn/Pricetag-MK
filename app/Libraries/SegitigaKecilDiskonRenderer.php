@@ -65,7 +65,10 @@ final class SegitigaKecilDiskonRenderer
     private function normalize(array $p): array
     {
         $brand = $this->text($p['brand'] ?? '', 'brand');
-        $variant = $this->text($p['variant'] ?? $p['name'] ?? '', 'variant');
+        $rawVariant = array_key_exists('variant', $p) ? $p['variant'] : ($p['name'] ?? '');
+        $variant = $rawVariant === null || (is_string($rawVariant) && preg_match('/\A\s*\z/u', $rawVariant) === 1)
+            ? ''
+            : $this->text($rawVariant, 'variant');
         $plu = $p['plu'] ?? $p['sku_plu'] ?? null;
         if (!is_string($plu) || !preg_match('/\A\d+\z/', $plu)) throw new InvalidArgumentException('plu harus string digit.');
         $normal = $this->integer($p['normal'] ?? $p['normal_price'] ?? null, 'normal');
@@ -90,7 +93,7 @@ final class SegitigaKecilDiskonRenderer
             'brand'=>[10.45,30,121.6,28.58,'calibri','#0000FF'], 'plu'=>[84,8,43,8,'poppins','#111111'],
             'product'=>[19.25,64,104,10,'poppins','#111111'], 'disc'=>[12,84,29,10,'poppins','#111111'],
             'discount'=>[47,81,64,47,'century','#FF0000'], 'percent'=>[116,114,17,14,'poppins','#FF0000'],
-            'normalRp'=>[4.5,138,10,9,'poppins','#FF0000'], 'normal'=>[18,138,52,16,'extra','#111111'],
+            'normalRp'=>[5.75,138,10,9,'poppins','#FF0000'], 'normal'=>[18,138,52,16,'poppins','#111111'],
             'promoRp'=>[59,167,10,9,'poppins','#FF0000'], 'promo'=>[72,154,62,35,'extra','#FF0000'],
         ];
         if ($d['showAllocation']) {
@@ -98,22 +101,29 @@ final class SegitigaKecilDiskonRenderer
         } else {
             $b += ['period'=>[11.05,167.775,45.9,5.1,'poppins','#111111'],'date'=>[12.5,175.775,43,5.1,'poppins','#111111']];
         }
+        [$normalX, , $normalWidthLimit, , $normalFont] = $b['normal'];
+        $normalW = min($normalWidthLimit, max(12, $this->scaledWidth($mpdf, $normalFont, $d['normal'], '6.703', $normalWidthLimit)));
+        $b['normal'][2] = $normalW;
         $img = '<img src="'.htmlspecialchars($this->backgroundPath, ENT_QUOTES, 'UTF-8').'" style="display:block;width:142.5mm;height:200mm;" />';
         $mpdf->WriteFixedPosHTML($img, $px, $py, self::POP_W, self::POP_H, 'auto');
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="142.5mm" height="200mm" viewBox="0 0 142.5 200" preserveAspectRatio="none" style="background:transparent">';
         foreach ($b as $key => [$x,$y,$w,$h,$font,$color]) {
             $text = $d[$key];
+            if ($key === 'product' && $text === '') {
+                continue;
+            }
             if ($key === 'product') { $w = min(104, max(18, $this->scaledWidth($mpdf, 'poppins', $text, 'YOG SLURP 80 STRW', 104))); $x = 71.25 - $w/2; }
-            if ($key === 'normal') { $w = min(52, max(12, $this->scaledWidth($mpdf, 'extra', $text, '6.703', 52))); }
             if ($key === 'promo') { $w = min(62, max(12, $this->scaledWidth($mpdf, 'extra', $text, '3.352', 62))); $x = 134 - $w; }
             if ($key === 'date') { $w = min($w, max(12, $this->scaledWidth($mpdf, 'poppins', $text, '20 APRIL 2025', $w))); $x = 34 - $w/2; }
             $t = $this->measure($mpdf, $font, $text, $w, $h, $x, $y);
-            $svg .= '<g transform="translate('.$t['x'].' '.$t['y'].') scale('.$t['sx'].' '.$t['sy'].')" fill="'.$color.'"><text x="0" y="0" font-family="'.$t['family'].'" font-size="10">'.htmlspecialchars($text, ENT_QUOTES, 'UTF-8').'</text>';
-            if ($key === 'discount' || in_array($key, ['period','date','allocation','still'], true)) $svg .= '<text x="0.18" y="0" font-family="'.$t['family'].'" font-size="10">'.htmlspecialchars($text, ENT_QUOTES, 'UTF-8').'</text>';
+            $stroke = $key === 'discount' ? ' stroke="'.$color.'" stroke-width="0.24"' : '';
+            $svg .= '<g transform="translate('.$t['x'].' '.$t['y'].') scale('.$t['sx'].' '.$t['sy'].')" fill="'.$color.'"><text x="0" y="0" font-family="'.$t['family'].'" font-size="10"'.$stroke.'>'.htmlspecialchars($text, ENT_QUOTES, 'UTF-8').'</text>';
+            if (in_array($key, ['period','date','allocation','still'], true)) {
+                $svg .= '<text x="0.18" y="0" font-family="'.$t['family'].'" font-size="10">'.htmlspecialchars($text, ENT_QUOTES, 'UTF-8').'</text>';
+            }
             $svg .= '</g>';
         }
-        $normalW = $b['normal'][2];
-        $svg .= '<line x1="17.5" y1="154" x2="'.(18 + $normalW + 1.5).'" y2="140" stroke="#FF0000" stroke-width="0.8"/></svg>';
+        $svg .= '<line x1="17.5" y1="154" x2="'.($normalX + $normalW + 1.5).'" y2="140" stroke="#FF0000" stroke-width="0.8"/></svg>';
         $mpdf->WriteFixedPosHTML($svg, $px, $py, self::POP_W, self::POP_H, 'auto');
     }
 

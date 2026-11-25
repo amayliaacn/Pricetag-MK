@@ -15,7 +15,7 @@ class PriceTag extends BaseController
     public function index()
     {
         $templateFilter = (string) ($this->request->getGet('template') ?? 'all');
-        $allowedTemplateFilters = ['all', 'kcl', 'tgg', 'mpdf', 'pricetag', 'a5', 'segitiga', 'fresh', 'curah', 'vegetable_tgg'];
+        $allowedTemplateFilters = ['all', 'kcl', 'tgg', 'mpdf', 'pricetag', 'a5', 'segitiga', 'segitiga_kecil', 'fresh', 'curah', 'vegetable_tgg'];
         if (! in_array($templateFilter, $allowedTemplateFilters, true)) {
             $templateFilter = 'all';
         }
@@ -290,7 +290,7 @@ class PriceTag extends BaseController
     public function updateTemplate(int $id)
     {
         $size = (string) $this->request->getPost('template_size');
-        if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga', 'vegetable_tgg'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
+        if ($size !== '' && ! in_array($size, ['kcl', 'tgg', 'mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga', 'segitiga_kecil', 'vegetable_tgg'], true)) return redirect()->back()->with('error', 'Ukuran template tidak valid.');
         if ($id === 0 && (int) $this->request->getGet('import_id') > 0) {
             $historyTable = db_connect()->table('import_history');
             $history = $historyTable->where('id', (int) $this->request->getGet('import_id'))->get()->getRowArray();
