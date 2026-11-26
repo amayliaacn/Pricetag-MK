@@ -482,13 +482,14 @@ class PopA4Pdf
                                   'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
 
     private ?SegitigaKecilDiskonRenderer $smallTriangleRenderer = null;
+    private ?SegitigaKecilTurunHargaRenderer $smallTriangleTurunHargaRenderer = null;
 
     public function __construct(string $template = 'a4')
     {
         $d  = (new ConfigVariables())->getDefaults();
         $fd = (new FontVariables())->getDefaults();
 
-        if ($template === 'segitiga_kecil_diskon') {
+        if (in_array($template, ['segitiga_kecil_diskon', 'segitiga_kecil_turun_harga'], true)) {
             $fontDir = FCPATH . 'assets/fonts/';
             $fontPaths = [
                 'calibri' => $fontDir . 'calibrib.ttf',
@@ -498,16 +499,26 @@ class PopA4Pdf
             ];
             // fontConfig() registers the families returned by fontAliases().
             $fontConfig = SegitigaKecilDiskonRenderer::fontConfig($fontPaths);
+            $turunFontPaths = [
+                'calibri' => $fontDir . 'calibrib.ttf',
+                'poppins' => $fontDir . 'Poppins-SemiBold.ttf',
+                'extra' => $fontDir . 'Poppins-ExtraBold.ttf',
+            ];
+            $turunFontConfig = SegitigaKecilTurunHargaRenderer::fontConfig($turunFontPaths);
             $this->smallTriangleRenderer = new SegitigaKecilDiskonRenderer(
                 $fontPaths,
+                FCPATH . 'assets/img/Picture3-ketinggian.png'
+            );
+            $this->smallTriangleTurunHargaRenderer = new SegitigaKecilTurunHargaRenderer(
+                $turunFontPaths,
                 FCPATH . 'assets/img/Picture3-ketinggian.png'
             );
             $this->mpdf = new Mpdf([
                 'mode' => 'utf-8', 'format' => 'A4', 'orientation' => 'L',
                 'margin_left' => 0, 'margin_right' => 0, 'margin_top' => 0, 'margin_bottom' => 0,
                 'autoPageBreak' => false, 'tempDir' => WRITEPATH . 'mpdf',
-                'fontDir' => array_values(array_unique(array_merge($d['fontDir'], $fontConfig['fontDir']))),
-                'fontdata' => array_merge($fd['fontdata'], $fontConfig['fontdata']),
+                'fontDir' => array_values(array_unique(array_merge($d['fontDir'], $fontConfig['fontDir'], $turunFontConfig['fontDir']))),
+                'fontdata' => array_merge($fd['fontdata'], $fontConfig['fontdata'], $turunFontConfig['fontdata']),
                 'default_font' => 'arial',
             ]);
             return;
@@ -664,14 +675,42 @@ class PopA4Pdf
      */
     public function renderMixed(array $groups): string
     {
-        if (isset($groups['segitiga_kecil_diskon'])) {
-            if ($this->smallTriangleRenderer === null || count($groups) !== 1) {
+        if (isset($groups['segitiga_kecil_ordered'])) {
+            if (count($groups) !== 1 || $this->smallTriangleRenderer === null || $this->smallTriangleTurunHargaRenderer === null) {
+                throw new \InvalidArgumentException('Segitiga Kecil ordered batch memerlukan pekerjaan cetak tersendiri.');
+            }
+            foreach ($groups['segitiga_kecil_ordered'] as $item) {
+                $rendererKey = $item['renderer'] ?? null;
+                $renderer = match ($rendererKey) {
+                    'segitiga_kecil_diskon' => $this->smallTriangleRenderer,
+                    'segitiga_kecil_turun_harga' => $this->smallTriangleTurunHargaRenderer,
+                    default => throw new \InvalidArgumentException('Renderer Segitiga Kecil tidak valid.'),
+                };
+                $qty = $item['qty'] ?? null;
+                if (!is_int($qty) || $qty <= 0) throw new \InvalidArgumentException('Qty Segitiga Kecil harus berupa integer positif.');
+                for ($page = 0; $page < $qty; $page++) {
+                    $this->mpdf->AddPage('L');
+                    $renderer->renderOnPage($this->mpdf, $item['row']);
+                }
+            }
+            return $this->mpdf->Output('', 'S');
+        }
+        if (isset($groups['segitiga_kecil_diskon']) || isset($groups['segitiga_kecil_turun_harga'])) {
+            $allowed = array_filter(array_keys($groups), static fn (string $key): bool => in_array($key, ['segitiga_kecil_diskon', 'segitiga_kecil_turun_harga'], true));
+            if (count($allowed) !== count($groups) || $this->smallTriangleRenderer === null || $this->smallTriangleTurunHargaRenderer === null) {
                 throw new \InvalidArgumentException('Segitiga Kecil memerlukan pekerjaan cetak tersendiri.');
             }
-            foreach ($groups['segitiga_kecil_diskon'] as $item) {
-                for ($page = 0; $page < $item['qty']; $page++) {
-                    $this->mpdf->AddPage('L');
-                    $this->smallTriangleRenderer->renderOnPage($this->mpdf, $item['row']);
+            foreach ($groups as $rendererKey => $items) {
+                $renderer = $rendererKey === 'segitiga_kecil_diskon' ? $this->smallTriangleRenderer : $this->smallTriangleTurunHargaRenderer;
+                foreach ($items as $item) {
+                    $qty = $item['qty'] ?? null;
+                    if (!is_int($qty) || $qty <= 0) {
+                        throw new \InvalidArgumentException('Qty Segitiga Kecil harus berupa integer positif.');
+                    }
+                    for ($page = 0; $page < $qty; $page++) {
+                        $this->mpdf->AddPage('L');
+                        $renderer->renderOnPage($this->mpdf, $item['row']);
+                    }
                 }
             }
             return $this->mpdf->Output('', 'S');

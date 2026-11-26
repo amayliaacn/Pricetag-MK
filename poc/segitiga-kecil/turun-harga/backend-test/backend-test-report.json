@@ -1,0 +1,34 @@
+{
+    "status": "PASS",
+    "outputs": {
+        "turun": "C:\\xampp\\htdocs\\price-tag\\poc\\segitiga-kecil\\turun-harga\\backend-test/segitiga-kecil-turun-harga-backend-valid.pdf",
+        "turunPluV2": "C:\\xampp\\htdocs\\price-tag\\poc\\segitiga-kecil\\turun-harga\\backend-test/segitiga-kecil-turun-harga-backend-valid-v2.pdf",
+        "diskon": "C:\\xampp\\htdocs\\price-tag\\poc\\segitiga-kecil\\turun-harga\\backend-test/segitiga-kecil-diskon-backend-regression.pdf"
+    },
+    "scenarios": [
+        "allocation",
+        "non-allocation",
+        "qty-1",
+        "qty-2",
+        "qty-3",
+        "discount-regression-allocation",
+        "discount-regression-non-allocation"
+    ],
+    "pageMapping": {
+        "turun": {
+            "1": "allocation qty1",
+            "2": "non-allocation qty1",
+            "3": "qty1",
+            "4-5": "qty2",
+            "6-8": "qty3"
+        },
+        "diskon": {
+            "1": "allocation",
+            "2": "non-allocation"
+        }
+    },
+    "notes": [
+        "CLI harness menggunakan PopA4Pdf dan library renderer melalui public API; HTTP/session/database belum diuji.",
+        "Tanggal invalid tidak diteruskan ke renderer karena controller PrintMpdf sudah memvalidasi format Y-m-d dengan DateTimeImmutable."
+    ]
+}

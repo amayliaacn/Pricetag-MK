@@ -1,0 +1,95 @@
+{
+    "tests": {
+        "test-c-diskon-turun-diskon": {
+            "path": "C:\\xampp\\htdocs\\price-tag\\poc\\segitiga-kecil\\turun-harga\\backend-test\\stage-12a3/test-c-diskon-turun-diskon.pdf",
+            "pages": 6,
+            "expectedSkuOrder": [
+                "100001",
+                "100001",
+                "200001",
+                "300001",
+                "300001",
+                "300001"
+            ],
+            "status": "PASS"
+        },
+        "test-d-turun-diskon-turun": {
+            "path": "C:\\xampp\\htdocs\\price-tag\\poc\\segitiga-kecil\\turun-harga\\backend-test\\stage-12a3/test-d-turun-diskon-turun.pdf",
+            "pages": 4,
+            "expectedSkuOrder": [
+                "400001",
+                "500001",
+                "500001",
+                "600001"
+            ],
+            "status": "PASS"
+        },
+        "test-e-four-designs": {
+            "path": "C:\\xampp\\htdocs\\price-tag\\poc\\segitiga-kecil\\turun-harga\\backend-test\\stage-12a3/test-e-four-designs.pdf",
+            "pages": 4,
+            "expectedSkuOrder": [
+                "700001",
+                "800001",
+                "900001",
+                "100002"
+            ],
+            "status": "PASS"
+        }
+    },
+    "notes": [
+        "Harness menguji PopA4Pdf ordered batch; controller HTTP tidak dipanggil.",
+        "PDF text extraction tool tidak tersedia, sehingga urutan dicatat dari input ordered dan nomor halaman."
+    ],
+    "selectionMatrix": [
+        {
+            "discount_percent": 1,
+            "promo_price": null,
+            "expected": "segitiga_kecil_diskon"
+        },
+        {
+            "discount_percent": 5,
+            "promo_price": null,
+            "expected": "segitiga_kecil_diskon"
+        },
+        {
+            "discount_percent": 9,
+            "promo_price": null,
+            "expected": "segitiga_kecil_diskon"
+        },
+        {
+            "discount_percent": 10,
+            "promo_price": null,
+            "expected": "segitiga_kecil_diskon"
+        },
+        {
+            "discount_percent": 50,
+            "promo_price": null,
+            "expected": "segitiga_kecil_diskon"
+        },
+        {
+            "discount_percent": 99,
+            "promo_price": null,
+            "expected": "segitiga_kecil_diskon"
+        },
+        {
+            "discount_percent": null,
+            "promo_price": 8500,
+            "expected": "segitiga_kecil_turun_harga"
+        },
+        {
+            "discount_percent": 0,
+            "promo_price": 8500,
+            "expected": "segitiga_kecil_turun_harga"
+        },
+        {
+            "discount_percent": null,
+            "promo_price": null,
+            "expected": "reject"
+        },
+        {
+            "discount_percent": 0,
+            "promo_price": null,
+            "expected": "reject"
+        }
+    ]
+}

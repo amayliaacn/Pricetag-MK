@@ -25,6 +25,7 @@ class PrintMpdf extends BaseController
 
         $model = new MpdfPriceTagModel();
         $groups = [];
+        $smallTriangleOrdered = [];
         $sizes  = (array) $this->request->getPost('size');
         if (in_array('segitiga_kecil', $sizes, true)) {
             foreach ($tagIds as $id) {
@@ -166,7 +167,7 @@ class PrintMpdf extends BaseController
                 if (($tag['template_size'] ?? null) !== 'segitiga_kecil' || ($sizes[$tagId] ?? null) !== 'segitiga_kecil') {
                     return $this->rejectSmallTriangle('Ukuran produk harus Segitiga Kecil dan sesuai dengan permintaan.', $tag);
                 }
-                if ((int) ($tag['discount_percent'] ?? 0) === 0) {
+                if ((int) ($tag['discount_percent'] ?? 0) === 0 && (float) ($tag['promo_price'] ?? 0) <= 0) {
                     return $this->rejectSmallTriangle(
                         'Segitiga Kecil saat ini hanya mendukung produk dengan diskon 1–99%.',
                         $tag,
@@ -178,7 +179,15 @@ class PrintMpdf extends BaseController
                     return $this->rejectSmallTriangle('Qty Cetak harus berupa bilangan bulat positif.', $tag);
                 }
                 try {
-                    $groups['segitiga_kecil_diskon'][] = ['row' => $this->smallTriangleProduct($tag), 'qty' => $qty];
+                    $hasPercentagePromo = (int) ($tag['discount_percent'] ?? 0) > 0;
+                    $hasNominalPromo = (float) ($tag['promo_price'] ?? 0) > 0;
+                    $useDiscountRenderer = $hasPercentagePromo;
+                    $rendererKey = $useDiscountRenderer ? 'segitiga_kecil_diskon' : 'segitiga_kecil_turun_harga';
+                    $product = $useDiscountRenderer ? $this->smallTriangleProduct($tag) : $this->smallTriangleTurunHargaProduct($tag);
+                    if (!$hasPercentagePromo && !$hasNominalPromo) {
+                        throw new InvalidArgumentException('Segitiga Kecil memerlukan Program Promo persentase atau Harga Promo nominal yang valid.');
+                    }
+                    $smallTriangleOrdered[] = ['renderer' => $rendererKey, 'row' => $product, 'qty' => $qty];
                 } catch (InvalidArgumentException $e) {
                     return $this->rejectSmallTriangle($e->getMessage(), $tag);
                 }
@@ -250,6 +259,11 @@ class PrintMpdf extends BaseController
                 'row' => $tag,
                 'qty' => max(1, (int) ($qtyMap[$tagId] ?? 1)),
             ];
+        }
+        if ($groups === []) {
+            if ($smallTriangleOrdered !== []) {
+                $groups['segitiga_kecil_ordered'] = $smallTriangleOrdered;
+            }
         }
         if ($groups === []) {
             return redirect()->back()->with('error', 'Produk tidak ditemukan.');
@@ -330,6 +344,30 @@ class PrintMpdf extends BaseController
             'period' => $date->format('j') . ' ' . $months[(int) $date->format('n')] . ' ' . $date->format('Y'),
             'allocation' => $tag['allocation_pcs'] ?? null,
         ];
+    }
+
+    private function smallTriangleTurunHargaProduct(array $tag): array
+    {
+        $normal = $this->positiveInteger($tag['normal_price'] ?? null);
+        if ($normal === null) throw new InvalidArgumentException('Harga Normal harus berupa bilangan bulat positif.');
+        $plu = (string) ($tag['sku_plu'] ?? '');
+        if (!ctype_digit($plu)) throw new InvalidArgumentException('PLU harus berisi angka.');
+        $brand = trim((string) ($tag['name'] ?? ''));
+        $variant = trim((string) ($tag['variant'] ?? ''));
+        if ($brand === '' || preg_match('/[\p{C}\p{Zl}\p{Zp}]/u', $brand . $variant) !== 0
+            || trim(str_replace("\u{00A0}", ' ', $brand)) === '') {
+            throw new InvalidArgumentException('Nama produk wajib diisi dan nama serta varian harus berupa teks satu baris.');
+        }
+        $end = (string) ($tag['end_period'] ?? '');
+        $date = preg_match('/\A[0-9]{4}-[0-9]{2}-[0-9]{2}\z/', $end)
+            ? DateTimeImmutable::createFromFormat('!Y-m-d', $end) : false;
+        if ($date === false || $date->format('Y-m-d') !== $end || (int) $date->format('Y') < 1) {
+            throw new InvalidArgumentException('Akhir Periode harus berupa tanggal yang valid.');
+        }
+        $promo = $this->calculatePromoPrice($tag);
+        if ($promo === null) throw new InvalidArgumentException('Segitiga Kecil Turun Harga memerlukan Harga Promo atau Diskon yang valid.');
+        $months = [1 => 'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
+        return ['brand'=>$brand,'variant'=>$variant,'sku_plu'=>$plu,'normal_price'=>$normal,'promo_price'=>$promo,'end_period'=>$date->format('j').' '.$months[(int) $date->format('n')].' '.$date->format('Y'),'allocation_pcs'=>$tag['allocation_pcs'] ?? null];
     }
 
     private function rejectSmallTriangle(string $message, ?array $tag = null, bool $discountRequired = false)
