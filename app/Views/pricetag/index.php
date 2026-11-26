@@ -216,7 +216,7 @@
         <div class="control-divider d-none d-lg-block"></div>
         <div class="size-group">
             <label for="filterUkuran" class="control-label">Filter Template POP</label>
-            <select id="filterUkuran" class="form-select"><option value="all" <?= ($templateFilter ?? 'all') === 'all' ? 'selected' : '' ?>>Semua Ukuran</option><option value="kcl" <?= ($templateFilter ?? '') === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="tgg" <?= ($templateFilter ?? '') === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="mpdf" <?= ($templateFilter ?? '') === 'mpdf' ? 'selected' : '' ?>>A4</option><option value="pricetag" <?= ($templateFilter ?? '') === 'pricetag' ? 'selected' : '' ?>>Price Tag</option><option value="a5" <?= ($templateFilter ?? '') === 'a5' ? 'selected' : '' ?>>A5</option><option value="segitiga" <?= ($templateFilter ?? '') === 'segitiga' ? 'selected' : '' ?>>Segitiga</option><option value="fresh" <?= ($templateFilter ?? '') === 'fresh' ? 'selected' : '' ?>>Butcher</option><option value="curah" <?= ($templateFilter ?? '') === 'curah' ? 'selected' : '' ?>>Vegetable</option><option value="vegetable_tgg" <?= ($templateFilter ?? '') === 'vegetable_tgg' ? 'selected' : '' ?>>Vegetable Tanggung</option></select>
+            <select id="filterUkuran" class="form-select"><option value="all" <?= ($templateFilter ?? 'all') === 'all' ? 'selected' : '' ?>>Semua Ukuran</option><option value="kcl" <?= ($templateFilter ?? '') === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="tgg" <?= ($templateFilter ?? '') === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="mpdf" <?= ($templateFilter ?? '') === 'mpdf' ? 'selected' : '' ?>>A4</option><option value="pricetag" <?= ($templateFilter ?? '') === 'pricetag' ? 'selected' : '' ?>>Price Tag</option><option value="a5" <?= ($templateFilter ?? '') === 'a5' ? 'selected' : '' ?>>A5</option><option value="segitiga" <?= ($templateFilter ?? '') === 'segitiga' ? 'selected' : '' ?>>Segitiga</option><option value="segitiga_kecil" <?= ($templateFilter ?? '') === 'segitiga_kecil' ? 'selected' : '' ?>>Segitiga Kecil</option><option value="fresh" <?= ($templateFilter ?? '') === 'fresh' ? 'selected' : '' ?>>Butcher</option><option value="curah" <?= ($templateFilter ?? '') === 'curah' ? 'selected' : '' ?>>Vegetable</option><option value="vegetable_tgg" <?= ($templateFilter ?? '') === 'vegetable_tgg' ? 'selected' : '' ?>>Vegetable Tanggung</option></select>
         </div>
 
         <button type="button" id="btnCetak" class="btn btn-danger" disabled>
@@ -268,7 +268,7 @@
 
         <div id="product-table-header" class="card shadow-sm detail-table-card">
             <div class="card-body p-0">
-                <div class="px-3 pt-3 d-flex justify-content-between gap-3 detail-table-header"><div class="detail-table-title"><h4 class="mb-1"><i class="bi bi-database text-warning me-2"></i>Data Produk</h4><p class="text-muted mb-0"><?= $isManualDetail ? 'Daftar produk yang diinput manual dari file ' . esc($history['file_name']) . '.' : 'Daftar produk yang diimport dari file Excel.' ?></p></div><div class="d-flex align-items-center justify-content-end gap-2 bulk-template-control"><span id="bulkTemplateCount" class="badge bulk-template-count">0 produk dipilih</span><span class="bulk-template-divider" aria-hidden="true"></span><div class="bulk-template-group"><span class="bulk-template-label"><i class="bi bi-layers-fill me-1"></i>Atur Template</span><select id="bulkTemplateSize" class="form-select form-select-sm bulk-template-select" aria-label="Ukuran template untuk produk terpilih"><option value="">Pilih ukuran</option><option value="kcl">Kecil</option><option value="tgg">Tanggung</option><option value="mpdf">A4</option><option value="pricetag">Price Tag</option><option value="a5">A5</option><option value="segitiga">Segitiga</option><option value="fresh">Butcher</option><option value="curah">Vegetable</option><option value="vegetable_tgg">Vegetable Tanggung</option></select><button type="button" id="btnApplyTemplate" class="btn btn-apply-template btn-sm text-nowrap" disabled><i class="bi bi-check-lg me-1"></i>Terapkan</button></div><?php if ($isManualDetail): ?><a class="btn btn-primary btn-sm text-nowrap" href="<?= base_url('import-history/manual/' . (int) $history['id']) ?>"><i class="bi bi-plus-lg me-1"></i>Tambah Produk</a><?php else: ?><button type="button" class="btn btn-primary btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalTambah"><i class="bi bi-plus-lg me-1"></i>Tambah Produk</button><?php endif; ?></div></div>
+                <div class="px-3 pt-3 d-flex justify-content-between gap-3 detail-table-header"><div class="detail-table-title"><h4 class="mb-1"><i class="bi bi-database text-warning me-2"></i>Data Produk</h4><p class="text-muted mb-0"><?= $isManualDetail ? 'Daftar produk yang diinput manual dari file ' . esc($history['file_name']) . '.' : 'Daftar produk yang diimport dari file Excel.' ?></p></div><div class="d-flex align-items-center justify-content-end gap-2 bulk-template-control"><span id="bulkTemplateCount" class="badge bulk-template-count">0 produk dipilih</span><span class="bulk-template-divider" aria-hidden="true"></span><div class="bulk-template-group"><span class="bulk-template-label"><i class="bi bi-layers-fill me-1"></i>Atur Template</span><select id="bulkTemplateSize" class="form-select form-select-sm bulk-template-select" aria-label="Ukuran template untuk produk terpilih"><option value="">Pilih ukuran</option><option value="kcl">Kecil</option><option value="tgg">Tanggung</option><option value="mpdf">A4</option><option value="pricetag">Price Tag</option><option value="a5">A5</option><option value="segitiga">Segitiga</option><option value="segitiga_kecil">Segitiga Kecil</option><option value="fresh">Butcher</option><option value="curah">Vegetable</option><option value="vegetable_tgg">Vegetable Tanggung</option></select><button type="button" id="btnApplyTemplate" class="btn btn-apply-template btn-sm text-nowrap" disabled><i class="bi bi-check-lg me-1"></i>Terapkan</button></div><?php if ($isManualDetail): ?><a class="btn btn-primary btn-sm text-nowrap" href="<?= base_url('import-history/manual/' . (int) $history['id']) ?>"><i class="bi bi-plus-lg me-1"></i>Tambah Produk</a><?php else: ?><button type="button" class="btn btn-primary btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalTambah"><i class="bi bi-plus-lg me-1"></i>Tambah Produk</button><?php endif; ?></div></div>
                 <div class="table-responsive">
                 <table id="tabelProdukDetail" class="table table-striped table-hover m-0 align-middle">
                     <colgroup>
@@ -305,7 +305,7 @@
                                 <?php
                                     $tagId = (int) ($tag['id'] ?? 0);
                                     $isPrinted = (int) ($tag['is_printed'] ?? 0) === 1;
-                $templateSize = in_array(($tag['template_size'] ?? ''), ['tgg', 'kcl', 'mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga', 'vegetable_tgg'], true) ? $tag['template_size'] : '';
+                $templateSize = in_array(($tag['template_size'] ?? ''), ['tgg', 'kcl', 'mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga', 'segitiga_kecil', 'vegetable_tgg'], true) ? $tag['template_size'] : '';
                                 ?>
                                 <tr>
                                     <td>
@@ -319,6 +319,7 @@
                                             data-size="<?= esc($templateSize) ?>"
                                             data-allocation="<?= (int) ($tag['allocation_pcs'] ?? 0) ?>"
                                             data-discount="<?= (float) ($tag['discount_percent'] ?? 0) ?>"
+                                            data-promo="<?= esc($tag['promo_price'] ?? '') ?>"
                                         >
                                     </td>
                                     <td><?= $tagIndex + 1 ?></td>
@@ -348,7 +349,7 @@
                                             </label>
                                         </form>
                                     </td>
-                                    <td><form method="post" class="template-size-form" action="<?= base_url('pricetag/template/' . $tagId) ?><?= !empty($history['id']) ? '?import_id=' . (int) $history['id'] : '' ?>"><div class="template-size-wrapper <?= $templateSize === '' ? 'is-required' : '' ?>"><i class="bi bi-exclamation-triangle-fill template-size-warning <?= $templateSize === '' ? '' : 'd-none' ?>" aria-hidden="true"></i><select name="template_size" class="form-select form-select-sm template-size" <?= $tagId === 0 ? 'disabled' : '' ?>><option value="" <?= $templateSize === '' ? 'selected' : '' ?>>Pilih ukuran</option><option value="kcl" <?= $templateSize === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="tgg" <?= $templateSize === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="mpdf" <?= $templateSize === 'mpdf' ? 'selected' : '' ?>>A4</option><option value="pricetag" <?= $templateSize === 'pricetag' ? 'selected' : '' ?>>Price Tag</option><option value="a5" <?= $templateSize === 'a5' ? 'selected' : '' ?>>A5</option><option value="segitiga" <?= $templateSize === 'segitiga' ? 'selected' : '' ?>>Segitiga</option><option value="fresh" <?= $templateSize === 'fresh' ? 'selected' : '' ?>>Butcher</option><option value="curah" <?= $templateSize === 'curah' ? 'selected' : '' ?>>Vegetable</option><option value="vegetable_tgg" <?= $templateSize === 'vegetable_tgg' ? 'selected' : '' ?>>Vegetable Tanggung</option></select></div></form></td>
+                                    <td><form method="post" class="template-size-form" action="<?= base_url('pricetag/template/' . $tagId) ?><?= !empty($history['id']) ? '?import_id=' . (int) $history['id'] : '' ?>"><div class="template-size-wrapper <?= $templateSize === '' ? 'is-required' : '' ?>"><i class="bi bi-exclamation-triangle-fill template-size-warning <?= $templateSize === '' ? '' : 'd-none' ?>" aria-hidden="true"></i><select name="template_size" class="form-select form-select-sm template-size" <?= $tagId === 0 ? 'disabled' : '' ?>><option value="" <?= $templateSize === '' ? 'selected' : '' ?>>Pilih ukuran</option><option value="kcl" <?= $templateSize === 'kcl' ? 'selected' : '' ?>>Kecil</option><option value="tgg" <?= $templateSize === 'tgg' ? 'selected' : '' ?>>Tanggung</option><option value="mpdf" <?= $templateSize === 'mpdf' ? 'selected' : '' ?>>A4</option><option value="pricetag" <?= $templateSize === 'pricetag' ? 'selected' : '' ?>>Price Tag</option><option value="a5" <?= $templateSize === 'a5' ? 'selected' : '' ?>>A5</option><option value="segitiga" <?= $templateSize === 'segitiga' ? 'selected' : '' ?>>Segitiga</option><option value="segitiga_kecil" <?= $templateSize === 'segitiga_kecil' ? 'selected' : '' ?>>Segitiga Kecil</option><option value="fresh" <?= $templateSize === 'fresh' ? 'selected' : '' ?>>Butcher</option><option value="curah" <?= $templateSize === 'curah' ? 'selected' : '' ?>>Vegetable</option><option value="vegetable_tgg" <?= $templateSize === 'vegetable_tgg' ? 'selected' : '' ?>>Vegetable Tanggung</option></select></div></form></td>
                                     <td class="text-center" style="min-width:76px;">
                                         <button type="button" class="btn btn-primary mk-icon-btn btn-edit"
                                             data-id="<?= $tagId ?>"
@@ -572,6 +573,7 @@
                     warning.classList.toggle('d-none', select.value !== '');
                     const productCheck = form.closest('tr')?.querySelector('.product-check');
                     if (productCheck) productCheck.dataset.size = select.value;
+                    templateToast.className = 'alert alert-success shadow-sm py-2 px-3 mb-0';
                     templateToast.textContent = 'Ukuran template produk berhasil disimpan.';
                     templateToast.style.display = 'block';
                     clearTimeout(toastTimer);
@@ -809,11 +811,19 @@
         const pairingSelectedIds = () => pairingSelectionOrder.slice(0, 2);
 
         function templateLabel(size) {
-            return {mpdf:'A4', pricetag:'Price Tag', a5:'A5', fresh:'Butcher', curah:'Vegetable', segitiga:'Segitiga', vegetable_tgg:'Vegetable Tanggung'}[size] || 'Kecil';
+            return {mpdf:'A4', pricetag:'Price Tag', a5:'A5', fresh:'Butcher', curah:'Vegetable', segitiga:'Segitiga', segitiga_kecil:'Segitiga Kecil Diskon', vegetable_tgg:'Vegetable Tanggung'}[size] || 'Kecil';
+        }
+
+        function isValidSmallTriangleDiscount(value) {
+            const raw = String(value ?? '').trim();
+            if (raw === '' || !/^\d+$/.test(raw)) return false;
+            const number = Number(raw);
+            return Number.isInteger(number) && number >= 1 && number <= 99;
         }
 
         function discountFields(product) {
             const {id, size, allocation, discount} = product;
+            if (size === 'segitiga_kecil') return `<input type="hidden" name="discount_mode[${id}]" value="show">`;
             const canAllvar = size === 'tgg' && Number(allocation || 0) === 0;
             const isA4 = size === 'mpdf';
             const hasDiscountTemplate = ['kcl', 'tgg', 'a5', 'segitiga'].includes(size);
@@ -920,7 +930,7 @@
         btnCetak.addEventListener('click', function () {
             const checkedProducts = [...getChecked()];
             if (checkedProducts.some(cb => !cb.dataset.size)) { tampilkanErrorCetak('Pastikan produk sudah memilih ukuran template.'); return; }
-            modalProducts = checkedProducts.map(cb => ({id: cb.dataset.id, sku: cb.dataset.sku, name: cb.dataset.name, variant: cb.dataset.variant, size: cb.dataset.size, allocation: cb.dataset.allocation, discount: cb.dataset.discount}));
+            modalProducts = checkedProducts.map(cb => ({id: cb.dataset.id, sku: cb.dataset.sku, name: cb.dataset.name, variant: cb.dataset.variant, size: cb.dataset.size, allocation: cb.dataset.allocation, discount: cb.dataset.discount, promo: cb.dataset.promo}));
             vegetablePairs = [];
             pairingSelectionOrder = [];
             modalQty = new Map(modalProducts.map(product => [product.id, 1]));
@@ -929,7 +939,7 @@
             document.getElementById('vegetablePreviewHeader').classList.toggle('d-none', modalProducts.length === 0);
             renderPreview();
             const sizes = modalProducts.map(product => product.size);
-            const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga', 'vegetable_tgg'].includes(size));
+            const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga', 'segitiga_kecil', 'vegetable_tgg'].includes(size));
             document.getElementById('formCetak').action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCetak')).show();
         });
@@ -988,7 +998,14 @@
                 return;
             }
 
-            const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga', 'vegetable_tgg'].includes(size));
+            const invalidSmallTriangle = modalProducts.filter(product => product.size === 'segitiga_kecil' && !isValidSmallTriangleDiscount(product.discount));
+            if (invalidSmallTriangle.length > 0) {
+                const products = invalidSmallTriangle.map(product => `PLU: ${product.sku}\nProduk: ${product.name}`);
+                tampilkanErrorCetak(['Segitiga Kecil Diskon hanya dapat digunakan untuk diskon bulat 1% sampai 99%.', ...products, 'Lengkapi diskon atau pilih template lain sebelum mencetak.'].join('\n\n'), true);
+                return;
+            }
+
+            const hasMpdf = sizes.some(size => ['mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga', 'segitiga_kecil', 'vegetable_tgg'].includes(size));
             this.action = hasMpdf ? '<?= base_url('print-mpdf') ?>' : '<?= base_url('print-pdf') ?>';
 
             const submitButton = this.querySelector('button[type="submit"]');
