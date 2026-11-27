@@ -152,6 +152,7 @@
         .bulk-template-control .btn-apply-template:disabled { background-color: #fdba8c; border-color: #fdba8c; color: #fff; opacity: 1; cursor: not-allowed; }
         .bulk-template-control .btn-apply-template:hover,
         .bulk-template-control .btn-apply-template:focus { background-color: #d96500; border-color: #d96500; color: #fff; }
+        #btnCetak:disabled { background-color: rgba(220, 53, 69, .55); border-color: rgba(220, 53, 69, .55); color: #fff; opacity: 1; cursor: not-allowed; }
         @media (max-width: 991.98px) {
             .detail-table-card .px-3.pt-3 { flex-wrap: wrap; align-items: flex-start; }
             .detail-table-card .px-3.pt-3 > div { min-width: 0; }
@@ -573,6 +574,7 @@
                     warning.classList.toggle('d-none', select.value !== '');
                     const productCheck = form.closest('tr')?.querySelector('.product-check');
                     if (productCheck) productCheck.dataset.size = select.value;
+                    updateTombolCetak();
                     templateToast.className = 'alert alert-success shadow-sm py-2 px-3 mb-0';
                     templateToast.textContent = 'Ukuran template produk berhasil disimpan.';
                     templateToast.style.display = 'block';
@@ -587,6 +589,7 @@
                     templateToast.style.display = 'block';
                     clearTimeout(toastTimer);
                     toastTimer = setTimeout(() => { templateToast.style.display = 'none'; templateToast.className = 'alert alert-success shadow-sm py-2 px-3 mb-0'; }, 3000);
+                    updateTombolCetak();
                 } finally {
                     select.disabled = false;
                 }
@@ -629,6 +632,12 @@
             return document.querySelectorAll('.product-check:checked');
         }
 
+        const validTemplateSizes = new Set(['kcl', 'tgg', 'mpdf', 'pricetag', 'a5', 'fresh', 'curah', 'segitiga', 'segitiga_kecil', 'vegetable_tgg']);
+
+        function checkedProductsHaveValidTemplates() {
+            return [...getChecked()].every(productCheck => validTemplateSizes.has(productCheck.dataset.size));
+        }
+
         function getVisibleProductChecks() {
             return [...productRows]
                 .filter(row => row.style.display === '')
@@ -637,9 +646,10 @@
         }
 
         function updateTombolCetak() {
-            const jumlah = getChecked().length;
+            const checkedProducts = [...getChecked()];
+            const jumlah = checkedProducts.length;
             jumlahTerpilih.textContent = jumlah;
-            btnCetak.disabled = jumlah === 0;
+            btnCetak.disabled = jumlah === 0 || !checkedProductsHaveValidTemplates();
             bulkTemplateCount.textContent = `${jumlah} produk dipilih`;
             if (!btnApplyTemplate.dataset.running) {
                 btnApplyTemplate.disabled = jumlah === 0 || bulkTemplateSize.value === '';
