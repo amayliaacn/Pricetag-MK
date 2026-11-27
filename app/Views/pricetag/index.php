@@ -811,7 +811,14 @@
         const pairingSelectedIds = () => pairingSelectionOrder.slice(0, 2);
 
         function templateLabel(size) {
-            return {mpdf:'A4', pricetag:'Price Tag', a5:'A5', fresh:'Butcher', curah:'Vegetable', segitiga:'Segitiga', segitiga_kecil:'Segitiga Kecil Diskon', vegetable_tgg:'Vegetable Tanggung'}[size] || 'Kecil';
+            return {mpdf:'A4', pricetag:'Price Tag', a5:'A5', fresh:'Butcher', curah:'Vegetable', segitiga:'Segitiga', segitiga_kecil:'Segitiga Kecil', vegetable_tgg:'Vegetable Tanggung'}[size] || 'Kecil';
+        }
+
+        function parseFiniteNumber(value) {
+            const raw = String(value ?? '').trim();
+            if (raw === '' || !/^-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(raw)) return null;
+            const number = Number(raw);
+            return Number.isFinite(number) ? number : null;
         }
 
         function isValidSmallTriangleDiscount(value) {
@@ -821,9 +828,28 @@
             return Number.isInteger(number) && number >= 1 && number <= 99;
         }
 
+        function isLegacySmallTriangleDiscount(value) {
+            const raw = String(value ?? '').trim();
+            return raw === '' || raw === '0';
+        }
+
+        function hasPositivePromo(value) {
+            const number = parseFiniteNumber(value);
+            return number !== null && number > 0;
+        }
+
+        function isValidSmallTriangleProduct(product) {
+            return isValidSmallTriangleDiscount(product.discount)
+                || (isLegacySmallTriangleDiscount(product.discount) && hasPositivePromo(product.promo));
+        }
+
+        function smallTriangleDesignLabel(product) {
+            return 'Segitiga Kecil';
+        }
+
         function discountFields(product) {
             const {id, size, allocation, discount} = product;
-            if (size === 'segitiga_kecil') return `<input type="hidden" name="discount_mode[${id}]" value="show">`;
+            if (size === 'segitiga_kecil') return '';
             const canAllvar = size === 'tgg' && Number(allocation || 0) === 0;
             const isA4 = size === 'mpdf';
             const hasDiscountTemplate = ['kcl', 'tgg', 'a5', 'segitiga'].includes(size);
@@ -859,7 +885,7 @@
             const canAllvar = product.size === 'tgg' && Number(product.allocation || 0) === 0;
             const row = document.createElement('tr');
             const vegetableLabel = modalHasVegetable && isVegetable(product) ? '<div class="small text-muted">POP 1 Produk</div>' : '';
-            const templateText = product.size === 'kcl' ? '<span class="text-muted">Kecil</span>' : `<span>${templateLabel(product.size)}</span>`;
+            const templateText = product.size === 'kcl' ? '<span class="text-muted">Kecil</span>' : `<span>${product.size === 'segitiga_kecil' ? smallTriangleDesignLabel(product) : templateLabel(product.size)}</span>`;
             row.innerHTML = `<td>${escapeHtml(product.sku)}<input type="hidden" name="tag_ids[]" value="${escapeHtml(id)}"></td><td>${escapeHtml(product.name)}${product.variant ? ' - ' + escapeHtml(product.variant) : ''}${vegetableLabel}</td><td><input type="hidden" name="size[${escapeHtml(id)}]" value="${escapeHtml(product.size)}">${product.size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${escapeHtml(id)}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : templateText}${discountFields(product)}</td><td class="text-center">${qtyStepper(modalQty.get(id) || 1, 'modal-qty', `data-product-id="${escapeHtml(id)}"`, `qty[${escapeHtml(id)}]` )}</td>`;
             return row;
         }
@@ -998,10 +1024,10 @@
                 return;
             }
 
-            const invalidSmallTriangle = modalProducts.filter(product => product.size === 'segitiga_kecil' && !isValidSmallTriangleDiscount(product.discount));
+            const invalidSmallTriangle = modalProducts.filter(product => product.size === 'segitiga_kecil' && !isValidSmallTriangleProduct(product));
             if (invalidSmallTriangle.length > 0) {
                 const products = invalidSmallTriangle.map(product => `PLU: ${product.sku}\nProduk: ${product.name}`);
-                tampilkanErrorCetak(['Segitiga Kecil Diskon hanya dapat digunakan untuk diskon bulat 1% sampai 99%.', ...products, 'Lengkapi diskon atau pilih template lain sebelum mencetak.'].join('\n\n'), true);
+                tampilkanErrorCetak(['Segitiga Kecil membutuhkan diskon bulat 1% sampai 99% atau nominal promo positif.', ...products, 'Lengkapi diskon/promo atau pilih template lain sebelum mencetak.'].join('\n\n'), true);
                 return;
             }
 
