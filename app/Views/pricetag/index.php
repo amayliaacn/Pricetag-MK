@@ -111,6 +111,9 @@
         #modalCetak .qty-stepper input:focus { border-color:var(--pop-orange); outline:0; }
         #modalCetak .qty-stepper input::-webkit-outer-spin-button, #modalCetak .qty-stepper input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
         #modalCetak .qty-stepper input[type=number] { -moz-appearance:textfield; }
+        #modalCetak .remove-print-product { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; margin-left:4px; padding:0; border:0; background:transparent; color:#DC3545; cursor:pointer; }
+        #modalCetak .remove-print-product i { font-size:15px; line-height:1; }
+        #modalCetak .remove-print-product:hover { color:#B02A37; }
         #modalCetak .pop-summary { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:16px; padding:14px; border-radius:6px; background:#F5F6F8; color:#212529; font-size:13px; }
         #modalCetak .pop-summary-lines { display:flex; flex-direction:column; gap:8px; }
         #modalCetak .pop-summary-total { font-size:14px; font-weight:600; white-space:nowrap; }
@@ -478,6 +481,7 @@
                                     <th>Produk</th>
                                     <th>Template</th>
                                     <th style="width:100px;">Qty Cetak</th>
+                                    <th aria-hidden="true"></th>
                                 </tr>
                             </thead>
                             <tbody id="tabelProdukTerpilih">
@@ -896,14 +900,14 @@
             const row = document.createElement('tr');
             const vegetableLabel = modalHasVegetable && isVegetable(product) ? '<div class="small text-muted">POP 1 Produk</div>' : '';
             const templateText = product.size === 'kcl' ? '<span class="text-muted">Kecil</span>' : `<span>${product.size === 'segitiga_kecil' ? smallTriangleDesignLabel(product) : templateLabel(product.size)}</span>`;
-            row.innerHTML = `<td>${escapeHtml(product.sku)}<input type="hidden" name="tag_ids[]" value="${escapeHtml(id)}"></td><td>${escapeHtml(product.name)}${product.variant ? ' - ' + escapeHtml(product.variant) : ''}${vegetableLabel}</td><td><input type="hidden" name="size[${escapeHtml(id)}]" value="${escapeHtml(product.size)}">${product.size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${escapeHtml(id)}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : templateText}${discountFields(product)}</td><td class="text-center">${qtyStepper(modalQty.get(id) || 1, 'modal-qty', `data-product-id="${escapeHtml(id)}"`, `qty[${escapeHtml(id)}]` )}</td>`;
+            row.innerHTML = `<td>${escapeHtml(product.sku)}<input type="hidden" name="tag_ids[]" value="${escapeHtml(id)}"></td><td>${escapeHtml(product.name)}${product.variant ? ' - ' + escapeHtml(product.variant) : ''}${vegetableLabel}</td><td><input type="hidden" name="size[${escapeHtml(id)}]" value="${escapeHtml(product.size)}">${product.size === 'tgg' ? `<label class="form-check mb-0"><input type="checkbox" name="allvar[${escapeHtml(id)}]" value="1" class="form-check-input allvar-product" ${canAllvar ? '' : 'disabled'}><span class="form-check-label">All Varian</span></label>` : templateText}${discountFields(product)}</td><td class="text-center">${qtyStepper(modalQty.get(id) || 1, 'modal-qty', `data-product-id="${escapeHtml(id)}"`, `qty[${escapeHtml(id)}]` )}</td><td class="text-center"><button type="button" class="remove-print-product" data-product-id="${escapeHtml(id)}" title="Keluarkan dari daftar cetak" aria-label="Keluarkan dari daftar cetak"><i class="bi bi-x-lg" aria-hidden="true"></i></button></td>`;
             return row;
         }
 
         function pairRow(pair, pairIndex) {
             const row = document.createElement('tr');
             const top = pair.top, bottom = pair.bottom;
-            row.innerHTML = `<td>${escapeHtml(top.sku)}<br>${escapeHtml(bottom.sku)}<input type="hidden" name="tag_ids[]" value="${escapeHtml(top.id)}"><input type="hidden" name="tag_ids[]" value="${escapeHtml(bottom.id)}"><input type="hidden" name="size[${escapeHtml(top.id)}]" value="vegetable_tgg"><input type="hidden" name="size[${escapeHtml(bottom.id)}]" value="vegetable_tgg"></td><td><div class="pair-product-group"><div>${escapeHtml(top.name)}</div><div>${escapeHtml(bottom.name)}</div><button type="button" class="split-pair" data-pair-index="${pairIndex}"><i class="bi bi-link-45deg"></i><span>Pisahkan</span></button></div></td><td><span class="pair-template-group"><span>Vegetable Tanggung</span><span class="pair-marker"><i class="bi bi-layers"></i>2 Produk / POP</span></span><input type="hidden" name="vegetable_pairs[${pairIndex}][top_id]" value="${escapeHtml(top.id)}"><input type="hidden" name="vegetable_pairs[${pairIndex}][bottom_id]" value="${escapeHtml(bottom.id)}"><input type="hidden" name="vegetable_pairs[${pairIndex}][qty]" value="${escapeHtml(pair.qty)}"></td><td class="text-center">${qtyStepper(pair.qty, 'modal-pair-qty', `data-pair-index="${pairIndex}"`)}</td>`;
+            row.innerHTML = `<td>${escapeHtml(top.sku)}<br>${escapeHtml(bottom.sku)}<input type="hidden" name="tag_ids[]" value="${escapeHtml(top.id)}"><input type="hidden" name="tag_ids[]" value="${escapeHtml(bottom.id)}"><input type="hidden" name="size[${escapeHtml(top.id)}]" value="vegetable_tgg"><input type="hidden" name="size[${escapeHtml(bottom.id)}]" value="vegetable_tgg"></td><td><div class="pair-product-group"><div>${escapeHtml(top.name)}</div><div>${escapeHtml(bottom.name)}</div><button type="button" class="split-pair" data-pair-index="${pairIndex}"><i class="bi bi-link-45deg"></i><span>Pisahkan</span></button></div></td><td><span class="pair-template-group"><span>Vegetable Tanggung</span><span class="pair-marker"><i class="bi bi-layers"></i>2 Produk / POP</span></span><input type="hidden" name="vegetable_pairs[${pairIndex}][top_id]" value="${escapeHtml(top.id)}"><input type="hidden" name="vegetable_pairs[${pairIndex}][bottom_id]" value="${escapeHtml(bottom.id)}"><input type="hidden" name="vegetable_pairs[${pairIndex}][qty]" value="${escapeHtml(pair.qty)}"></td><td class="text-center">${qtyStepper(pair.qty, 'modal-pair-qty', `data-pair-index="${pairIndex}"`)}</td><td></td>`;
             return row;
         }
 
@@ -923,6 +927,24 @@
 
         function updatePairButton() {
             btnGabungkan.disabled = pairingSelectionOrder.length !== 2;
+        }
+
+        function removeProductFromPrintList(productId) {
+            const id = String(productId);
+            if (pairedIds().has(id)) return;
+
+            modalProducts = modalProducts.filter(product => String(product.id) !== id);
+            modalQty.delete(productId);
+            pairingSelectionOrder = pairingSelectionOrder.filter(selectedId => String(selectedId) !== id);
+
+            const checkbox = [...productChecks].find(productCheck => String(productCheck.dataset.id) === id);
+            if (checkbox) checkbox.checked = false;
+
+            renderPreview();
+            updateTombolCetak();
+            if (modalProducts.length === 0) {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCetak')).hide();
+            }
         }
 
         function renderPreview() {
@@ -947,6 +969,7 @@
             tabelBody.querySelectorAll('.qty-plus, .qty-minus').forEach(button => button.addEventListener('click', () => { const input = button.parentElement.querySelector('input[type="number"]'); const value = Math.max(1, (parseInt(input.value, 10) || 1) + (button.classList.contains('qty-plus') ? 1 : -1)); input.value = formatQty(value); input.dispatchEvent(new Event('change', {bubbles:true})); }));
             tabelBody.querySelectorAll('.qty-stepper input').forEach(input => { const value = Number(input.value); input.value = Number.isInteger(value) && value > 0 ? formatQty(value) : '01'; input.addEventListener('focus', () => input.select()); input.addEventListener('blur', () => { if (!/^\d+$/.test(input.value) || Number(input.value) < 1) { input.value = '01'; input.dispatchEvent(new Event('change', {bubbles:true})); } }); });
             tabelBody.querySelectorAll('.split-pair').forEach(button => button.addEventListener('click', () => { const index = Number(button.dataset.pairIndex); const pair = vegetablePairs[index]; modalQty.set(pair.top.id, pair.topQty); modalQty.set(pair.bottom.id, pair.bottomQty); vegetablePairs.splice(index, 1); renderPreview(); }));
+            tabelBody.querySelectorAll('.remove-print-product').forEach(button => button.addEventListener('click', () => removeProductFromPrintList(button.dataset.productId)));
             updateStepperStates();
         }
 
