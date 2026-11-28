@@ -45,7 +45,7 @@
                         <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
                             <div>
                                 <h3 class="mk-title mb-1">Dashboard</h3>
-                                <p class="mk-subtitle mb-0">Kelola akun, outlet, import Excel, dan cetak label harga.</p>
+                                <p class="mk-subtitle mb-0">Kelola akun, outlet, data produk, dan cetak label harga.</p>
                             </div>
                             <?php if (session()->get('outlet_name')): ?>
                                 <div class="mk-dashboard-outlet">
@@ -80,10 +80,10 @@
 
                             <div class="col-md-4 d-flex">
                                 <div class="mk-action-card green p-4 h-100 w-100 d-flex flex-column">
-                                    <i class="bi bi-clock-history fs-2 mb-3 d-block"></i>
-                                    <h5>History Import</h5>
-                                    <p class="flex-grow-1">Lihat kembali data dari setiap file yang pernah diimpor.</p>
-                                    <a href="<?= base_url('import-history') ?>" class="btn btn-light btn-sm fw-bold mk-icon-link align-self-start"><i class="bi bi-arrow-right-circle"></i><span>Buka History Import</span></a>
+                                    <i class="bi bi-file-earmark-text fs-2 mb-3 d-block"></i>
+                                    <h5>Input Data</h5>
+                                    <p class="flex-grow-1">Input data produk, lihat riwayat, dan cetak label harga.</p>
+                                    <a href="<?= base_url('import-history') ?>" class="btn btn-light btn-sm fw-bold mk-icon-link align-self-start"><i class="bi bi-arrow-right-circle"></i><span>Buka Input Data</span></a>
                                 </div>
                             </div>
                         </div>

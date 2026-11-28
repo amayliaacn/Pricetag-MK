@@ -120,8 +120,10 @@
         @media (max-width:576px) { #modalCetak .modal-body { padding:12px; } #modalCetak .pop-preview-table { min-width:620px; } #modalCetak .pop-summary { align-items:flex-start; } }
         .search-print-card .card-body { padding: 12px 16px; }
         .search-print-card .control-label { display: block; font-size: .875rem; font-weight: 700; color: #202124; margin-bottom: 4px; }
-        .search-print-card .search-group { flex: 1 1 480px; min-width: 300px; }
-        .search-print-card .size-group { flex: 0 0 145px; }
+        .manual-detail-page > main.detail-page-main { width: 100%; max-width: 1440px; padding-left: 20px !important; padding-right: 20px !important; }
+        .manual-detail-page > main.detail-page-main > .detail-content-container { width: 100%; max-width: none; padding-left: 0; padding-right: 0; }
+        .search-print-card .search-group { flex: 1 1 480px; min-width: min(300px, 100%); }
+        .search-print-card .size-group { flex: 0 1 190px; min-width: 160px; }
         .search-print-card .search-control { position: relative; }
         .search-print-card .search-control i { position: absolute; left: 10px; top: 10px; color: #6c757d; }
         .search-print-card .search-control input { padding-left: 32px; }
@@ -156,6 +158,11 @@
         .bulk-template-control .btn-apply-template:hover,
         .bulk-template-control .btn-apply-template:focus { background-color: #d96500; border-color: #d96500; color: #fff; }
         #btnCetak:disabled { background-color: rgba(220, 53, 69, .55); border-color: rgba(220, 53, 69, .55); color: #fff; opacity: 1; cursor: not-allowed; }
+        @media (min-width: 992px) {
+            .manual-detail-page > main.detail-page-main > .d-flex:nth-child(2) { align-items: center !important; }
+            .manual-detail-page .mk-template-banner { padding-left: 18px; padding-right: 18px; }
+            .manual-detail-page .detail-table-card { width: 100%; }
+        }
         @media (max-width: 991.98px) {
             .detail-table-card .px-3.pt-3 { flex-wrap: wrap; align-items: flex-start; }
             .detail-table-card .px-3.pt-3 > div { min-width: 0; }
@@ -166,8 +173,12 @@
             .bulk-template-divider { display: none; }
             .bulk-template-group { flex-wrap: wrap; }
         }
-        @media (min-width: 1400px) {
-            .detail-table-card { width: calc(100vw - 66px); margin-left: 0; position: relative; left: 50%; transform: translateX(-50%); }
+        @media (max-width: 767.98px) {
+            .manual-detail-page > main.detail-page-main { padding-left: 12px !important; padding-right: 12px !important; }
+            .search-print-card .card-body { gap: 10px !important; }
+            .search-print-card .search-group,
+            .search-print-card .size-group { flex-basis: 100%; min-width: 100%; }
+            .search-print-card #btnCetak { width: 100%; }
         }
     </style>
 </head>
@@ -187,7 +198,7 @@
             </div>
         </div>
     </nav>
-    <main class="container py-4">
+    <main class="container py-4 detail-page-main">
     <div class="d-flex justify-content-between align-items-start mb-0"><nav aria-label="breadcrumb"><ol class="breadcrumb small mb-0">
         <li class="breadcrumb-item"><a href="<?= base_url('dashboard') ?>" class="text-decoration-none"><i class="bi bi-house-door text-warning"></i></a></li>
         <li class="breadcrumb-item"><a href="<?= base_url('dashboard') ?>" class="text-decoration-none">Dashboard</a></li>
@@ -210,7 +221,7 @@
             <div class="mk-template-copy"><h5><?= $infoLabel ?></h5><p class="mb-0"><i class="bi bi-file-earmark me-2"></i><?= esc($history['file_name']) ?> <span class="mx-2">|</span> <i class="bi bi-shop me-1"></i><?= esc($history['outlet_code'] . ' - ' . $history['outlet_name']) ?> <span class="mx-2">|</span> <i class="bi bi-calendar3 me-1"></i><?= esc($detailImportedAt->format('d M Y')) ?> <span class="mx-2">|</span> <i class="bi bi-clock me-1"></i><?= esc($detailImportedAt->format('H:i:s')) ?> <span class="mx-2">|</span> <i class="bi bi-person me-1"></i><?= esc($history['username'] ?? '-') ?></p></div>
         </section>
     <?php endif; ?>
-    <div class="container mt-4">
+    <div class="detail-content-container mt-4">
     <div class="card shadow-sm mb-4 search-print-card">
     <div class="card-body d-flex flex-wrap gap-3 align-items-end">
         <div class="search-group">
